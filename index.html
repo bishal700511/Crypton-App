@@ -1,0 +1,3099 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#050d1a" />
+  <title>Crypton — Decentralized Network</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <!-- TonConnect SDK -->
+  <script src="https://unpkg.com/@tonconnect/ui@2.0.8/dist/tonconnect-ui.min.js"></script>
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp }                              from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc,
+             updateDoc, increment, collection,
+             query, orderBy, where, limit, getDocs,
+             addDoc, deleteDoc, serverTimestamp,
+             Timestamp }                                  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey:            "AIzaSyBgUDDlOJR_xgPwQq7e89ISWRbGEo2CoNk",
+      authDomain:        "crypton-app-871b1.firebaseapp.com",
+      projectId:         "crypton-app-871b1",
+      storageBucket:     "crypton-app-871b1.firebasestorage.app",
+      messagingSenderId: "435801573665",
+      appId:             "1:435801573665:web:273781732a2a3d843f9660"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    // ── Expose db + Firestore helpers to global scope ──────────
+    window.__db = db;
+    window.__fs = { doc, getDoc, setDoc, updateDoc, increment,
+                    collection, query, orderBy, where, limit, getDocs,
+                    addDoc, deleteDoc, serverTimestamp, Timestamp };
+
+    console.log('[Firebase] Firestore initialized ✓');
+  </script>
+
+  <style>
+    /* ─── RESET & ROOT ──────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:        #050d1a;
+      --navy-mid:    #091525;
+      --navy-card:   rgba(8,20,40,0.72);
+      --gold:        #d4a843;
+      --gold-lt:     #f0c96a;
+      --gold-dim:    rgba(212,168,67,0.18);
+      --cyan:        #00e5ff;
+      --cyan-dim:    rgba(0,229,255,0.15);
+      --green:       #22c55e;
+      --green-dim:   rgba(34,197,94,0.13);
+      --red:         #ff4d6d;
+      --red-dim:     rgba(255,77,109,0.12);
+      --purple:      #c080d0;
+      --glass-bg:    rgba(255,255,255,0.04);
+      --glass-bd:    rgba(255,255,255,0.09);
+      --text-hi:     #e8f4ff;
+      --text-mid:    #8aa5c0;
+      --text-lo:     #3a5470;
+      --radius-lg:   20px;
+      --radius-md:   14px;
+      --radius-sm:   10px;
+      --font-head:   'Syne', sans-serif;
+      --font-mono:   'DM Mono', monospace;
+      --font-body:   'DM Sans', sans-serif;
+      --shadow-gold: 0 0 28px rgba(212,168,67,0.30);
+      --shadow-cyan: 0 0 24px rgba(0,229,255,0.24);
+      --shadow-green: 0 0 20px rgba(34,197,94,0.25);
+      --transition:  0.25s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--navy);
+      color: var(--text-hi);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── BACKGROUND ────────────────────────────────────────── */
+    .bg-canvas {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 10%,  rgba(0,229,255,0.05) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 80%,  rgba(212,168,67,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 100% 80% at 50% 50%, rgba(9,21,37,1) 0%, var(--navy) 100%);
+    }
+    .orb { position: fixed; border-radius: 50%; pointer-events: none; z-index: 0; filter: blur(80px); animation: orb-drift 14s ease-in-out infinite alternate; }
+    .orb-1 { width:300px; height:300px; top:-60px;  left:-50px;  background:rgba(0,229,255,0.05); animation-delay:0s; }
+    .orb-2 { width:240px; height:240px; bottom:12%; right:-30px; background:rgba(212,168,67,0.06); animation-delay:-6s; }
+    @keyframes orb-drift { from{transform:translate(0,0) scale(1);} to{transform:translate(24px,32px) scale(1.10);} }
+
+    /* ─── LAYOUT ────────────────────────────────────────────── */
+    #app { position:relative; z-index:1; max-width:480px; margin:0 auto; padding:0 0 96px; }
+
+    /* ─── HEADER ────────────────────────────────────────────── */
+    .header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 20px 13px;
+      border-bottom:1px solid var(--glass-bd);
+      backdrop-filter:blur(14px);
+      position:sticky; top:0; z-index:100;
+      background:rgba(5,13,26,0.90);
+    }
+    .logo { display:flex; align-items:center; gap:8px; font-family:var(--font-head); font-size:22px; font-weight:800; letter-spacing:-0.5px; min-width:0; flex:1; }
+    .logo-icon {
+      width:36px; height:36px; border-radius:10px;
+      background:linear-gradient(135deg,var(--gold) 0%,var(--cyan) 100%);
+      display:flex; align-items:center; justify-content:center;
+      font-size:16px; font-weight:900; color:var(--navy); font-family:var(--font-head);
+      box-shadow:var(--shadow-gold);
+    }
+    .logo-text { background:linear-gradient(90deg,var(--gold-lt),var(--cyan)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; flex-shrink:0; }
+
+    .header-right { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+
+    /* ─── HEADER USER AVATAR ────────────────────────────────── */
+    .hdr-user {
+      display:none; align-items:center; gap:9px;
+    }
+    .hdr-avatar {
+      width:36px; height:36px; border-radius:50%; flex-shrink:0;
+      background:linear-gradient(135deg,var(--gold) 0%,var(--cyan) 100%);
+      border:2px solid rgba(212,168,67,0.5);
+      display:flex; align-items:center; justify-content:center;
+      font-family:var(--font-head); font-size:13px; font-weight:800;
+      color:var(--navy); overflow:hidden;
+      box-shadow:0 0 14px rgba(212,168,67,0.25);
+    }
+    .hdr-avatar img { width:100%; height:100%; object-fit:cover; display:block; }
+    .hdr-uid {
+      font-family:var(--font-mono); font-size:10px; font-weight:600;
+      color:var(--cyan); letter-spacing:0.5px;
+      max-width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    }
+
+    /* ─── TWEET SHOUTBOX ────────────────────────────────────── */
+    .tweet-wrap {
+      padding:14px 18px 0;
+    }
+    .tweet-row {
+      display:flex; align-items:center; gap:10px;
+    }
+    .tweet-capsule {
+      flex:1; display:flex; align-items:center; gap:8px;
+      background:rgba(0,229,255,0.05);
+      border:1px solid rgba(0,229,255,0.20);
+      border-radius:50px; padding:9px 14px;
+      transition:border-color 0.2s, box-shadow 0.2s;
+    }
+    .tweet-capsule:focus-within {
+      border-color:rgba(0,229,255,0.45);
+      box-shadow:0 0 16px rgba(0,229,255,0.10);
+    }
+    .tweet-capsule.limit {
+      border-color:rgba(255,77,109,0.35);
+      background:rgba(255,77,109,0.05);
+    }
+    .tweet-at {
+      font-family:var(--font-mono); font-size:12px; font-weight:700;
+      color:var(--cyan); flex-shrink:0;
+    }
+    .tweet-input {
+      flex:1; background:transparent; border:none; outline:none;
+      font-family:var(--font-body); font-size:13px; color:var(--text-hi);
+      min-width:0;
+    }
+    .tweet-input::placeholder { color:var(--text-lo); }
+    .tweet-input:disabled { color:var(--text-lo); cursor:not-allowed; }
+    .tweet-counter {
+      font-family:var(--font-mono); font-size:9px; font-weight:600;
+      color:var(--text-lo); flex-shrink:0; transition:color 0.2s;
+    }
+    .tweet-counter.near { color:var(--gold-lt); }
+    .tweet-counter.full { color:var(--red); }
+    .tweet-btn {
+      flex-shrink:0; width:36px; height:36px; border-radius:50%;
+      border:none; cursor:pointer;
+      background:linear-gradient(135deg,var(--cyan),var(--gold));
+      color:var(--navy); font-size:14px; font-weight:900;
+      display:flex; align-items:center; justify-content:center;
+      box-shadow:var(--shadow-cyan);
+      transition:transform 0.18s, opacity 0.18s;
+    }
+    .tweet-btn:hover  { transform:scale(1.1); }
+    .tweet-btn:active { transform:scale(0.93); }
+    .tweet-btn:disabled { opacity:0.3; cursor:not-allowed; transform:none; }
+    .tweet-meta {
+      font-family:var(--font-mono); font-size:9px; color:var(--text-lo);
+      margin-top:6px; padding:0 2px; letter-spacing:0.3px;
+    }
+
+    /* ─── VIEW: TWEETS ──────────────────────────────────────── */
+    .tweets-feed { padding:4px 18px 16px; display:flex; flex-direction:column; gap:10px; }
+    .tweet-card {
+      background:var(--glass-bg); border:1px solid var(--glass-bd);
+      border-radius:var(--radius-md); padding:12px 14px;
+      display:flex; gap:11px; align-items:flex-start;
+      animation:fade-up 0.22s ease both;
+    }
+    .tc-dp {
+      width:34px; height:34px; border-radius:50%; flex-shrink:0;
+      background:linear-gradient(135deg,rgba(212,168,67,0.2),rgba(0,229,255,0.2));
+      border:1px solid var(--glass-bd);
+      display:flex; align-items:center; justify-content:center;
+      font-family:var(--font-head); font-size:13px; font-weight:800;
+      color:var(--cyan); overflow:hidden;
+    }
+    .tc-dp img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+    .tc-body { flex:1; min-width:0; }
+    .tc-handle { font-family:var(--font-mono); font-size:10px; font-weight:700; color:var(--cyan); margin-bottom:3px; }
+    .tc-text   { font-size:13px; color:var(--text-hi); line-height:1.5; word-break:break-word; }
+    .tc-time   { font-family:var(--font-mono); font-size:9px; color:var(--text-lo); margin-top:4px; }
+    .tweets-empty {
+      text-align:center; padding:44px 20px;
+      font-family:var(--font-mono); font-size:12px; color:var(--text-lo); letter-spacing:0.5px;
+    }
+    .tweets-hdr {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 18px 10px;
+    }
+    .tweets-hdr-count {
+      font-family:var(--font-mono); font-size:9px; color:var(--text-lo);
+      letter-spacing:1px; text-transform:uppercase;
+    }
+    /* 4th fab item stagger */
+    .fab-menu.open .fab-menu-item:nth-child(4) { transition-delay:0.16s; }
+    section { padding:24px 18px 0; }
+    .section-label {
+      font-family:var(--font-mono); font-size:10px; font-weight:500;
+      color:var(--cyan); letter-spacing:2px; text-transform:uppercase;
+      margin-bottom:14px; opacity:0.8;
+    }
+
+    /* ─── HERO ──────────────────────────────────────────────── */
+    .hero { padding:36px 18px 0; text-align:center; }
+    .hero-title { font-family:var(--font-head); font-size:clamp(34px,10vw,52px); font-weight:800; line-height:1.08; letter-spacing:-1px; margin-bottom:14px; }
+    .hero-title span { background:linear-gradient(135deg,var(--gold-lt) 0%,var(--cyan) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .hero-sub { font-size:14px; color:var(--text-mid); max-width:300px; margin:0 auto 32px; line-height:1.7; }
+
+    /* ─── CONNECT BUTTON ────────────────────────────────────── */
+    .btn-connect {
+      position:relative; display:inline-flex; align-items:center; gap:10px;
+      padding:16px 36px; border-radius:50px; border:none; cursor:pointer;
+      font-family:var(--font-head); font-size:16px; font-weight:700;
+      color:var(--navy); overflow:hidden;
+      background:linear-gradient(135deg,var(--gold) 0%,var(--gold-lt) 50%,var(--cyan) 100%);
+      background-size:200% 200%; background-position:0% 50%;
+      box-shadow:var(--shadow-gold), 0 4px 24px rgba(0,0,0,0.4);
+      transition:background-position var(--transition),transform var(--transition),box-shadow var(--transition);
+      animation:shimmer-btn 3s ease infinite;
+    }
+    @keyframes shimmer-btn { 0%{background-position:0% 50%;} 50%{background-position:100% 50%;} 100%{background-position:0% 50%;} }
+    .btn-connect:hover  { transform:translateY(-2px) scale(1.02); box-shadow:var(--shadow-gold), 0 8px 32px rgba(0,0,0,0.5); }
+    .btn-connect:active { transform:translateY(0) scale(0.98); }
+    .btn-connect .ton-icon { width:22px; height:22px; }
+    .btn-connect-sub { font-family:var(--font-mono); font-size:11px; color:var(--text-mid); margin-top:12px; letter-spacing:0.5px; }
+
+    /* ─── GLASS CARD ────────────────────────────────────────── */
+    .card {
+      background:var(--glass-bg); border:1px solid var(--glass-bd);
+      border-radius:var(--radius-lg); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+      overflow:hidden;
+    }
+    .card + .card { margin-top:14px; }
+
+    /* ─── DASHBOARD ─────────────────────────────────────────── */
+    #dashboard { display:none; }
+    .dash-top {
+      padding:20px;
+      background:linear-gradient(135deg,rgba(212,168,67,0.10) 0%,rgba(0,229,255,0.06) 100%);
+      border-bottom:1px solid var(--glass-bd);
+      display:flex; align-items:center; gap:14px;
+    }
+    .dash-avatar {
+      width:52px; height:52px; border-radius:14px;
+      background:linear-gradient(135deg,var(--gold) 0%,var(--cyan) 100%);
+      display:flex; align-items:center; justify-content:center;
+      font-family:var(--font-head); font-size:22px; font-weight:800;
+      color:var(--navy); flex-shrink:0;
+    }
+    .dash-name { font-family:var(--font-head); font-size:18px; font-weight:700; }
+    .dash-id   { font-family:var(--font-mono); font-size:11px; color:var(--cyan); opacity:0.8; margin-top:2px; }
+
+    .dash-stats { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--glass-bd); }
+    .dash-stat  { padding:16px 18px; background:var(--navy-card); }
+    .dash-stat-label { font-size:11px; color:var(--text-mid); letter-spacing:0.5px; font-family:var(--font-mono); }
+    .dash-stat-value {
+      font-family:var(--font-head); font-size:20px; font-weight:700; margin-top:4px;
+      background:linear-gradient(90deg,var(--gold-lt),var(--cyan));
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    }
+    .dash-stat-unit { font-size:12px; color:var(--text-mid); font-family:var(--font-mono); }
+
+    .wallet-row {
+      padding:14px 18px; display:flex; align-items:center; justify-content:space-between;
+      border-top:1px solid var(--glass-bd);
+    }
+    .wallet-label { font-size:11px; color:var(--text-mid); font-family:var(--font-mono); letter-spacing:0.5px; }
+    .wallet-addr  { font-family:var(--font-mono); font-size:13px; color:var(--cyan); word-break:break-all; margin-top:3px; }
+    .btn-copy {
+      padding:7px 14px; border-radius:8px; border:1px solid var(--glass-bd);
+      background:var(--glass-bg); color:var(--cyan); font-family:var(--font-mono);
+      font-size:11px; cursor:pointer; flex-shrink:0; margin-left:10px;
+      transition:background var(--transition),border-color var(--transition);
+      letter-spacing:0.5px;
+    }
+    .btn-copy:hover { background:var(--cyan-dim); border-color:var(--cyan); }
+    .btn-copy.copied { color:var(--gold-lt); border-color:var(--gold); background:rgba(212,168,67,0.10); }
+
+    /* ─── INCOME LEGEND STRIP (on dashboard) ─────────────────── */
+    .income-legend {
+      display:flex; gap:1px; background:var(--glass-bd);
+      border-top:1px solid var(--glass-bd);
+    }
+    .income-legend-item {
+      flex:1; padding:10px 12px; display:flex; flex-direction:column; gap:3px;
+      position:relative;
+    }
+    .income-legend-item.working { background:rgba(0,229,255,0.04); }
+    .income-legend-item.passive { background:rgba(212,168,67,0.04); }
+    .income-legend-tag {
+      font-family:var(--font-mono); font-size:9px; font-weight:600;
+      letter-spacing:1.5px; text-transform:uppercase; display:flex; align-items:center; gap:5px;
+    }
+    .income-legend-tag .dot { width:5px; height:5px; border-radius:50%; }
+    .working .income-legend-tag .dot { background:var(--cyan); }
+    .passive .income-legend-tag .dot { background:var(--gold); }
+    .working .income-legend-tag { color:var(--cyan); }
+    .passive .income-legend-tag { color:var(--gold-lt); }
+    .income-legend-val { font-family:var(--font-head); font-size:16px; font-weight:700; }
+    .working .income-legend-val { color:var(--cyan); }
+    .passive .income-legend-val { color:var(--gold-lt); }
+    .income-legend-sub { font-family:var(--font-mono); font-size:9px; color:var(--text-lo); }
+
+    /* ─── SLOT MATRIX GRID ──────────────────────────────────── */
+    .slots-grid {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:6px;
+      padding:10px 14px 24px;
+    }
+
+    /* ── Slot card — borderless, all slots equally visible ── */
+    .slot-card {
+      position:relative;
+      background:transparent;
+      border:none;
+      border-radius:0;
+      display:flex; flex-direction:column; align-items:center;
+      text-align:center;
+      cursor:pointer;
+      transition:opacity 0.2s, transform 0.18s;
+      padding:12px 6px 8px;
+    }
+
+    /* ── Locked: full brightness — status shown via badge only ── */
+    .slot-card.locked-card {
+      opacity:1;
+      cursor:pointer;
+      filter:none;
+    }
+    .slot-card.locked-card:hover { transform:translateY(-3px); opacity:1; }
+
+    /* ── All unlocked slots: subtle lift on hover ── */
+    .slot-card:not(.locked-card):hover { transform:translateY(-3px); }
+
+    /* ── Full: golden pulse on the tree ── */
+    .slot-card.full-card .slot-matrix svg {
+      filter:drop-shadow(0 0 8px rgba(212,168,67,0.45));
+      animation:full-tree-pulse 2.5s ease-in-out infinite alternate;
+    }
+    @keyframes full-tree-pulse {
+      from{filter:drop-shadow(0 0 5px rgba(212,168,67,0.30));}
+      to  {filter:drop-shadow(0 0 14px rgba(212,168,67,0.65));}
+    }
+
+    /* ── Active cyan glow on tree ── */
+    .slot-card.active-card:not(.premium) .slot-matrix svg {
+      filter:drop-shadow(0 0 6px rgba(0,229,255,0.30));
+    }
+    .slot-card.active-card.premium .slot-matrix svg {
+      filter:drop-shadow(0 0 6px rgba(212,168,67,0.35));
+    }
+
+    /* ── Slot top row: level label + status dot centered ── */
+    .slot-header {
+      display:flex; align-items:center; justify-content:center; gap:6px;
+      margin-bottom:5px;
+      font-family:var(--font-mono); font-size:10px; font-weight:600;
+      letter-spacing:1.5px; text-transform:uppercase;
+    }
+    /* All non-locked level labels — same brightness */
+    .slot-header-lvl { color:rgba(138,165,192,0.55); }
+    .active-card   .slot-header-lvl { color:rgba(0,229,255,0.70); }
+    .active-card.premium .slot-header-lvl { color:rgba(240,201,106,0.70); }
+    .full-card     .slot-header-lvl { color:rgba(240,201,106,0.80); }
+    .locked-card   .slot-header-lvl { color:rgba(138,165,192,0.70); }
+
+    /* Status dot */
+    .slot-status-badge {
+      width:5px; height:5px; border-radius:50%;
+      font-size:0; padding:0; border:none; flex-shrink:0;
+    }
+    .badge-locked   { background:rgba(138,165,192,0.55); box-shadow:0 0 4px rgba(138,165,192,0.3); }
+    .badge-buy      { background:rgba(212,168,67,0.55); box-shadow:0 0 5px rgba(212,168,67,0.4); }
+    .badge-active   { background:var(--cyan); box-shadow:0 0 5px rgba(0,229,255,0.65); }
+    .badge-full     { background:var(--gold-lt); box-shadow:0 0 7px rgba(212,168,67,0.75); animation:dot-pulse 1.8s ease-in-out infinite; }
+    @keyframes dot-pulse { 0%,100%{opacity:1;} 50%{opacity:0.45;} }
+
+    /* ── Slot body ── */
+    .slot-body { display:flex; flex-direction:column; align-items:center; gap:5px; width:100%; }
+
+    /* ── Price ── */
+    .slot-price-wrap { display:flex; align-items:baseline; gap:4px; }
+    .slot-price {
+      font-family:var(--font-head); font-size:17px; font-weight:800;
+      color:rgba(200,218,240,0.85); line-height:1; letter-spacing:-0.5px;
+    }
+    .slot-price-unit {
+      font-size:9px; font-weight:500; color:rgba(138,165,192,0.75);
+      font-family:var(--font-mono);
+    }
+    .slot-usd { display:none; }
+    .active-card .slot-price         { color:rgba(0,229,255,0.85); }
+    .active-card.premium .slot-price { color:rgba(240,201,106,0.85); }
+    .full-card .slot-price           { color:rgba(240,201,106,0.90); }
+
+    /* ── Hidden income elements ── */
+    .slot-income-bar, .slot-income-labels, .lbl-working, .lbl-passive { display:none; }
+
+    /* ── SVG Matrix Tree ── */
+    .slot-matrix {
+      width:100%; display:flex; justify-content:center; align-items:center;
+      padding:2px 0 0;
+    }
+    .slot-matrix svg { width:100%; max-width:136px; height:auto; overflow:visible; }
+
+    /* ── Recycle indicator ── */
+    .slot-recycle { font-size:26px; display:none; animation:spin-recycle 3s linear infinite; }
+    .full-card .slot-recycle { display:block; }
+    .full-card .slot-matrix  { display:none; }
+    @keyframes spin-recycle { 0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);} }
+
+    /* ── Fill bar ── */
+    .fill-bar-wrap { width:78%; margin-top:5px; }
+    .fill-bar-track { width:100%; height:1.5px; border-radius:2px; background:rgba(255,255,255,0.05); }
+    .fill-bar-fill  { height:1.5px; border-radius:2px; transition:width 0.4s ease; }
+    .active-card .fill-bar-fill         { background:rgba(0,229,255,0.45); }
+    .active-card.premium .fill-bar-fill { background:rgba(212,168,67,0.45); }
+    .full-card .fill-bar-fill           { background:rgba(212,168,67,0.60); width:100% !important; }
+    .fill-count {
+      font-family:var(--font-mono); font-size:7.5px;
+      color:rgba(58,84,112,0.50); text-align:center; margin-top:3px;
+    }
+    .active-card .fill-count { color:rgba(0,229,255,0.38); }
+
+    /* ── Action button — ghost text only ── */
+    .btn-slot {
+      width:100%; padding:6px 0 0;
+      border:none; background:transparent;
+      cursor:pointer; font-family:var(--font-mono); font-size:8.5px;
+      font-weight:700; letter-spacing:1.5px; text-transform:uppercase;
+      color:rgba(212,168,67,0.45);
+      transition:color 0.15s;
+    }
+    .btn-slot:hover  { color:rgba(212,168,67,0.80); }
+    .btn-slot:active { opacity:0.5; }
+    .btn-slot.owned  { color:rgba(0,229,255,0.32); cursor:default; }
+    .btn-slot.owned:hover { color:rgba(0,229,255,0.32); }
+    .btn-slot.locked { color:rgba(138,165,192,0.55); cursor:pointer; }
+    .btn-slot.locked:hover { color:rgba(212,168,67,0.80); }
+    .btn-slot.upgrade {
+      color:rgba(240,201,106,0.70);
+      animation:upgrade-glow 2s ease-in-out infinite alternate;
+    }
+    .btn-slot.upgrade:hover { color:var(--gold-lt); }
+    @keyframes upgrade-glow {
+      from{color:rgba(240,201,106,0.48);}
+      to  {color:rgba(240,201,106,0.85);}
+    }
+
+    /* ─── UPGRADE MODAL ─────────────────────────────────────── */
+    .modal-overlay {
+      display:none; position:fixed; inset:0; z-index:500;
+      background:rgba(5,13,26,0.88); backdrop-filter:blur(12px);
+      align-items:flex-end; justify-content:center;
+    }
+    .modal-overlay.show { display:flex; animation:fade-up 0.3s ease; }
+    .modal-sheet {
+      width:100%; max-width:480px;
+      background:#091525; border-top:1px solid rgba(212,168,67,0.28);
+      border-radius:22px 22px 0 0; padding:28px 24px 48px;
+      text-align:center;
+    }
+    .modal-icon  { font-size:44px; margin-bottom:10px; }
+    .modal-title { font-family:var(--font-head); font-size:22px; font-weight:800; margin-bottom:6px; }
+    .modal-sub   { font-size:13px; color:var(--text-mid); font-family:var(--font-mono); margin-bottom:24px; line-height:1.7; }
+    .modal-btns  { display:flex; gap:10px; }
+    .modal-btn-cancel  { flex:1; padding:13px; border-radius:10px; border:1px solid rgba(255,255,255,0.10); background:transparent; color:var(--text-mid); font-family:var(--font-mono); font-size:13px; cursor:pointer; }
+    .modal-btn-upgrade { flex:2; padding:13px; border-radius:10px; border:none; background:linear-gradient(135deg,var(--gold),var(--gold-lt)); color:var(--navy); font-family:var(--font-head); font-size:14px; font-weight:700; cursor:pointer; }
+
+    /* ─── MATRIX VIEW HEADER ────────────────────────────────── */
+    .matrix-header { padding:20px 16px 4px; }
+
+    /* ─── REFERRAL VIEW ─────────────────────────────────────── */
+    .income-split-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+    .income-type-card {
+      border-radius:var(--radius-md); padding:18px 14px; text-align:center;
+      background:var(--glass-bg);
+      border:1px solid var(--glass-bd);
+      backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+    }
+    /* Remove tinted variants — both cards same neutral glass */
+    .income-working { }
+    .income-passive { }
+    .income-type-icon { font-size:20px; margin-bottom:6px; }
+    .income-type-label {
+      font-family:var(--font-mono); font-size:9px; letter-spacing:1.5px;
+      font-weight:600; text-transform:uppercase; margin-bottom:4px;
+      color:var(--text-mid);
+    }
+    /* Keep accent colors only on the value — label is neutral */
+    .income-working .income-type-label { color:var(--text-mid); }
+    .income-passive .income-type-label { color:var(--text-mid); }
+    .income-type-val  { font-family:var(--font-head); font-size:22px; font-weight:700; }
+    .income-working .income-type-val { color:var(--cyan); }
+    .income-passive .income-type-val { color:var(--gold-lt); }
+    .income-type-ton  { font-family:var(--font-mono); font-size:10px; color:var(--text-lo); margin-top:3px; }
+    .income-type-unit { font-size:10px; color:var(--text-mid); font-family:var(--font-mono); margin-top:1px; }
+
+    .referral-card { padding:20px; }
+    .ref-stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:18px; }
+    .ref-stat  { background:rgba(0,0,0,0.2); border-radius:var(--radius-sm); padding:12px 8px; text-align:center; border:1px solid var(--glass-bd); }
+    .ref-stat-num { font-family:var(--font-head); font-size:22px; font-weight:700; color:var(--cyan); }
+    .ref-stat-lbl { font-size:10px; color:var(--text-mid); font-family:var(--font-mono); margin-top:2px; letter-spacing:0.3px; }
+
+    .ref-link-label { font-size:12px; color:var(--text-mid); margin-bottom:8px; font-family:var(--font-mono); }
+    .ref-link-box { display:flex; align-items:center; gap:8px; background:rgba(0,0,0,0.25); border:1px solid var(--glass-bd); border-radius:var(--radius-sm); padding:10px 12px; }
+    .ref-link-text { flex:1; font-family:var(--font-mono); font-size:12px; color:var(--cyan); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+    /* ─── FLOATING MENU BUTTON ──────────────────────────────── */
+    .fab-wrap {
+      position:fixed; bottom:28px; left:24px; z-index:300;
+    }
+
+    /* ─── TELEGRAM FLOAT BUTTON ─────────────────────────────── */
+    .tg-float {
+      position:fixed; bottom:28px; right:24px; z-index:300;
+      width:52px; height:52px; border-radius:16px;
+      background:rgba(8,20,40,0.82);
+      border:1px solid rgba(255,255,255,0.12);
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; text-decoration:none;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .tg-float svg {
+      width:24px; height:24px;
+      fill:var(--cyan);
+    }
+    .fab {
+      width:52px; height:52px; border-radius:16px; border:none; cursor:pointer;
+      background:rgba(8,20,40,0.82);
+      backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+      border:1px solid rgba(255,255,255,0.12);
+      box-shadow:0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(0,229,255,0.08);
+      display:flex; align-items:center; justify-content:center;
+      transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1),
+                 box-shadow 0.22s ease, background 0.22s ease;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .fab:hover  { transform:scale(1.08); box-shadow:0 12px 36px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,229,255,0.18); }
+    .fab:active { transform:scale(0.94); }
+    .fab.open   {
+      background:rgba(0,229,255,0.12);
+      border-color:rgba(0,229,255,0.35);
+      box-shadow:0 8px 32px rgba(0,229,255,0.18), 0 0 0 1px rgba(0,229,255,0.22);
+    }
+
+    /* 3 dots icon */
+    .fab-dots { display:flex; flex-direction:column; gap:4px; align-items:center; transition:transform 0.28s ease; }
+    .fab.open .fab-dots { transform:rotate(90deg); }
+    .fab-dot  { width:4px; height:4px; border-radius:50%; background:var(--text-mid); transition:background 0.2s; }
+    .fab.open .fab-dot  { background:var(--cyan); }
+
+    /* ─── POPUP MENU ────────────────────────────────────────── */
+    .fab-menu {
+      position:fixed; bottom:92px; left:20px; z-index:299;
+      display:flex; flex-direction:column; gap:6px;
+      pointer-events:none;
+    }
+    .fab-menu-item {
+      display:flex; align-items:center; gap:12px;
+      padding:12px 16px 12px 14px;
+      background:rgba(8,20,40,0.90);
+      backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+      border:1px solid rgba(255,255,255,0.10);
+      border-radius:14px;
+      cursor:pointer;
+      font-family:var(--font-body); font-size:13px; font-weight:500;
+      letter-spacing:0.3px;
+      color:var(--text-mid);
+      box-shadow:0 4px 20px rgba(0,0,0,0.4);
+      opacity:0; transform:translateY(12px) scale(0.95);
+      transition:opacity 0.22s ease, transform 0.22s cubic-bezier(0.34,1.56,0.64,1),
+                 background 0.18s, color 0.18s, border-color 0.18s;
+      pointer-events:none; white-space:nowrap;
+    }
+    .fab-menu-item:hover  { background:rgba(0,229,255,0.10); color:var(--cyan); border-color:rgba(0,229,255,0.28); }
+    .fab-menu-item:active { transform:scale(0.96) !important; }
+    .fab-menu-item.active-view { color:var(--cyan); border-color:rgba(0,229,255,0.30); background:rgba(0,229,255,0.08); }
+
+    .fab-menu.open .fab-menu-item { opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+    .fab-menu.open .fab-menu-item:nth-child(1) { transition-delay:0.04s; }
+    .fab-menu.open .fab-menu-item:nth-child(2) { transition-delay:0.08s; }
+    .fab-menu.open .fab-menu-item:nth-child(3) { transition-delay:0.12s; }
+
+    .fab-menu-icon { font-size:16px; flex-shrink:0; }
+    .fab-menu-lock { font-size:9px; color:var(--text-lo); margin-left:auto; opacity:0.7; }
+
+    /* ─── BACK BUTTON ───────────────────────────────────────── */
+    .view-back-btn {
+      display:none; align-items:center; gap:8px;
+      padding:14px 18px 0;
+      cursor:pointer; background:none; border:none;
+      font-family:var(--font-mono); font-size:11px; font-weight:600;
+      letter-spacing:1px; text-transform:uppercase;
+      color:var(--text-mid);
+      transition:color 0.18s;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .view-back-btn:hover { color:var(--cyan); }
+    .view-back-btn svg { transition:transform 0.18s; }
+    .view-back-btn:hover svg { transform:translateX(-3px); }
+
+    /* ─── TOAST ─────────────────────────────────────────────── */
+    #toast {
+      position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(8px);
+      background:rgba(0,229,255,0.12); border:1px solid var(--cyan);
+      color:var(--cyan); font-family:var(--font-mono); font-size:12px;
+      padding:10px 20px; border-radius:30px; z-index:1000;
+      opacity:0;
+      transition:opacity 0.3s, transform 0.3s;
+      backdrop-filter:blur(12px); white-space:nowrap;
+    }
+    #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+    /* ─── VIEWS ─────────────────────────────────────────────── */
+    .view { display:none; }
+    .view.active { display:block; animation:fade-up 0.28s cubic-bezier(0.22,1,0.36,1) both; }
+    @keyframes fade-up { from{opacity:0;transform:translateY(14px);} to{opacity:1;transform:translateY(0);} }
+
+    /* ─── PROFILE FETCH STATE ───────────────────────────────── */
+    .profile-fetch-row {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 18px; border-bottom:1px solid var(--glass-bd);
+    }
+    .profile-fetch-row:last-child { border-bottom:none; }
+    .profile-fetch-key { font-size:12px; color:var(--text-mid); font-family:var(--font-mono); }
+    .profile-fetch-val { font-size:13px; font-weight:500; font-family:var(--font-mono); }
+    .fetch-pending {
+      display:inline-flex; align-items:center; gap:6px; color:var(--text-lo);
+    }
+    .fetch-pending::before {
+      content:''; width:6px; height:6px; border-radius:50%;
+      border:1.5px solid var(--text-lo); border-top-color:var(--cyan);
+      animation:spin-fetch 1s linear infinite; display:inline-block;
+    }
+    @keyframes spin-fetch { to { transform:rotate(360deg); } }
+    .fetch-loaded { color:var(--cyan); }
+    .fetch-na { color:var(--text-lo); font-style:italic; }
+
+    /* ─── WALLET GATE — Matrix lock overlay ─────────────────── */
+    .wallet-gate {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 48px 24px 56px;
+      gap: 20px;
+    }
+    .wallet-gate-title {
+      font-family: var(--font-head); font-size: 20px; font-weight: 800;
+      background: linear-gradient(90deg, var(--gold-lt), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .btn-gate-connect {
+      position: relative; display: inline-flex; align-items: center; gap: 10px;
+      padding: 14px 32px; border-radius: 50px; border: none; cursor: pointer;
+      font-family: var(--font-head); font-size: 15px; font-weight: 700;
+      color: var(--navy); overflow: hidden;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-lt) 50%, var(--cyan) 100%);
+      background-size: 200% 200%;
+      box-shadow: var(--shadow-gold), 0 4px 20px rgba(0,0,0,0.35);
+      animation: shimmer-btn 3s ease infinite;
+      transition: transform var(--transition), box-shadow var(--transition);
+    }
+    .btn-gate-connect:hover  { transform: translateY(-2px) scale(1.03); }
+    .btn-gate-connect:active { transform: scale(0.97); }
+    /* Slots reveal animation after wallet connect */
+    .slots-reveal {
+      animation: slots-appear 0.55s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    @keyframes slots-appear {
+      from { opacity: 0; transform: translateY(22px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0)    scale(1);    }
+    }
+
+    /* ─── LOGO AVATAR (replaces 'F' icon) ──────────────────── */
+    .logo-icon-avatar {
+      overflow: hidden;
+      cursor: default;
+    }
+    .logo-icon-avatar img {
+      width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 10px;
+    }
+
+    /* ─── ID CAPSULE (after CRYPTON text) ───────────────────── */
+    .logo-id-capsule {
+      display: inline-flex; align-items: center;
+      background: rgba(0,229,255,0.10);
+      border: 1px solid rgba(0,229,255,0.28);
+      border-radius: 50px;
+      padding: 3px 10px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--cyan);
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+      margin-left: 6px;
+      max-width: 130px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex-shrink: 1;
+      gap: 0;
+    }
+    #logo-tg-handle { color: var(--gold-lt); }
+
+    /* ─── TWEET FLOAT CAPSULE (bottom center) ───────────────── */
+    .tweet-float-capsule {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 300;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      padding: 0 28px;
+      height: 52px;
+      min-width: 140px;
+      border-radius: 16px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-bd);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: none;
+      color: var(--text-hi);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.18s, border-color 0.18s, box-shadow 0.18s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tweet-float-capsule:hover {
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.07);
+      border-color: rgba(255,255,255,0.15);
+      box-shadow: 0 6px 24px rgba(0,0,0,0.45);
+    }
+    .tweet-float-capsule:active {
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.04);
+    }
+    /* '@' golden, 'tweet' uses text-hi — tightly joined, no gap */
+    .tweet-float-at {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--gold);
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .tweet-float-label {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 700;
+      color: #a0b3cc;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    /* ─── TWEET POPUP MODAL ─────────────────────────────────── */
+    .tweet-popup-overlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 600;
+      background: rgba(5,13,26,0.85);
+      backdrop-filter: blur(14px);
+      align-items: flex-end; justify-content: center;
+    }
+    .tweet-popup-overlay.show { display: flex; animation: fade-up 0.28s ease; }
+    .tweet-popup-sheet {
+      width: 100%; max-width: 480px;
+      background: #091525;
+      border-top: 1px solid rgba(0,229,255,0.22);
+      border-radius: 22px 22px 0 0;
+      padding: 22px 20px 42px;
+    }
+    .tweet-popup-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .tweet-popup-title {
+      font-family: var(--font-head); font-size: 16px; font-weight: 800;
+      background: linear-gradient(90deg, var(--gold-lt), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .tweet-popup-close {
+      width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--glass-bd);
+      background: var(--glass-bg); color: var(--text-mid); font-size: 13px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, color 0.15s;
+    }
+    .tweet-popup-close:hover { background: rgba(255,77,109,0.12); color: var(--red); border-color: var(--red); }
+    .tweet-popup-capsule {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(0,229,255,0.05);
+      border: 1px solid rgba(0,229,255,0.22);
+      border-radius: 50px; padding: 11px 16px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      margin-bottom: 8px;
+    }
+    .tweet-popup-capsule:focus-within {
+      border-color: rgba(0,229,255,0.50);
+      box-shadow: 0 0 18px rgba(0,229,255,0.12);
+    }
+    .tweet-popup-at {
+      font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+      color: var(--cyan); flex-shrink: 0;
+    }
+    .tweet-popup-input {
+      flex: 1; background: transparent; border: none; outline: none;
+      font-family: var(--font-body); font-size: 14px; color: var(--text-hi);
+    }
+    .tweet-popup-input::placeholder { color: var(--text-lo); }
+    .tweet-popup-counter {
+      font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+      color: var(--text-lo); flex-shrink: 0; transition: color 0.2s;
+    }
+    .tweet-popup-counter.near { color: var(--gold-lt); }
+    .tweet-popup-counter.full { color: var(--red); }
+    .tweet-popup-meta {
+      font-family: var(--font-mono); font-size: 10px;
+      color: var(--text-lo); margin-bottom: 14px; padding: 0 4px;
+    }
+    .tweet-popup-send {
+      width: 100%; padding: 14px; border-radius: 12px; border: none; cursor: pointer;
+      background: linear-gradient(135deg, var(--cyan), var(--gold));
+      color: var(--navy); font-family: var(--font-head); font-size: 15px; font-weight: 800;
+      letter-spacing: 0.3px;
+      box-shadow: var(--shadow-cyan);
+      transition: transform 0.18s, opacity 0.18s, box-shadow 0.18s;
+    }
+    .tweet-popup-send:hover  { transform: translateY(-2px); box-shadow: 0 0 28px rgba(0,229,255,0.35); }
+    .tweet-popup-send:active { transform: scale(0.97); }
+    .tweet-popup-send:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+
+    /* ─── MISC ──────────────────────────────────────────────── */
+    .mt-4  { margin-top:4px; }
+    .mt-8  { margin-top:8px; }
+    .mt-16 { margin-top:16px; }
+    .info-row { display:flex; justify-content:space-between; align-items:center; padding:12px 18px; border-bottom:1px solid var(--glass-bd); }
+    .info-row:last-child { border-bottom:none; }
+    .info-key   { font-size:12px; color:var(--text-mid); font-family:var(--font-mono); }
+    .info-value { font-size:13px; font-weight:500; color:var(--text-hi); font-family:var(--font-mono); }
+    .info-value.cyan { color:var(--cyan); }
+    .info-value.gold { color:var(--gold-lt); }
+
+    .scroll-hint { text-align:center; font-size:11px; color:var(--text-lo); font-family:var(--font-mono); padding:10px 0 0; letter-spacing:0.5px; animation:bounce 2s infinite; }
+    @keyframes bounce { 0%,100%{transform:translateY(0);} 50%{transform:translateY(4px);} }
+
+    /* ─── #RANK TICKER ──────────────────────────────────────── */
+    .rank-ticker-wrap {
+      margin: 20px 0 0;
+      position: relative;
+      background: rgba(8,20,40,0.60);
+      border-top: 1px solid var(--glass-bd);
+      border-bottom: 1px solid var(--glass-bd);
+      height: 40px;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    /* Fixed label — sits in normal flow, never scrolls */
+    .rank-ticker-label {
+      flex-shrink: 0;
+      display: flex; align-items: center; gap: 6px;
+      padding: 0 10px 0 14px;
+      height: 100%;
+      background: rgba(5,13,26,1);
+      position: relative;
+      z-index: 4;
+      /* hard right edge + feathered transition into scroll area */
+      border-right: 1px solid rgba(255,255,255,0.07);
+    }
+    /* soft glow spilling right from the label */
+    .rank-ticker-label::after {
+      content: '';
+      position: absolute; right: -20px; top: 0; bottom: 0; width: 20px;
+      background: linear-gradient(90deg, rgba(5,13,26,0.90), transparent);
+      pointer-events: none;
+    }
+    .tl-hash {
+      font-family: var(--font-head); font-size: 15px; font-weight: 800;
+      background: linear-gradient(90deg, var(--gold-lt), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .tl-word { font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-mid); }
+
+    /* Scroll viewport — clips content, fades right edge */
+    .rank-ticker-viewport {
+      flex: 1;
+      overflow: hidden;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      /* CSS mask: fully opaque centre, fades to transparent on right edge only */
+      -webkit-mask-image: linear-gradient(90deg, black 70%, transparent 100%);
+      mask-image:         linear-gradient(90deg, black 70%, transparent 100%);
+    }
+
+    .rank-ticker-track {
+      display: flex; align-items: center;
+      height: 100%;
+      white-space: nowrap;
+      will-change: transform;
+    }
+    @keyframes ticker-scroll { 0%{transform:translateX(0);} 100%{transform:translateX(-50%);} }
+    .rank-ticker-track.running { animation: ticker-scroll linear infinite; }
+    .rank-ticker-track:hover   { animation-play-state: paused; }
+
+    .ticker-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 0 20px 0 0; flex-shrink: 0;
+    }
+    .ticker-chip + .ticker-chip::before {
+      content: '·'; color: rgba(255,255,255,0.18); font-size: 18px; margin-right: 20px;
+    }
+    .tc-rank  { font-family: var(--font-head); font-size: 11px; font-weight: 800; color: var(--text-lo); }
+    .tc-rank.r1 { color: var(--gold-lt); text-shadow: 0 0 8px rgba(240,201,106,0.6); }
+    .tc-rank.r2 { color: #d4d4d4; }
+    .tc-rank.r3 { color: #cd7f32; }
+    .tc-medal { font-size: 12px; line-height: 1; }
+    .tc-id    { font-family: var(--font-mono); font-size: 11px; color: var(--text-hi); letter-spacing: 0.3px; }
+    .tc-ton   { font-family: var(--font-head); font-size: 11px; font-weight: 700; color: var(--cyan); }
+
+    /* ─── PARTICLE BURST CANVAS ─────────────────────────────── */
+    #particle-canvas {
+      position:fixed; inset:0; z-index:999; pointer-events:none;
+    }
+
+    /* ─── SLOT ACTIVATE SUCCESS FLASH ──────────────────────── */
+    @keyframes success-flash {
+      0%   { box-shadow: 0 0 0 0 rgba(0,229,255,0.0); }
+      30%  { box-shadow: 0 0 60px 30px rgba(0,229,255,0.25); }
+      100% { box-shadow: 0 0 0 0 rgba(0,229,255,0.0); }
+    }
+    @keyframes success-flash-gold {
+      0%   { box-shadow: 0 0 0 0 rgba(212,168,67,0.0); }
+      30%  { box-shadow: 0 0 70px 35px rgba(212,168,67,0.28); }
+      100% { box-shadow: 0 0 0 0 rgba(212,168,67,0.0); }
+    }
+    .flash-cyan { animation: success-flash      0.7s ease-out forwards; }
+    .flash-gold { animation: success-flash-gold 0.7s ease-out forwards; }
+
+    /* ─── SPLASH SCREEN ─────────────────────────────────────── */
+    #splash-screen {
+      position: fixed; inset: 0; z-index: 9999;
+      background: #050d1a;
+      display: flex;
+      align-items: center; justify-content: center;
+      pointer-events: all;
+      transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    #splash-screen.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .splash-logo {
+      width: 140px; height: 140px;
+      object-fit: contain;
+      border-radius: 28px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── SPLASH SCREEN ── -->
+<div id="splash-screen">
+  <img
+    class="splash-logo"
+    src="https://i.ibb.co/sv3gKkfx/IPROS3221059704984801090.png"
+    alt="Crypton"
+    draggable="false"
+  />
+</div>
+
+<div class="bg-canvas"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div id="toast">✓ Done</div>
+
+<!-- particle canvas — always present, idle when no burst active -->
+<canvas id="particle-canvas"></canvas>
+
+<div id="app">
+
+  <!-- ── HEADER ── -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon logo-icon-avatar" id="hdr-logo-avatar">
+        <span id="hdr-logo-initials">C</span>
+      </div>
+      <span class="logo-text">CRYPTON</span>
+      <div class="logo-id-capsule" id="logo-id-capsule" style="display:none;">
+        <span id="logo-tg-handle"></span><span id="logo-tg-id-sep" style="display:none;"> · </span><span id="logo-tg-id"></span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="hdr-user" id="hdr-user">
+        <div class="hdr-avatar" id="hdr-avatar"><span id="hdr-initials">?</span></div>
+        <span class="hdr-uid" id="hdr-uid">---</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══════════ VIEW: HOME ══════════ -->
+  <div class="view active" id="view-home">
+
+    <!-- HERO -->
+    <div id="hero-section" class="hero">
+      <h1 class="hero-title">Earn on <span>Every<br>Level</span></h1>
+      <p class="hero-sub">Activate slots, grow your network, and earn TON automatically across all levels.</p>
+
+      <button class="btn-connect" id="btn-connect" onclick="connectWallet()">
+        <svg class="ton-icon" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M28 56C43.464 56 56 43.464 56 28C56 12.536 43.464 0 28 0C12.536 0 0 12.536 0 28C0 43.464 12.536 56 28 56Z" fill="currentColor" fill-opacity="0.15"/>
+          <path d="M37.5603 15.6277H18.4386C14.9191 15.6277 12.6388 19.3888 14.3833 22.4597L26.0929 43.2555C26.9607 44.7984 29.0381 44.7984 29.906 43.2555L41.6156 22.4597C43.3612 19.3888 41.0798 15.6277 37.5603 15.6277ZM26.0929 36.3236L23.2795 31.1978L17.291 20.4529C16.8813 19.7241 17.3993 18.8069 18.4386 18.8069H26.0929V36.3236ZM38.707 20.4529L32.7185 31.1978L29.9051 36.3236V18.8069H37.5594C38.5987 18.8069 39.1167 19.7241 38.707 20.4529Z" fill="#050D1A"/>
+        </svg>
+        Connect TON Wallet
+      </button>
+      <p class="btn-connect-sub">TonConnect 2.0 · 1 TON = $<span id="rate-info">—</span></p>
+    </div>
+
+    <!-- #RANK TICKER — horizontal auto-scroll, below connect button -->
+    <div class="rank-ticker-wrap" id="rank-ticker-wrap">
+      <div class="rank-ticker-label">
+        <span class="tl-hash">#</span>
+        <span class="tl-word">Rank</span>
+      </div>
+      <div class="rank-ticker-viewport">
+        <div class="rank-ticker-track" id="rank-ticker-track">
+          <!-- chips injected by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="dashboard" style="padding:18px;">
+      <p class="section-label">Your Account</p>
+
+      <div class="card">
+        <div class="dash-top">
+          <div class="dash-avatar" id="dash-avatar">?</div>
+          <div>
+            <div class="dash-name" id="dash-name">Loading…</div>
+            <div class="dash-id" id="dash-uid">UID: —</div>
+          </div>
+        </div>
+
+        <div class="dash-stats">
+          <div class="dash-stat">
+            <div class="dash-stat-label">TOTAL EARNED</div>
+            <div class="dash-stat-value" id="stat-earned">$0.00</div>
+            <div class="dash-stat-unit" id="stat-earned-ton">0 TON</div>
+          </div>
+          <div class="dash-stat">
+            <div class="dash-stat-label">ACTIVE SLOTS</div>
+            <div class="dash-stat-value" id="stat-slots">0</div>
+            <div class="dash-stat-unit">/ 10 LEVELS</div>
+          </div>
+          <div class="dash-stat">
+            <div class="dash-stat-label">REFERRALS</div>
+            <div class="dash-stat-value" id="stat-refs">0</div>
+            <div class="dash-stat-unit">USERS</div>
+          </div>
+          <div class="dash-stat">
+            <div class="dash-stat-label">TEAM SIZE</div>
+            <div class="dash-stat-value" id="stat-team">0</div>
+            <div class="dash-stat-unit">MEMBERS</div>
+          </div>
+        </div>
+
+        <!-- Working / Passive income strip — always visible -->
+        <div class="income-legend">
+          <div class="income-legend-item working">
+            <div class="income-legend-tag"><span class="dot"></span>⚡ WORKING</div>
+            <div class="income-legend-val" id="working-income-val">$0.00</div>
+          </div>
+          <div class="income-legend-item passive">
+            <div class="income-legend-tag"><span class="dot"></span>♾ PASSIVE</div>
+            <div class="income-legend-val" id="passive-income-val">$0.00</div>
+          </div>
+        </div>
+
+        <div class="wallet-row">
+          <div>
+            <div class="wallet-label">WALLET ADDRESS</div>
+            <div class="wallet-addr" id="wallet-display">Not connected</div>
+          </div>
+          <button class="btn-copy" onclick="copyWallet()">COPY</button>
+        </div>
+      </div>
+
+      <!-- ── TWEET SHOUTBOX ── -->
+      <div class="tweet-wrap" id="tweet-wrap">
+        <div class="tweet-row">
+          <div class="tweet-capsule" id="tweet-capsule">
+            <span class="tweet-at">@tweet</span>
+            <input class="tweet-input" id="tweet-input"
+              type="text" maxlength="50"
+              placeholder="Shout something… (50 chars)"
+              oninput="tweetOnInput(this)" />
+            <span class="tweet-counter" id="tweet-counter">50</span>
+          </div>
+          <button class="tweet-btn" id="tweet-btn" onclick="postTweet()">➤</button>
+        </div>
+        <div class="tweet-meta" id="tweet-meta">0 / 10 tweets today</div>
+      </div>
+
+    </div>
+  </div><!-- /view-home -->
+
+  <!-- ══════════ VIEW: TWEETS ══════════ -->
+  <div class="view" id="view-tweets">
+    <button class="view-back-btn" id="back-tweets" onclick="switchView('home')">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Home
+    </button>
+    <section>
+
+      <div class="tweets-feed" id="tweets-feed">
+        <div class="tweets-empty">⟳ Loading…</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ══════════ VIEW: MATRIX ══════════ -->
+  <div class="view" id="view-matrix">
+    <button class="view-back-btn" id="back-matrix" onclick="switchView('home')">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Home
+    </button>
+
+    <!-- Wallet Gate — shown when disconnected -->
+    <div class="wallet-gate" id="matrix-wallet-gate">
+      <div style="font-size:48px; margin-bottom:4px;">⊞</div>
+      <div class="wallet-gate-title">Matrix Slots</div>
+      <p style="font-family:var(--font-mono);font-size:12px;color:var(--text-mid);line-height:1.7;max-width:260px;text-align:center;">
+        Please Connect Wallet to View Slots
+      </p>
+      <button class="btn-gate-connect" onclick="connectWallet()">
+        <svg width="20" height="20" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M28 56C43.464 56 56 43.464 56 28C56 12.536 43.464 0 28 0C12.536 0 0 12.536 0 28C0 43.464 12.536 56 28 56Z" fill="currentColor" fill-opacity="0.15"/>
+          <path d="M37.5603 15.6277H18.4386C14.9191 15.6277 12.6388 19.3888 14.3833 22.4597L26.0929 43.2555C26.9607 44.7984 29.0381 44.7984 29.906 43.2555L41.6156 22.4597C43.3612 19.3888 41.0798 15.6277 37.5603 15.6277ZM26.0929 36.3236L23.2795 31.1978L17.291 20.4529C16.8813 19.7241 17.3993 18.8069 18.4386 18.8069H26.0929V36.3236ZM38.707 20.4529L32.7185 31.1978L29.9051 36.3236V18.8069H37.5594C38.5987 18.8069 39.1167 19.7241 38.707 20.4529Z" fill="#050D1A"/>
+        </svg>
+        Connect Wallet
+      </button>
+    </div>
+
+    <!-- Matrix content — shown when wallet connected -->
+    <div id="matrix-content" style="display:none;">
+      <!-- Matrix header -->
+      <div class="matrix-header">
+        <p class="section-label" style="margin:0;">Matrix Slots</p>
+      </div>
+      <div class="slots-grid" id="slots-grid"></div>
+    </div>
+
+  </div>
+
+  <!-- ══════════ VIEW: REFERRAL ══════════ -->
+  <div class="view" id="view-referral">
+    <button class="view-back-btn" id="back-referral" onclick="switchView('home')">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Home
+    </button>
+    <section>
+
+
+      <div class="income-split-row">
+        <div class="income-type-card income-working">
+          <div class="income-type-icon" style="font-size:20px;color:var(--cyan);">❂</div>
+          <div class="income-type-label">WORKING income</div>
+          <div class="income-type-val" id="ref-working-income-val">$0.00</div>
+          <div class="income-type-ton" id="ref-working-income-ton">0 TON</div>
+        </div>
+        <div class="income-type-card income-passive">
+          <div class="income-type-icon" style="font-size:20px;color:var(--gold-lt);">♾</div>
+          <div class="income-type-label">PASSIVE income</div>
+          <div class="income-type-val" id="ref-passive-income-val">$0.00</div>
+          <div class="income-type-ton" id="ref-passive-income-ton">0 TON</div>
+        </div>
+      </div>
+
+
+      <div class="card referral-card" style="margin-top:14px;">
+        <div class="ref-stats">
+          <div class="ref-stat">
+            <div class="ref-stat-num" id="ref-direct">0</div>
+            <div class="ref-stat-lbl">DIRECT</div>
+          </div>
+          <div class="ref-stat">
+            <div class="ref-stat-num" id="ref-total">0</div>
+            <div class="ref-stat-lbl">TOTAL TEAM</div>
+          </div>
+          <div class="ref-stat">
+            <div class="ref-stat-num" id="ref-income">0</div>
+            <div class="ref-stat-lbl">REF TON</div>
+          </div>
+        </div>
+
+        <div class="ref-link-label">YOUR REFERRAL LINK</div>
+        <div class="ref-link-box">
+          <span class="ref-link-text" id="ref-link">Connect wallet to get your link</span>
+          <button class="btn-copy" id="btn-copy-ref" onclick="copyReferral()">COPY</button>
+        </div>
+      </div>
+
+    </section>
+  </div>
+
+  <!-- ══════════ VIEW: PROFILE ══════════ -->
+  <div class="view" id="view-profile">
+    <button class="view-back-btn" id="back-profile" onclick="switchView('home')">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Home
+    </button>
+    <section>
+
+
+      <div class="card">
+        <div class="profile-fetch-row">
+          <span class="profile-fetch-key">USER ID</span>
+          <span class="profile-fetch-val" id="tg-user">
+            <span class="fetch-pending">Fetching…</span>
+          </span>
+        </div>
+        <div class="profile-fetch-row">
+          <span class="profile-fetch-key">USER EMAIL</span>
+          <span class="profile-fetch-val" id="user-email">
+            <span class="fetch-pending">Fetching…</span>
+          </span>
+        </div>
+        <div class="profile-fetch-row">
+          <span class="profile-fetch-key">JOINED DATE</span>
+          <span class="profile-fetch-val" id="join-date"><span class="fetch-na">—</span></span>
+        </div>
+        <div class="profile-fetch-row">
+          <span class="profile-fetch-key">NETWORK</span>
+          <span class="profile-fetch-val fetch-loaded">TON Mainnet</span>
+        </div>
+        <div class="profile-fetch-row" style="border-bottom:none;">
+          <span class="profile-fetch-key">TON RATE</span>
+          <span class="profile-fetch-val" style="color:var(--gold-lt);">$<span id="profile-rate">—</span> / TON</span>
+        </div>
+      </div>
+
+      <div class="card mt-16" style="padding:20px; text-align:center;">
+        <button
+          onclick="disconnectWallet()"
+          style="width:100%; padding:12px; border-radius:10px; background:transparent;
+                 border:1px solid rgba(255,60,60,0.3); color:#ff6b6b; font-family:var(--font-mono);
+                 font-size:13px; cursor:pointer; transition:background 0.2s;"
+          onmouseover="this.style.background='rgba(255,60,60,0.08)'"
+          onmouseout="this.style.background='transparent'"
+        >DISCONNECT WALLET</button>
+      </div>
+    </section>
+  </div>
+
+</div><!-- /app -->
+
+<!-- ── TWEET POPUP MODAL ── -->
+<div class="tweet-popup-overlay" id="tweet-popup-overlay" onclick="closeTweetPopup(event)">
+  <div class="tweet-popup-sheet">
+    <div class="tweet-popup-header">
+      <span class="tweet-popup-title">✦ Share your experience for CRYPTON</span>
+      <button class="tweet-popup-close" onclick="closeTweetPopup()">✕</button>
+    </div>
+    <div class="tweet-popup-capsule" id="tweet-popup-capsule">
+      <span class="tweet-popup-at">@tweet</span>
+      <input class="tweet-popup-input" id="tweet-popup-input"
+        type="text" maxlength="50"
+        placeholder="Say something… (max 50 chars)"
+        oninput="tweetPopupOnInput(this)" />
+      <span class="tweet-popup-counter" id="tweet-popup-counter">50</span>
+    </div>
+    <div class="tweet-popup-meta" id="tweet-popup-meta">0 / 10 tweets today</div>
+    <button class="tweet-popup-send" id="tweet-popup-send-btn" onclick="postTweetFromPopup()">
+      ➤ Post
+    </button>
+  </div>
+</div>
+
+<!-- ── UPGRADE MODAL (single, no duplicate) ── -->
+<div class="modal-overlay" id="upgrade-modal" onclick="closeUpgradeModal(event)">
+  <div class="modal-sheet">
+    <div class="modal-icon">&#x267B;&#xFE0F;</div>
+    <div class="modal-title">Matrix Complete!</div>
+    <div class="modal-sub" id="modal-sub-text">All 6 positions filled.<br>Upgrade to the next level to keep earning.</div>
+    <div class="modal-btns">
+      <button class="modal-btn-cancel" onclick="document.getElementById('upgrade-modal').classList.remove('show')">Later</button>
+      <button class="modal-btn-upgrade" id="modal-upgrade-btn" onclick="doUpgrade()">&#x2B06; Upgrade Now</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TWEET BOTTOM CAPSULE ── -->
+<button class="tweet-float-capsule" id="tweet-float-btn" onclick="openTweetPopup()" aria-label="Tweet">
+  <span class="tweet-float-at">@</span><span class="tweet-float-label">tweet</span>
+</button>
+
+<!-- ── FLOATING MENU BUTTON + POPUP ── -->
+<div class="fab-wrap">
+  <div class="fab-menu" id="fab-menu">
+    <button class="fab-menu-item" id="fmi-matrix"  onclick="switchView('matrix')">
+      <span class="fab-menu-icon">⊞</span> Matrix
+      <span class="fab-menu-lock" id="fmi-matrix-lock">●</span>
+    </button>
+    <button class="fab-menu-item" id="fmi-referral" onclick="switchView('referral')">
+      <span class="fab-menu-icon">◈</span> Network
+    </button>
+    <button class="fab-menu-item" id="fmi-profile"  onclick="switchView('profile')">
+      <span class="fab-menu-icon">◉</span> Profile
+    </button>
+    <button class="fab-menu-item" id="fmi-tweets" onclick="switchView('tweets')">
+      <span class="fab-menu-icon">💬</span> View Tweets
+    </button>
+  </div>
+  <button class="fab" id="fab-btn" onclick="toggleFabMenu()" aria-label="Open menu">
+    <div class="fab-dots">
+      <div class="fab-dot"></div>
+      <div class="fab-dot"></div>
+      <div class="fab-dot"></div>
+    </div>
+  </button>
+</div>
+
+<!-- ── TELEGRAM FLOATING BUTTON ── -->
+<a class="tg-float" href="https://t.me/CRYPTONDecentralizedOfficial" target="_blank" rel="noopener" aria-label="Join Telegram">
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+  </svg>
+</a>
+<script>
+// ──────────────────────────────────────────────────────────────
+// CONFIG
+// 10 Levels · Doubling price: 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024 TON
+// 1 TON = Live rate from CoinGecko API (fetched on load, refreshed every 60s)
+// Income Split: 50% Direct (Working Income) | 50% Matrix (Passive Income)
+// Sequential Lock: Level N unlocks only if Level N-1 is owned
+// ──────────────────────────────────────────────────────────────
+
+let TON_TO_USD = null; // Fetched live from CoinGecko
+
+// ──────────────────────────────────────────────────────────────
+// LIVE TON PRICE — CoinGecko API (no key needed)
+// ──────────────────────────────────────────────────────────────
+async function fetchTonPrice() {
+  try {
+    const res  = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd');
+    const data = await res.json();
+    const price = data?.['the-open-network']?.usd;
+    if (price && price > 0) {
+      TON_TO_USD = price;
+      updateRateUI();
+      updateStatsUI(); // refresh USD values with live rate
+      if (typeof refreshLeaderboardUsd === 'function') refreshLeaderboardUsd();
+    }
+  } catch(e) {
+    console.warn('CoinGecko fetch failed:', e.message);
+    if (!TON_TO_USD) TON_TO_USD = 5.50; // fallback only if first fetch fails
+    updateRateUI();
+  }
+}
+
+function updateRateUI() {
+  const fmt = TON_TO_USD ? TON_TO_USD.toFixed(2) : '—';
+  const el1 = document.getElementById('rate-info');
+  const el2 = document.getElementById('profile-rate');
+  if (el1) el1.textContent = fmt;
+  if (el2) el2.textContent = fmt;
+}
+
+// Fetch immediately + refresh every 60 seconds
+fetchTonPrice();
+setInterval(fetchTonPrice, 60_000);
+
+// 10 slots, doubling formula: Level N price = 2^N TON
+// L1=2, L2=4, L3=8, L4=16, L5=32, L6=64, L7=128, L8=256, L9=512, L10=1024
+const SLOTS = Array.from({ length: 10 }, (_, i) => {
+  const level   = i + 1;
+  const price   = Math.pow(2, level);          // 2^1=2, 2^2=4 … 2^10=1024
+  const isPrem  = level >= 6;                  // gold styling for levels 6-10
+  return { level, price, gold: isPrem };
+});
+
+// ──────────────────────────────────────────────────────────────
+// 50/50 INCOME CALCULATION LOGIC
+// ──────────────────────────────────────────────────────────────
+
+/**
+ * calculateIncomeDistribution(priceTon)
+ * Returns the 50/50 split for any slot price.
+ * Working = Direct referral (instant to referrer wallet)
+ * Passive  = Matrix smart contract (spillover distribution)
+ */
+function calculateIncomeDistribution(priceTon) {
+  const working = priceTon * 0.50;       // 50% → direct referrer
+  const passive = priceTon * 0.50;       // 50% → matrix contract
+  return {
+    working,
+    passive,
+    workingUsd: working * TON_TO_USD,
+    passiveUsd: passive * TON_TO_USD,
+  };
+}
+
+// ──────────────────────────────────────────────────────────────
+// APP STATE
+// ──────────────────────────────────────────────────────────────
+let state = {
+  connected:     false,
+  walletAddress: null,
+  userId:        null,
+  tgUsername:    null,   // Telegram @username — used in ticker
+  tgNumericId:   null,   // Telegram numeric user ID
+  tgEmail:       null,   // Telegram email (if shared)
+  tgPhotoUrl:    null,   // Telegram profile photo URL
+  tgFirstName:   null,   // First name (for avatar fallback)
+  ownedSlots:    [],
+  earnedTon:     0,
+  workingTon:    0,
+  passiveTon:    0,
+  referrals:     0,
+  teamSize:      0,
+  tonConnectUI:  null,
+};
+
+// slotFill — tracks how many of the 6 matrix positions are filled per level
+const slotFill = {};
+function getFilledCount(level) { return slotFill[level] ?? 0; }
+
+// ──────────────────────────────────────────────────────────────
+// REFERRAL DEEP LINK — read ?start= / ?startapp= from URL
+// Also reads ?name= ?username= ?email= from bot URL params
+// ──────────────────────────────────────────────────────────────
+(function readDeepLinkRef() {
+  const params = new URLSearchParams(window.location.search);
+  // Support both ?start=XXX and ?startapp=XXX (Telegram Mini App convention)
+  const ref = params.get('start') || params.get('startapp') || params.get('ref');
+  if (ref) {
+    sessionStorage.setItem('ref', ref);
+    console.log('[DeepLink] Referrer param captured:', ref);
+  }
+
+  // ── URL-based user data (from bot deep link) — prioritized over TMA initData ──
+  const urlName     = params.get('name')     || params.get('first_name') || null;
+  const urlUsername = params.get('username') || null;
+  const urlEmail    = params.get('email')    || null;
+  const urlId       = params.get('id')       || params.get('user_id')   || null;
+
+  if (urlName || urlUsername || urlEmail || urlId) {
+    // Store in sessionStorage so Telegram init can merge/override
+    if (urlName)     sessionStorage.setItem('url_name',     urlName);
+    if (urlUsername) sessionStorage.setItem('url_username', urlUsername);
+    if (urlEmail)    sessionStorage.setItem('url_email',    urlEmail);
+    if (urlId)       sessionStorage.setItem('url_id',       urlId);
+    console.log('[DeepLink] URL user params captured:', { urlName, urlUsername, urlEmail, urlId });
+  }
+})();
+
+// Helper — returns stored referrer ID (used at wallet connect / Firebase write)
+function getStoredRef() {
+  return sessionStorage.getItem('ref') || null;
+}
+
+// ──────────────────────────────────────────────────────────────
+// TELEGRAM INIT — full data fetch: ID, username, email, deep link
+// ──────────────────────────────────────────────────────────────
+(function initTelegram() {
+  if (!window.Telegram?.WebApp) {
+    console.log('[Telegram] Not running inside Telegram WebApp — checking URL params.');
+    // Still try URL params
+    const urlName     = sessionStorage.getItem('url_name')     || null;
+    const urlUsername = sessionStorage.getItem('url_username') || null;
+    const urlEmail    = sessionStorage.getItem('url_email')    || null;
+    const urlId       = sessionStorage.getItem('url_id')       || null;
+    if (urlUsername) state.tgUsername  = urlUsername.startsWith('@') ? urlUsername : '@' + urlUsername;
+    if (urlName)     state.tgFirstName = urlName;
+    if (urlEmail)    state.tgEmail     = urlEmail;
+    if (urlId)       state.tgNumericId = urlId;
+    // Update profile UI
+    const userEl  = document.getElementById('tg-user');
+    const emailEl = document.getElementById('user-email');
+    if (userEl)  userEl.innerHTML  = (urlUsername || urlId)
+      ? `<span class="fetch-loaded">${(urlUsername||'') + (urlId ? ' · ' + urlId : '')}</span>`
+      : `<span class="fetch-na">Not in Telegram</span>`;
+    if (emailEl) emailEl.innerHTML = urlEmail
+      ? `<span class="fetch-loaded">${urlEmail}</span>`
+      : `<span class="fetch-na">Not in Telegram</span>`;
+    return;
+  }
+
+  const twa  = window.Telegram.WebApp;
+  twa.ready();
+  twa.expand();
+  twa.setHeaderColor('#050d1a');
+  twa.setBackgroundColor('#050d1a');
+
+  const user = twa.initDataUnsafe?.user;
+
+  if (user) {
+    // ── Persist to state — URL params take priority over TMA data ──
+    const urlName     = sessionStorage.getItem('url_name')     || null;
+    const urlUsername = sessionStorage.getItem('url_username') || null;
+    const urlEmail    = sessionStorage.getItem('url_email')    || null;
+    const urlId       = sessionStorage.getItem('url_id')       || null;
+
+    // Build handle: prefer URL username → TMA username → first_name
+    const resolvedUsername = urlUsername
+      ? (urlUsername.startsWith('@') ? urlUsername : '@' + urlUsername)
+      : (user.username ? `@${user.username}` : (user.first_name || 'User'));
+    const resolvedName     = urlName     || user.first_name  || null;
+    const resolvedEmail    = urlEmail    || user.email       || null;
+    const resolvedId       = urlId       || (user.id ? String(user.id) : null);
+    const resolvedPhotoUrl = user.photo_url || null;
+
+    state.tgUsername  = resolvedUsername;
+    state.tgNumericId = resolvedId;
+    state.tgEmail     = resolvedEmail;
+    state.tgPhotoUrl  = resolvedPhotoUrl;
+    state.tgFirstName = resolvedName;
+
+    // ── Update Profile UI immediately ──
+    const userEl  = document.getElementById('tg-user');
+    const emailEl = document.getElementById('user-email');
+    if (userEl) {
+      if (resolvedId || resolvedUsername) {
+        userEl.innerHTML = `<span class="fetch-loaded">${resolvedId ? resolvedUsername + ' · ' + resolvedId : resolvedUsername}</span>`;
+      } else {
+        userEl.innerHTML = `<span class="fetch-na">Not available</span>`;
+      }
+    }
+    if (emailEl) {
+      if (resolvedEmail) {
+        emailEl.innerHTML = `<span class="fetch-loaded">${resolvedEmail}</span>`;
+      } else {
+        emailEl.innerHTML = `<span class="fetch-na">Not shared by Telegram</span>`;
+      }
+    }
+
+    console.log('[Telegram] User resolved:', { resolvedUsername, resolvedId, resolvedEmail, resolvedName });
+
+    // ── Deep link referral from TMA start_param ──
+    const startParam = twa.initDataUnsafe?.start_param;
+    if (startParam && !sessionStorage.getItem('ref')) {
+      sessionStorage.setItem('ref', startParam);
+      console.log('[Telegram] Referrer from start_param:', startParam);
+    }
+  }
+
+  // ── Firebase-ready payload builder ──
+  // Call this when writing to Firestore on wallet connect
+  window.buildTelegramPayload = function() {
+    return {
+      tgHandle:    state.tgUsername  || null,
+      tgName:      state.tgFirstName || null,
+      tgId:        state.tgNumericId || null,
+      tgEmail:     state.tgEmail     || null,
+      referredBy:  getStoredRef()    || null,
+    };
+  };
+})();
+
+// ──────────────────────────────────────────────────────────────
+// TON CONNECT INIT
+// ──────────────────────────────────────────────────────────────
+(function initTonConnect() {
+  try {
+    state.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+      manifestUrl: 'https://raw.githubusercontent.com/ton-connect/demo-dapp/master/public/tonconnect-manifest.json',
+      buttonRootId: null,
+    });
+    state.tonConnectUI.onStatusChange(wallet => {
+      if (wallet) handleWalletConnected(wallet.account.address);
+      else         handleWalletDisconnected();
+    });
+  } catch(e) {
+    console.warn('TonConnect init failed (not in TMA):', e.message);
+  }
+})();
+
+// ──────────────────────────────────────────────────────────────
+// WALLET CONNECT / DISCONNECT
+// ──────────────────────────────────────────────────────────────
+async function connectWallet() {
+  if (!state.tonConnectUI) { showToast('TonConnect not available'); return; }
+  try { await state.tonConnectUI.openModal(); } catch(e) { console.error(e); }
+}
+
+async function disconnectWallet() {
+  if (state.tonConnectUI) await state.tonConnectUI.disconnect();
+  handleWalletDisconnected();
+}
+
+function handleWalletConnected(rawAddress) {
+  const short = rawAddress.length > 12
+    ? rawAddress.slice(0,6) + '…' + rawAddress.slice(-4)
+    : rawAddress;
+
+  state.connected     = true;
+  state.walletAddress = rawAddress;
+  state.userId        = 'USR' + rawAddress.slice(-8).toUpperCase();
+
+  // ── Home view: hide hero, show dashboard ──
+  const heroEl = document.getElementById('hero-section');
+  const dashEl = document.getElementById('dashboard');
+  if (heroEl) heroEl.style.display = 'none';
+  if (dashEl) dashEl.style.display = 'block';
+
+  // ── Safely set dashboard UI elements (they live inside #dashboard) ──
+  const walletDisplayEl = document.getElementById('wallet-display');
+  const dashAvatarEl    = document.getElementById('dash-avatar');
+  const dashNameEl      = document.getElementById('dash-name');
+  const dashUidEl       = document.getElementById('dash-uid');
+  const joinDateEl      = document.getElementById('join-date');
+  const refLinkEl       = document.getElementById('ref-link');
+
+  if (walletDisplayEl) walletDisplayEl.textContent = short;
+  if (dashAvatarEl)    dashAvatarEl.textContent    = rawAddress.slice(-2).toUpperCase();
+  // Show TG name/handle if available, else wallet short
+  if (dashNameEl)      dashNameEl.textContent      = state.tgFirstName || state.tgUsername || short;
+  if (dashUidEl)       dashUidEl.textContent       = 'UID: ' + state.userId;
+  if (joinDateEl)      joinDateEl.textContent      =
+    new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  if (refLinkEl)       refLinkEl.textContent       = `https://t.me/CryptonBot/app?startapp=${state.userId}`;
+
+  // ── Unlock Matrix Gate in view-matrix with smooth reveal animation ──
+  const gate    = document.getElementById('matrix-wallet-gate');
+  const content = document.getElementById('matrix-content');
+  if (gate)    gate.style.display    = 'none';
+  if (content) {
+    content.style.display = 'block';
+    content.classList.remove('slots-reveal');
+    void content.offsetWidth; // force reflow so animation re-triggers
+    content.classList.add('slots-reveal');
+  }
+
+  // ── Hide matrix menu lock indicator ──
+  const navLock = document.getElementById('fmi-matrix-lock');
+  if (navLock) navLock.style.display = 'none';
+
+  // ── Log referral chain ──
+  const referredBy = getStoredRef();
+  if (referredBy) {
+    console.log('[Referral] This user was referred by:', referredBy);
+  }
+
+  // ── Log full Telegram + wallet payload ──
+  const tgPayload = typeof window.buildTelegramPayload === 'function'
+    ? window.buildTelegramPayload()
+    : {};
+  console.log('[Firebase] User payload on connect:', {
+    walletAddress: rawAddress,
+    userId: state.userId,
+    ...tgPayload,
+  });
+
+  loginUser(rawAddress);
+  showToast('Wallet connected ✓');
+  renderTicker();
+
+  // ── Header avatar ──
+  _updateHeaderAvatar();
+  // ── Refresh tweet meta ──
+  refreshTweetMeta();
+}
+
+function handleWalletDisconnected() {
+  state.connected     = false;
+  state.walletAddress = null;
+  state.userId        = null;
+
+  const heroEl          = document.getElementById('hero-section');
+  const dashEl          = document.getElementById('dashboard');
+  const walletDisplayEl = document.getElementById('wallet-display');
+  const refLinkEl       = document.getElementById('ref-link');
+
+  if (heroEl)          heroEl.style.display          = 'block';
+  if (dashEl)          dashEl.style.display          = 'none';
+  if (walletDisplayEl) walletDisplayEl.textContent   = 'Not connected';
+  if (refLinkEl)       refLinkEl.textContent         = 'Connect wallet to get your link';
+
+  // ── Re-lock Matrix Gate ──
+  const gate    = document.getElementById('matrix-wallet-gate');
+  const content = document.getElementById('matrix-content');
+  if (gate)    gate.style.display = 'flex';
+  if (content) { content.style.display = 'none'; content.classList.remove('slots-reveal'); }
+
+  // ── Show matrix menu lock indicator ──
+  const navLock = document.getElementById('fmi-matrix-lock');
+  if (navLock) navLock.style.display = '';
+
+  // ── Hide header avatar ──
+  const hdrUser = document.getElementById('hdr-user');
+  if (hdrUser) hdrUser.style.display = 'none';
+
+  // ── Reset logo avatar to initial + hide ID capsule ──
+  const logoAvatarEl  = document.getElementById('hdr-logo-avatar');
+  const logoInitEl    = document.getElementById('hdr-logo-initials');
+  const logoIdCapsule = document.getElementById('logo-id-capsule');
+  if (logoAvatarEl) {
+    const img = logoAvatarEl.querySelector('img');
+    if (img) img.remove();
+    if (logoInitEl) { logoInitEl.textContent = 'C'; logoInitEl.style.display = ''; }
+  }
+  if (logoIdCapsule) logoIdCapsule.style.display = 'none';
+
+  resetStats();
+}
+
+function resetStats() {
+  // Dashboard stats
+  ['stat-refs','stat-team','stat-slots'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.textContent = '0';
+  });
+  // Referral view stats
+  ['ref-direct','ref-total','ref-income'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.textContent = '0';
+  });
+  const se  = document.getElementById('stat-earned');
+  const set = document.getElementById('stat-earned-ton');
+  const wi  = document.getElementById('working-income-val');
+  const pi  = document.getElementById('passive-income-val');
+  const rwi = document.getElementById('ref-working-income-val');
+  const rpi = document.getElementById('ref-passive-income-val');
+  const rwt = document.getElementById('ref-working-income-ton');
+  const rpt = document.getElementById('ref-passive-income-ton');
+  if (se)  se.textContent  = '$0.00';
+  if (set) set.textContent = '0 TON';
+  if (wi)  wi.textContent  = '$0.00';
+  if (pi)  pi.textContent  = '$0.00';
+  if (rwi) rwi.textContent = '$0.00';
+  if (rpi) rpi.textContent = '$0.00';
+  if (rwt) rwt.textContent = '0 TON';
+  if (rpt) rpt.textContent = '0 TON';
+}
+
+// ──────────────────────────────────────────────────────────────
+// STATS UI — earnings in both TON + USD
+// ──────────────────────────────────────────────────────────────
+function tonToUsd(ton) { return TON_TO_USD ? (ton * TON_TO_USD).toFixed(2) : '—'; }
+function fmtTon(ton)   { return ton % 1 === 0 ? ton.toFixed(0) : ton.toFixed(2); }
+
+function updateStatsUI() {
+  const totalUsd = tonToUsd(state.earnedTon || 0);
+
+  // ── Dashboard stats ──
+  const se  = document.getElementById('stat-earned');
+  const set = document.getElementById('stat-earned-ton');
+  const ss  = document.getElementById('stat-slots');
+  const sr  = document.getElementById('stat-refs');
+  const st  = document.getElementById('stat-team');
+  if (se)  se.textContent  = '$' + totalUsd;
+  if (set) set.textContent = fmtTon(state.earnedTon || 0) + ' TON';
+  if (ss)  ss.textContent  = state.ownedSlots.length;
+  if (sr)  sr.textContent  = state.referrals;
+  if (st)  st.textContent  = state.teamSize;
+
+  const wi  = '$' + tonToUsd(state.workingTon || 0);
+  const pi  = '$' + tonToUsd(state.passiveTon || 0);
+  const wiT = fmtTon(state.workingTon || 0) + ' TON';
+  const piT = fmtTon(state.passiveTon || 0) + ' TON';
+
+  const wiEl  = document.getElementById('working-income-val');
+  const piEl  = document.getElementById('passive-income-val');
+  const rwiEl = document.getElementById('ref-working-income-val');
+  const rpiEl = document.getElementById('ref-passive-income-val');
+  const rwtEl = document.getElementById('ref-working-income-ton');
+  const rptEl = document.getElementById('ref-passive-income-ton');
+  if (wiEl)  wiEl.textContent  = wi;
+  if (piEl)  piEl.textContent  = pi;
+  if (rwiEl) rwiEl.textContent = wi;
+  if (rpiEl) rpiEl.textContent = pi;
+  if (rwtEl) rwtEl.textContent = wiT;
+  if (rptEl) rptEl.textContent = piT;
+
+  // ── Referral view counters ──
+  const rdEl = document.getElementById('ref-direct');
+  const rtEl = document.getElementById('ref-total');
+  const riEl = document.getElementById('ref-income');
+  if (rdEl) rdEl.textContent = state.referrals;
+  if (rtEl) rtEl.textContent = state.teamSize;
+  if (riEl) riEl.textContent = fmtTon(state.earnedTon || 0);
+}
+
+// ──────────────────────────────────────────────────────────────
+// MATRIX SVG BUILDER — bold 6-circle tree matching reference design
+// ──────────────────────────────────────────────────────────────
+function buildMatrixSVG(level, isGold, filled) {
+  const isOwned  = state.ownedSlots.includes(level);
+  const isFull   = isOwned && filled >= 6;
+
+  // Color palette based on slot state
+  let cStroke, cFill, cText, cLine, cYouStroke, cYouFill, cYouText;
+
+  if (isGold) {
+    cStroke    = '#d4a843';
+    cFill      = 'rgba(212,168,67,0.18)';
+    cText      = '#f0c96a';
+    cLine      = 'rgba(212,168,67,0.55)';
+    cYouStroke = '#b070c8';
+    cYouFill   = 'rgba(180,120,210,0.18)';
+    cYouText   = '#d090e0';
+  } else {
+    cStroke    = '#00e5ff';
+    cFill      = 'rgba(0,229,255,0.14)';
+    cText      = '#00e5ff';
+    cLine      = 'rgba(0,229,255,0.50)';
+    cYouStroke = '#b070c8';
+    cYouFill   = 'rgba(180,120,210,0.18)';
+    cYouText   = '#d090e0';
+  }
+
+  // All nodes use full brightness — status only shown via badges, not node dimming
+  const cStrokeDim = cStroke;
+  const cFillDim   = cFill;
+  const cTextDim   = cText;
+
+  const glowID = `glow-${level}`;
+  const glowColor = isGold ? '#d4a843' : '#00e5ff';
+
+  // Node positions — larger circles for clarity
+  const YOU= {x:60, y:14, r:13};
+  const L  = {x:24, y:48, r:12};
+  const R  = {x:96, y:48, r:12};
+  const N3 = {x:6,  y:84, r:11};
+  const N5 = {x:42, y:84, r:11};
+  const N4 = {x:78, y:84, r:11};
+  const N6 = {x:114,y:84, r:11};
+
+  const lFill = filled>=1, rFill = filled>=2;
+  const n3F   = filled>=3, n5F   = filled>=4;
+  const n4F   = filled>=5, n6F   = filled>=6;
+
+  function circ(node, isFilled, label) {
+    const stroke  = cStroke;
+    const bg      = isFilled ? cFill : cFillDim;
+    const numCol  = cText;
+    const sw      = '2.0';
+    const gFilter = `filter="url(#${glowID})"`;
+    const fs      = node.r >= 13 ? '9' : '8.5';
+    return `
+      <circle cx="${node.x}" cy="${node.y}" r="${node.r}"
+        fill="${bg}" stroke="${stroke}" stroke-width="${sw}" ${gFilter}/>
+      <text x="${node.x}" y="${node.y}" font-size="${fs}"
+        text-anchor="middle" dominant-baseline="central"
+        fill="${numCol}"
+        style="font-family:'DM Mono',monospace;font-weight:700;user-select:none;">${label}</text>`;
+  }
+
+  // Connector lines
+  const lines = `
+    <line x1="${YOU.x}" y1="${YOU.y+YOU.r}" x2="${L.x}"  y2="${L.y-L.r}"   stroke="${cLine}" stroke-width="1.8"/>
+    <line x1="${YOU.x}" y1="${YOU.y+YOU.r}" x2="${R.x}"  y2="${R.y-R.r}"   stroke="${cLine}" stroke-width="1.8"/>
+    <line x1="${L.x}"   y1="${L.y+L.r}"    x2="${N3.x}" y2="${N3.y-N3.r}" stroke="${cLine}" stroke-width="1.8"/>
+    <line x1="${L.x}"   y1="${L.y+L.r}"    x2="${N5.x}" y2="${N5.y-N5.r}" stroke="${cLine}" stroke-width="1.8"/>
+    <line x1="${R.x}"   y1="${R.y+R.r}"    x2="${N4.x}" y2="${N4.y-N4.r}" stroke="${cLine}" stroke-width="1.8"/>
+    <line x1="${R.x}"   y1="${R.y+R.r}"    x2="${N6.x}" y2="${N6.y-N6.r}" stroke="${cLine}" stroke-width="1.8"/>`;
+
+  const youNode = `
+    <circle cx="${YOU.x}" cy="${YOU.y}" r="${YOU.r}"
+      fill="${cYouFill}" stroke="${cYouStroke}" stroke-width="2.0" filter="url(#${glowID})"/>
+    <text x="${YOU.x}" y="${YOU.y}" font-size="8.5"
+      text-anchor="middle" dominant-baseline="central"
+      fill="${cYouText}"
+      style="font-family:'DM Mono',monospace;font-weight:700;user-select:none;">You</text>`;
+
+  return `
+    <div class="slot-matrix">
+      <svg viewBox="-6 0 132 100" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:134px;overflow:visible;">
+        <defs>
+          <filter id="${glowID}" x="-80%" y="-80%" width="260%" height="260%">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        ${lines}
+        ${youNode}
+        ${circ(L,  lFill,'1')}
+        ${circ(R,  rFill,'2')}
+        ${circ(N3, n3F,  '3')}
+        ${circ(N5, n5F,  '5')}
+        ${circ(N4, n4F,  '4')}
+        ${circ(N6, n6F,  '6')}
+      </svg>
+    </div>`;
+}
+
+// ──────────────────────────────────────────────────────────────
+// RENDER SLOTS — with status indicators & sequential locking
+// ──────────────────────────────────────────────────────────────
+function renderSlots() {
+  const grid = document.getElementById('slots-grid');
+  grid.innerHTML = '';
+
+  SLOTS.forEach(slot => {
+    const owned   = state.ownedSlots.includes(slot.level);
+    // SEQUENTIAL LOCK: level N locked unless level N-1 is owned (level 1 always available)
+    const locked  = !owned && slot.level > 1 && !state.ownedSlots.includes(slot.level - 1);
+    const filled  = getFilledCount(slot.level);
+    const isFull  = owned && filled >= 6;
+    const dist    = calculateIncomeDistribution(slot.price);
+    const usdPrice= TON_TO_USD ? (slot.price * TON_TO_USD).toFixed(0) : '—';
+
+    // Determine card status class
+    let cardClass = 'slot-card';
+    if (locked)       cardClass += ' locked-card';
+    else if (isFull)  cardClass += ' full-card' + (slot.gold ? ' premium' : '');
+    else if (owned)   cardClass += ' active-card' + (slot.gold ? ' premium' : '');
+
+    // Status badge
+    let badge = '', badgeClass = '';
+    if (locked)      { badge='LOCKED';  badgeClass='badge-locked'; }
+    else if (isFull) { badge='RECYCLE'; badgeClass='badge-full'; }
+    else if (owned)  { badge='ACTIVE';  badgeClass='badge-active'; }
+    else             { badge='BUY';     badgeClass='badge-buy'; }
+
+    // Button
+    let btnClass='', btnLabel='ACTIVATE', btnDisabled='';
+    if (isFull)      { btnClass='upgrade'; btnLabel='⬆ UPGRADE'; }
+    else if (owned)  { btnClass='owned';   btnLabel='✓ ACTIVE'; btnDisabled='disabled'; }
+    else if (locked) { btnClass='locked';  btnLabel='LOCKED'; btnDisabled='disabled'; }
+
+    const onclick = isFull ? `showUpgradeModal(${slot.level})` : `buySlot(${slot.level},${slot.price})`;
+
+    // USD class on price
+    const usdClass = owned ? (slot.gold ? 'usd-gold' : 'usd-active') : '';
+
+    // Fill progress %
+    const fillPct  = owned ? Math.round((filled / 6) * 100) : 0;
+
+    const card = document.createElement('div');
+    card.className = cardClass;
+    card.dataset.level = slot.level;
+
+    // Tap on card body (not button) = preview income split OR simulate fill
+    card.onclick = (e) => {
+      if (e.target.closest('button')) return;
+      // Tap on card body — simulate fill on active slots
+      if (owned && !isFull) {
+        simulateFill(slot.level);
+      }
+    };
+
+    card.innerHTML = `
+      <div class="slot-header">
+        <span class="slot-header-lvl">LVL ${String(slot.level).padStart(2,'0')}</span>
+        <span class="slot-status-badge ${badgeClass}">${badge}</span>
+      </div>
+      <div class="slot-body">
+        <div class="slot-price-wrap">
+          <div class="slot-price">${slot.price}<span class="slot-price-unit"> TON</span></div>
+          <div class="slot-usd ${usdClass}">≈ $${usdPrice} USD</div>
+        </div>
+        ${owned ? `
+        <div class="slot-income-bar">
+          <div class="bar-working"></div>
+          <div class="bar-passive"></div>
+        </div>
+        <div class="slot-income-labels">
+          <span class="lbl-working">⚡$${dist.workingUsd.toFixed(0)}</span>
+          <span class="lbl-passive">$${dist.passiveUsd.toFixed(0)}♾</span>
+        </div>` : ''}
+        <div class="slot-recycle">&#x267B;</div>
+        ${buildMatrixSVG(slot.level, slot.gold, filled)}
+        ${owned ? `
+        <div class="fill-bar-wrap">
+          <div class="fill-bar-track">
+            <div class="fill-bar-fill" style="width:${fillPct}%"></div>
+          </div>
+          <div class="fill-count">${filled}/6 filled</div>
+        </div>` : ''}
+      </div>
+      <button class="btn-slot ${btnClass}" onclick="${onclick}" ${btnDisabled}>${btnLabel}</button>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// ──────────────────────────────────────────────────────────────
+// UPGRADE MODAL
+// ──────────────────────────────────────────────────────────────
+let _upgradeTargetLevel = null;
+
+function showUpgradeModal(level) {
+  _upgradeTargetLevel = level + 1;
+  const nextSlot = SLOTS.find(s => s.level === _upgradeTargetLevel);
+  const sub = document.getElementById('modal-sub-text');
+  const btn = document.getElementById('modal-upgrade-btn');
+  if (nextSlot) {
+    const usd = TON_TO_USD ? (nextSlot.price * TON_TO_USD).toFixed(0) : '—';
+    sub.innerHTML = `All 6 positions in Slot ${level} are filled.<br>Upgrade to <strong>Level ${nextSlot.level}</strong> for <strong>${nextSlot.price} TON${usd !== '—' ? ` (~$${usd})` : ''}</strong>.`;
+    btn.style.display = '';
+    btn.textContent = '⬆ Upgrade to LVL ' + String(nextSlot.level).padStart(2,'0');
+  } else {
+    sub.innerHTML = `You've completed all 10 levels!<br>You're at the top of the ForTon matrix. 🏆`;
+    btn.style.display = 'none';
+  }
+  document.getElementById('upgrade-modal').classList.add('show');
+  // Burst from center on matrix complete
+  if (window.burstParticles) burstParticles(null, true);
+}
+
+function closeUpgradeModal(event) {
+  if (event.target === document.getElementById('upgrade-modal'))
+    document.getElementById('upgrade-modal').classList.remove('show');
+}
+
+function doUpgrade() {
+  document.getElementById('upgrade-modal').classList.remove('show');
+  const nextSlot = SLOTS.find(s => s.level === _upgradeTargetLevel);
+  if (nextSlot) buySlot(nextSlot.level, nextSlot.price);
+}
+
+// ──────────────────────────────────────────────────────────────
+// DEMO: Tap active slot to simulate fill (remove in production)
+// ──────────────────────────────────────────────────────────────
+function simulateFill(level) {
+  if (!state.ownedSlots.includes(level)) return;
+  slotFill[level] = Math.min((slotFill[level] ?? 0) + 1, 6);
+  renderSlots();
+  if (slotFill[level] >= 6) setTimeout(() => showUpgradeModal(level), 300);
+}
+
+// ──────────────────────────────────────────────────────────────
+// BUY SLOT — 50/50 Distribution Transaction
+// ──────────────────────────────────────────────────────────────
+async function buySlot(level, priceTon) {
+  if (!state.connected)    { showToast('Connect wallet first'); return; }
+
+  // Sequential lock validation — cannot skip levels
+  if (level > 1 && !state.ownedSlots.includes(level - 1)) {
+    showToast(`Unlock Level ${level - 1} first!`);
+    return;
+  }
+  if (state.ownedSlots.includes(level)) {
+    showToast(`Level ${level} already active`);
+    return;
+  }
+
+  if (!state.tonConnectUI) return;
+
+  // ┌─────────────────────────────────────────────────────────┐
+  // │  50/50 INCOME SPLIT — ON EVERY SLOT PURCHASE            │
+  // │  Total: priceTon TON                                     │
+  // │  ├─ 50% (halfNanoTon) → Direct Referrer's wallet        │
+  // │  └─ 50% (halfNanoTon) → Matrix Smart Contract           │
+  // └─────────────────────────────────────────────────────────┘
+  // ── Contract address — replace with your deployed contract ──
+  const CONTRACT_ADDRESS = 'EQD__YOUR_CRYPTON_CONTRACT_ADDRESS_HERE'; // TODO: replace with real address
+
+  // ── Referrer wallet for direct (50%) payment ──
+  // Prefer on-chain referrer wallet; fall back to contract for now
+  const referrerWallet = state._referrerWallet || CONTRACT_ADDRESS;
+
+  try {
+    // Use integer arithmetic to avoid floating-point rounding errors
+    const totalNano   = BigInt(Math.round(priceTon * 1e9));
+    const halfNano    = totalNano / 2n;
+    const remNano     = totalNano - halfNano; // handles odd nanotons cleanly
+    const dist        = calculateIncomeDistribution(priceTon);
+
+    // Build safe UTF-8 payload (btoa fails on non-Latin chars — use encodeURIComponent guard)
+    function _safePayload(obj) {
+      try { return btoa(unescape(encodeURIComponent(JSON.stringify(obj)))); }
+      catch(e) { return ''; }
+    }
+
+    const tx = {
+      validUntil: Math.floor(Date.now() / 1000) + 600,
+      messages: [
+        {
+          // 50% → Direct referrer wallet (working income)
+          address: referrerWallet,
+          amount:  halfNano.toString(),
+          payload: _safePayload({
+            op: 'direct_income', level,
+            userId: state.userId,
+            percent: 50,
+            usd: dist.workingUsd.toFixed(2)
+          }),
+        },
+        {
+          // 50% → Matrix smart contract (passive/spillover income)
+          address: CONTRACT_ADDRESS,
+          amount:  remNano.toString(),
+          payload: _safePayload({
+            op: 'matrix_spillover', level,
+            userId: state.userId,
+            percent: 50,
+            usd: dist.passiveUsd.toFixed(2)
+          }),
+        }
+      ]
+    };
+
+    showToast('Opening wallet…');
+    const result = await state.tonConnectUI.sendTransaction(tx);
+
+    if (result) {
+      state.ownedSlots.push(level);
+      slotFill[level]   = 0;
+      state.workingTon  = (state.workingTon || 0) + dist.working;
+      state.passiveTon  = (state.passiveTon || 0) + dist.passive;
+      state.earnedTon   = state.workingTon + state.passiveTon;
+      updateStatsUI();
+      renderSlots();
+      saveUserData({
+        ownedSlots: state.ownedSlots,
+        earnedTon:  state.earnedTon,
+        workingTon: state.workingTon,
+        passiveTon: state.passiveTon,
+      });
+      showToast(`Level ${level} activated! 🎉`);
+      // ── Celebration burst ──
+      const card = document.querySelector(`[data-level="${level}"]`);
+      const slotDef = SLOTS.find(s => s.level === level);
+      if (window.burstParticles) burstParticles(card, slotDef && slotDef.gold);
+      if (card) {
+        card.classList.add(slotDef && slotDef.gold ? 'flash-gold' : 'flash-cyan');
+        setTimeout(() => card.classList.remove('flash-gold','flash-cyan'), 800);
+      }
+      // update rank ticker
+      if (_tickerSeeded && state.tgUsername) {
+        const idx = _tickerData.findIndex(r => r.tgId === state.tgUsername);
+        if (idx === -1) _tickerData.push({ tgId: state.tgUsername, earnedTon: state.earnedTon||0 });
+        else            _tickerData[idx].earnedTon = state.earnedTon||0;
+        _tickerData.sort((a,b) => b.earnedTon - a.earnedTon);
+        renderTicker();
+      }
+    }
+  } catch(e) {
+    if (e.message !== 'User closed the modal') showToast('Transaction failed');
+    console.error('buySlot error:', e);
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// FIREBASE REAL FUNCTIONS
+// ──────────────────────────────────────────────────────────────
+
+// Helper: wait for Firestore to be ready (module loads async)
+function waitForFirestore(timeout = 8000) {
+  return new Promise((resolve, reject) => {
+    if (window.__db && window.__fs) return resolve();
+    const start = Date.now();
+    const check = setInterval(() => {
+      if (window.__db && window.__fs) { clearInterval(check); resolve(); }
+      else if (Date.now() - start > timeout) { clearInterval(check); reject(new Error('Firestore timeout')); }
+    }, 80);
+  });
+}
+
+async function loginUser(walletAddress) {
+  try {
+    await waitForFirestore();
+  } catch(e) {
+    console.warn('[Firebase] Firestore not ready, using blank state:', e.message);
+    state.ownedSlots = []; state.earnedTon = 0; state.workingTon = 0;
+    state.passiveTon = 0; state.referrals = 0; state.teamSize = 0;
+    updateStatsUI(); renderSlots(); return;
+  }
+
+  const { doc, getDoc, setDoc, updateDoc, increment } = window.__fs;
+  const db = window.__db;
+
+  const tgPayload   = typeof window.buildTelegramPayload === 'function'
+    ? window.buildTelegramPayload() : {};
+  const referredBy  = tgPayload.referredBy || null;
+  const userDocRef  = doc(db, 'users', walletAddress);
+
+  try {
+    const snap = await getDoc(userDocRef);
+
+    if (!snap.exists()) {
+      // ── NEW USER — create document ──────────────────────────
+      const newUserData = {
+        walletAddress,
+        tgId:       tgPayload.tgId     || null,
+        tgHandle:   tgPayload.tgHandle || null,
+        tgName:     tgPayload.tgName   || null,   // full name from URL/TMA
+        tgEmail:    tgPayload.tgEmail  || null,
+        referredBy: referredBy         || null,
+        joinedAt:   window.__fs.serverTimestamp(), // SERVER timestamp — not client clock
+        ownedSlots: [],
+        earnedTon:  0,
+        workingTon: 0,
+        passiveTon: 0,
+        referrals:  0,
+        teamSize:   0,
+      };
+      await setDoc(userDocRef, newUserData);
+      console.log('[Firebase] New user created:', walletAddress);
+
+      // ── Increment referrer's referrals + teamSize ──────────
+      if (referredBy) {
+        // referredBy stores the referrer's userId (USR + last8 chars)
+        // We need to find the referrer's wallet. Try direct wallet lookup first,
+        // then fallback to userId field scan.
+        try {
+          const refDocRef = doc(db, 'users', referredBy);
+          const refSnap   = await getDoc(refDocRef);
+          if (refSnap.exists()) {
+            await updateDoc(refDocRef, {
+              referrals: increment(1),
+              teamSize:  increment(1),
+            });
+            console.log('[Firebase] Referrer updated:', referredBy);
+          } else {
+            // referredBy may be a userId like "USR12345678" — query by userId field
+            const { collection, query, where, getDocs } = window.__fs;
+            if (where) {
+              const q    = query(collection(db, 'users'), where('userId', '==', referredBy));
+              const qSnap = await getDocs(q);
+              if (!qSnap.empty) {
+                await updateDoc(qSnap.docs[0].ref, {
+                  referrals: increment(1),
+                  teamSize:  increment(1),
+                });
+                console.log('[Firebase] Referrer (by userId) updated:', referredBy);
+              }
+            }
+          }
+        } catch(refErr) {
+          console.warn('[Firebase] Could not update referrer:', refErr);
+        }
+      }
+
+      // Start with blank state for new user
+      state.ownedSlots = []; state.earnedTon = 0; state.workingTon = 0;
+      state.passiveTon = 0; state.referrals = 0; state.teamSize = 0;
+
+    } else {
+      // ── EXISTING USER — load data from Firestore ────────────
+      const data = snap.data();
+      console.log('[Firebase] Existing user loaded:', data);
+
+      state.ownedSlots = data.ownedSlots  || [];
+      state.earnedTon  = data.earnedTon   || 0;
+      state.workingTon = data.workingTon  || 0;
+      state.passiveTon = data.passiveTon  || 0;
+      state.referrals  = data.referrals   || 0;
+      state.teamSize   = data.teamSize    || 0;
+
+      // Restore slotFill from saved data
+      if (data.slotFill && typeof data.slotFill === 'object') {
+        Object.assign(slotFill, data.slotFill);
+      }
+
+      // ── Update join date display if available ──
+      if (data.joinedAt) {
+        const jEl = document.getElementById('join-date');
+        if (jEl) {
+          // Handle both Firestore Timestamp and legacy ISO string
+          const joinMs = data.joinedAt?.toMillis
+            ? data.joinedAt.toMillis()
+            : (data.joinedAt?.seconds ? data.joinedAt.seconds * 1000 : new Date(data.joinedAt).getTime());
+          jEl.textContent = new Date(joinMs)
+            .toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+        }
+      }
+
+      showToast('Welcome back! Data loaded ✓');
+    }
+
+    // ── Also store userId in Firestore doc for referral lookups ──
+    // Also update tg data in case it changed
+    const userId = 'USR' + walletAddress.slice(-8).toUpperCase();
+    const updateFields = { userId };
+    if (tgPayload.tgHandle) updateFields.tgHandle = tgPayload.tgHandle;
+    if (tgPayload.tgName)   updateFields.tgName   = tgPayload.tgName;
+    if (tgPayload.tgEmail)  updateFields.tgEmail  = tgPayload.tgEmail;
+    if (tgPayload.tgId)     updateFields.tgId     = tgPayload.tgId;
+    await updateDoc(userDocRef, updateFields).catch(() => {}); // silent if fails
+
+    updateStatsUI();
+    renderSlots();
+
+  } catch(e) {
+    console.error('[Firebase] loginUser error:', e);
+    showToast('Could not load profile. Check connection.');
+    state.ownedSlots = []; state.earnedTon = 0; state.workingTon = 0;
+    state.passiveTon = 0; state.referrals = 0; state.teamSize = 0;
+    updateStatsUI(); renderSlots();
+  }
+}
+
+async function saveUserData(updates) {
+  if (!state.walletAddress) return;
+  try {
+    await waitForFirestore();
+    const { doc, updateDoc } = window.__fs;
+    const userDocRef = doc(window.__db, 'users', state.walletAddress);
+    // Also persist slotFill map
+    await updateDoc(userDocRef, { ...updates, slotFill: { ...slotFill } });
+    console.log('[Firebase] saveUserData ✓', updates);
+  } catch(e) {
+    console.error('[Firebase] saveUserData error:', e);
+  }
+}
+
+async function getReferralStats() {
+  if (!state.walletAddress) return;
+  try {
+    await waitForFirestore();
+    const { doc, getDoc } = window.__fs;
+    const snap = await getDoc(doc(window.__db, 'users', state.walletAddress));
+    if (snap.exists()) {
+      const data = snap.data();
+      state.referrals = data.referrals || 0;
+      state.teamSize  = data.teamSize  || 0;
+      updateStatsUI();
+      console.log('[Firebase] Referral stats refreshed:', state.referrals, state.teamSize);
+    }
+  } catch(e) {
+    console.error('[Firebase] getReferralStats error:', e);
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// FLOATING MENU — open/close + outside click dismiss
+// ──────────────────────────────────────────────────────────────
+let _fabOpen = false;
+
+function toggleFabMenu() {
+  _fabOpen = !_fabOpen;
+  document.getElementById('fab-btn').classList.toggle('open', _fabOpen);
+  document.getElementById('fab-menu').classList.toggle('open', _fabOpen);
+}
+
+function closeFabMenu() {
+  if (!_fabOpen) return;
+  _fabOpen = false;
+  document.getElementById('fab-btn').classList.remove('open');
+  document.getElementById('fab-menu').classList.remove('open');
+}
+
+// Close on outside tap
+document.addEventListener('click', (e) => {
+  if (_fabOpen && !e.target.closest('.fab-wrap')) closeFabMenu();
+});
+
+// ──────────────────────────────────────────────────────────────
+// NAVIGATION
+// ──────────────────────────────────────────────────────────────
+function switchView(name) {
+  closeFabMenu();
+
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const view = document.getElementById('view-' + name);
+  if (view) view.classList.add('active');
+
+  // Show/hide back buttons in non-home views
+  ['matrix','referral','profile','tweets'].forEach(n => {
+    const btn = document.getElementById('back-' + n);
+    if (btn) btn.style.display = (name === n) ? 'flex' : 'none';
+  });
+
+  // Highlight active item in popup menu
+  ['matrix','referral','profile','tweets'].forEach(n => {
+    const mi = document.getElementById('fmi-' + n);
+    if (mi) mi.classList.toggle('active-view', name === n);
+  });
+
+  if (name === 'referral') getReferralStats();
+  if (name === 'tweets')   loadTweets();
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+// ──────────────────────────────────────────────────────────────
+// COPY HELPERS
+// ──────────────────────────────────────────────────────────────
+function copyWallet() {
+  if (!state.walletAddress) return;
+  navigator.clipboard.writeText(state.walletAddress).then(() => {
+    const btn = document.querySelector('.wallet-row .btn-copy');
+    btn.textContent='COPIED!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent='COPY'; btn.classList.remove('copied'); }, 2000);
+    showToast('Wallet address copied');
+  });
+}
+
+function copyReferral() {
+  const linkEl = document.getElementById('ref-link');
+  const link = linkEl ? linkEl.textContent : '';
+  if (!link || link.startsWith('Connect')) { showToast('Connect wallet first'); return; }
+  navigator.clipboard.writeText(link).then(() => {
+    const btn = document.getElementById('btn-copy-ref');
+    btn.textContent='COPIED!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent='COPY'; btn.classList.remove('copied'); }, 2000);
+    showToast('Referral link copied');
+  });
+}
+
+// ──────────────────────────────────────────────────────────────
+// TOAST
+// ──────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+// ──────────────────────────────────────────────────────────────
+// #RANK TICKER — horizontal auto-scroll marquee
+// ──────────────────────────────────────────────────────────────
+const MEDALS = ['🥇','🥈','🥉'];
+
+let _tickerData   = [];
+let _tickerSeeded = false;
+let _tickerAnimId = null;
+
+// Fetch Top-100 earners from Firestore
+async function fetchTickerDataFromFirestore() {
+  try {
+    await waitForFirestore();
+    const { collection, query, orderBy, limit, getDocs } = window.__fs;
+    const q     = query(collection(window.__db, 'users'), orderBy('earnedTon','desc'), limit(100));
+    const snap  = await getDocs(q);
+    const users = [];
+    snap.forEach(d => {
+      const data = d.data();
+      const handle = (data.tgHandle || data.walletAddress)
+        ? (data.tgHandle || ('0x…' + (data.walletAddress || '').slice(-4)))
+        : 'Anonymous';
+      users.push({ tgId: handle, earnedTon: data.earnedTon || 0 });
+    });
+    if (users.length > 0) {
+      _tickerData   = users;
+      _tickerSeeded = true;
+      console.log('[Ticker] Loaded', users.length, 'real users from Firestore');
+    } else {
+      // Firestore empty — use lightweight fallback
+      _tickerData   = buildDemoTickerData();
+      _tickerSeeded = true;
+    }
+  } catch(e) {
+    console.warn('[Ticker] Firestore fetch failed, using demo data:', e.message);
+    _tickerData   = buildDemoTickerData();
+    _tickerSeeded = true;
+  }
+}
+
+// Minimal fallback data (used only when Firestore is unreachable / empty)
+function buildDemoTickerData() {
+  return [
+    { tgId:'@alexk',   earnedTon: 812.5 },
+    { tgId:'@tarik99', earnedTon: 640.0 },
+    { tgId:'@nina_t',  earnedTon: 520.3 },
+    { tgId:'@sami_x',  earnedTon: 480.0 },
+    { tgId:'@vera_d',  earnedTon: 410.8 },
+    { tgId:'@len4ik',  earnedTon: 384.0 },
+    { tgId:'@glen01',  earnedTon: 320.5 },
+    { tgId:'@bora_w',  earnedTon: 296.0 },
+    { tgId:'@cyra88',  earnedTon: 256.4 },
+    { tgId:'@pita_m',  earnedTon: 224.0 },
+  ].sort((a,b) => b.earnedTon - a.earnedTon);
+}
+
+function renderTicker() {
+  const track = document.getElementById('rank-ticker-track');
+  if (!track) return;
+
+  // If not seeded yet, fetch from Firestore then render
+  if (!_tickerSeeded) {
+    // Show loading placeholder while fetching
+    track.innerHTML = '<span class="ticker-chip"><span class="tc-id" style="color:var(--text-lo)">Loading leaderboard…</span></span>';
+    fetchTickerDataFromFirestore().then(() => {
+      _injectLiveUserIntoTicker();
+      _buildTickerDOM(track);
+    });
+    return;
+  }
+
+  _injectLiveUserIntoTicker();
+  _buildTickerDOM(track);
+}
+
+function _injectLiveUserIntoTicker() {
+  if (state.connected && state.tgUsername) {
+    const myTon = state.earnedTon || 0;
+    const idx   = _tickerData.findIndex(r => r.tgId === state.tgUsername);
+    if (idx === -1) _tickerData.push({ tgId: state.tgUsername, earnedTon: myTon });
+    else            _tickerData[idx].earnedTon = myTon;
+    _tickerData.sort((a,b) => b.earnedTon - a.earnedTon);
+  }
+}
+
+function _buildTickerDOM(track) {
+  // Stop existing animation before rebuilding to avoid double-scroll
+  track.classList.remove('running');
+  track.style.animationDuration = '';
+
+  const rows = _tickerData.slice(0, 100);
+  const makeChip = (r, i) => {
+    const rank  = i + 1;
+    const rCls  = rank <= 3 ? `r${rank}` : '';
+    const medal = rank <= 3 ? `<span class="tc-medal">${MEDALS[rank-1]}</span>` : '';
+    const ton   = parseFloat(r.earnedTon).toFixed(1);
+    // Escape tgId to prevent XSS in ticker
+    const safeId = String(r.tgId).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return `<span class="ticker-chip">
+      <span class="tc-rank ${rCls}">#${rank}</span>
+      ${medal}
+      <span class="tc-id">${safeId}</span>
+      <span class="tc-ton">${ton} TON</span>
+    </span>`;
+  };
+  const single = rows.map(makeChip).join('');
+  track.innerHTML = single + single;
+
+  // Use void trick to force reflow so animation restarts cleanly
+  void track.offsetWidth;
+  requestAnimationFrame(() => {
+    const halfW = track.scrollWidth / 2;
+    const dur   = Math.max(halfW / 160, 5);
+    track.style.animationDuration = dur + 's';
+    track.classList.add('running');
+  });
+}
+
+// Initial render (will trigger Firestore fetch)
+renderTicker();
+
+// Refresh ticker every 30s — re-fetch from Firestore
+setInterval(() => {
+  _tickerSeeded = false; // force re-fetch
+  renderTicker();
+}, 30_000);
+
+// Called when live TON rate arrives — ticker shows TON directly, no-op here
+function refreshLeaderboardUsd() {}
+
+
+
+// ──────────────────────────────────────────────────────────────
+// PARTICLE BURST — canvas-based celebration effect
+// ──────────────────────────────────────────────────────────────
+(function initParticles() {
+  const canvas = document.getElementById('particle-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  let raf = null;
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function lerp(a,b,t){ return a+(b-a)*t; }
+
+  class Particle {
+    constructor(x, y, color) {
+      this.x  = x; this.y  = y;
+      this.vx = (Math.random()-0.5)*7;
+      this.vy = (Math.random()-0.7)*9 - 2;
+      this.alpha = 1;
+      this.size  = Math.random()*5+3;
+      this.color = color;
+      this.gravity = 0.22;
+      this.decay   = Math.random()*0.018+0.012;
+      this.shape   = Math.random() < 0.5 ? 'circle' : 'rect';
+      this.rot     = Math.random()*Math.PI*2;
+      this.rotV    = (Math.random()-0.5)*0.18;
+    }
+    update() {
+      this.x  += this.vx; this.y  += this.vy;
+      this.vy += this.gravity;
+      this.vx *= 0.98;
+      this.rot += this.rotV;
+      this.alpha -= this.decay;
+    }
+    draw(ctx) {
+      ctx.save();
+      ctx.globalAlpha = Math.max(this.alpha,0);
+      ctx.fillStyle   = this.color;
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.rot);
+      if (this.shape === 'circle') {
+        ctx.beginPath();
+        ctx.arc(0,0,this.size/2,0,Math.PI*2);
+        ctx.fill();
+      } else {
+        ctx.fillRect(-this.size/2,-this.size/3,this.size,this.size*0.55);
+      }
+      ctx.restore();
+    }
+  }
+
+  function loop() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles = particles.filter(p => p.alpha > 0);
+    particles.forEach(p => { p.update(); p.draw(ctx); });
+    if (particles.length > 0) raf = requestAnimationFrame(loop);
+    else raf = null;
+  }
+
+  // Exposed: call with origin element + isGold flag
+  window.burstParticles = function(originEl, isGold) {
+    const rect   = originEl ? originEl.getBoundingClientRect() : null;
+    const cx     = rect ? rect.left + rect.width/2  : window.innerWidth/2;
+    const cy     = rect ? rect.top  + rect.height/2 : window.innerHeight * 0.45;
+
+    const palCyan = ['#00e5ff','#80f4ff','#ffffff','#00b8cc','#a0f0ff'];
+    const palGold = ['#f0c96a','#d4a843','#ffffff','#ffd700','#ffb347'];
+    const pal = isGold ? palGold : palCyan;
+
+    const count = 72;
+    for (let i=0; i<count; i++) {
+      particles.push(new Particle(cx, cy, pal[Math.floor(Math.random()*pal.length)]));
+    }
+    if (!raf) raf = requestAnimationFrame(loop);
+  };
+})();
+
+// ──────────────────────────────────────────────────────────────
+// HEADER AVATAR — Telegram photo_url or initial letter
+// ──────────────────────────────────────────────────────────────
+function _updateHeaderAvatar() {
+  const hdrUser    = document.getElementById('hdr-user');
+  const hdrAvatar  = document.getElementById('hdr-avatar');
+  const hdrInit    = document.getElementById('hdr-initials');
+  const hdrUid     = document.getElementById('hdr-uid');
+  if (!hdrUser) return;
+
+  // Show the container
+  hdrUser.style.display = 'flex';
+
+  // ── Logo icon avatar (replaces 'F') ──
+  const logoAvatarEl  = document.getElementById('hdr-logo-avatar');
+  const logoInitEl    = document.getElementById('hdr-logo-initials');
+  const logoIdCapsule = document.getElementById('logo-id-capsule');
+  const logoTgId      = document.getElementById('logo-tg-id');
+
+  if (logoAvatarEl) {
+    const photoUrl = state.tgPhotoUrl || null;
+    if (photoUrl) {
+      const oldImg = logoAvatarEl.querySelector('img');
+      if (oldImg) oldImg.remove();
+      const img = document.createElement('img');
+      img.src = photoUrl;
+      img.alt = 'DP';
+      img.onerror = () => {
+        img.remove();
+        if (logoInitEl) {
+          const fb = state.tgFirstName || state.tgUsername || 'C';
+          logoInitEl.textContent = fb.replace('@','').charAt(0).toUpperCase();
+          logoInitEl.style.display = '';
+        }
+      };
+      if (logoInitEl) logoInitEl.style.display = 'none';
+      logoAvatarEl.appendChild(img);
+    } else {
+      const fb = state.tgFirstName || state.tgUsername || 'C';
+      if (logoInitEl) logoInitEl.textContent = fb.replace('@','').charAt(0).toUpperCase();
+    }
+  }
+
+  // ── ID capsule after CRYPTON — show @username · ID ──
+  if (logoIdCapsule) {
+    const handleEl = document.getElementById('logo-tg-handle');
+    const sepEl    = document.getElementById('logo-tg-id-sep');
+    const idEl     = logoTgId; // already fetched above
+    const username = state.tgUsername || null;
+    const tgId     = state.tgNumericId || state.userId || null;
+    if (username || tgId) {
+      if (handleEl) handleEl.textContent = username || '';
+      if (sepEl)    sepEl.style.display  = (username && tgId) ? 'inline' : 'none';
+      if (idEl)     idEl.textContent     = tgId || '';
+      logoIdCapsule.style.display = 'inline-flex';
+    }
+  }
+
+
+  const label = state.tgUsername
+    ? state.tgUsername
+    : (state.userId || '---');
+  if (hdrUid) hdrUid.textContent = label;
+
+  // ── Avatar: photo_url → img, else first letter of name ──
+  if (hdrAvatar) {
+    const photoUrl = state.tgPhotoUrl || null;
+    if (photoUrl) {
+      // Remove old img if any
+      const oldImg = hdrAvatar.querySelector('img');
+      if (oldImg) oldImg.remove();
+      const img = document.createElement('img');
+      img.src = photoUrl;
+      img.alt = 'DP';
+      img.onerror = () => {
+        // fallback to initial on load error
+        img.remove();
+        if (hdrInit) {
+          const fallback = state.tgFirstName || state.tgUsername || state.userId || '?';
+          hdrInit.textContent = fallback.replace('@','').charAt(0).toUpperCase();
+          hdrInit.style.display = '';
+        }
+      };
+      if (hdrInit) hdrInit.style.display = 'none';
+      hdrAvatar.appendChild(img);
+    } else {
+      // No photo — show initial
+      const fallback = state.tgFirstName || state.tgUsername || state.userId || '?';
+      if (hdrInit) hdrInit.textContent = fallback.replace('@','').charAt(0).toUpperCase();
+    }
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// TWEET / SHOUTBOX SYSTEM
+// Firestore collection: tweets
+// Global limit: 10 tweets per 24 hours (auto-cleaned front-end)
+// ──────────────────────────────────────────────────────────────
+const TWEET_LIMIT = 10;
+const TWEET_TTL   = 24 * 60 * 60 * 1000; // 24 h in ms
+
+// Live count of valid tweets (refreshed on postTweet / loadTweets)
+let _tweetCount = 0;
+
+function tweetOnInput(el) {
+  const rem = 50 - el.value.length;
+  const ctr = document.getElementById('tweet-counter');
+  if (ctr) {
+    ctr.textContent = rem;
+    ctr.className   = 'tweet-counter' + (rem <= 5 ? ' full' : rem <= 15 ? ' near' : '');
+  }
+}
+
+// ── Refresh meta bar + disable/enable input ───────────────────
+async function refreshTweetMeta() {
+  const count = await _getLiveTweetCount();
+  _tweetCount = count;
+  _applyTweetUI(count);
+}
+
+function _applyTweetUI(count) {
+  const meta    = document.getElementById('tweet-meta');
+  const input   = document.getElementById('tweet-input');
+  const btn     = document.getElementById('tweet-btn');
+  const capsule = document.getElementById('tweet-capsule');
+  if (meta)    meta.textContent = `${count} / ${TWEET_LIMIT} tweets today`;
+  if (count >= TWEET_LIMIT) {
+    if (capsule) capsule.classList.add('limit');
+    if (input)   { input.disabled = true; input.placeholder = '⛔ Daily limit reached (10/10)'; }
+    if (btn)     btn.disabled = true;
+  } else {
+    if (capsule) capsule.classList.remove('limit');
+    if (input)   { input.disabled = false; input.placeholder = 'Shout something… (50 chars)'; }
+    if (btn)     btn.disabled = false;
+  }
+}
+
+// ── Count valid (< 24 h) tweets in Firestore ─────────────────
+// SECURITY: Cutoff is derived purely from Firestore server time via
+// Timestamp.fromMillis() — NOT from Date.now() — so mobile clock
+// manipulation cannot bypass the 24-hour limit.
+async function _getLiveTweetCount() {
+  if (!window.__db || !window.__fs) return 0;
+  try {
+    const { collection, getDocs, query, orderBy, where, Timestamp } = window.__fs;
+    // Use Firestore Timestamp for cutoff — completely server-side, immune to mobile clock changes
+    const cutoffTs = Timestamp.fromMillis(Date.now() - TWEET_TTL);
+    const q = query(
+      collection(window.__db, 'tweets'),
+      where('createdAt', '>', cutoffTs),
+      orderBy('createdAt', 'asc')
+    );
+    const snap = await getDocs(q);
+    return snap.size;
+  } catch(e) {
+    // Fallback: client-side filter if composite index not set up yet
+    try {
+      const { collection, getDocs, query, orderBy, Timestamp } = window.__fs;
+      const snap   = await getDocs(query(collection(window.__db, 'tweets'), orderBy('createdAt','asc')));
+      // Use Timestamp comparison even in fallback — toMillis() is server-generated
+      const cutoffMs = Date.now() - TWEET_TTL;
+      let count = 0;
+      snap.forEach(d => {
+        const ts = d.data().createdAt;
+        // ts.toMillis() returns server time — not client clock
+        const ms = ts?.toMillis ? ts.toMillis() : (ts?.seconds ? ts.seconds * 1000 : 0);
+        if (ms > cutoffMs) count++;
+      });
+      return count;
+    } catch(e2) { return 0; }
+  }
+}
+
+// ── Post a tweet ─────────────────────────────────────────────
+async function postTweet() {
+  if (!state.connected) { showToast('Connect wallet first'); return; }
+  const inputEl = document.getElementById('tweet-input');
+  const text    = inputEl ? inputEl.value.trim() : '';
+  if (!text) { showToast('Write something first!'); return; }
+
+  const btn = document.getElementById('tweet-btn');
+  if (btn) btn.disabled = true;
+
+  try {
+    await waitForFirestore();
+    const { collection, addDoc, serverTimestamp } = window.__fs;
+
+    // Re-check live count right before posting
+    const live = await _getLiveTweetCount();
+    if (live >= TWEET_LIMIT) {
+      _applyTweetUI(live);
+      showToast('Daily limit reached (10/10)');
+      if (btn) btn.disabled = false;
+      return;
+    }
+
+    const handle   = state.tgUsername  || state.userId || 'Anonymous';
+    const photoUrl = state.tgPhotoUrl  || null;
+
+    await addDoc(collection(window.__db, 'tweets'), {
+      text,
+      handle,
+      photoUrl,
+      walletAddress: state.walletAddress || null,
+      createdAt:     serverTimestamp(),
+    });
+
+    if (inputEl) { inputEl.value = ''; tweetOnInput(inputEl); }
+    showToast('Tweet posted! 🎉');
+
+    const newCount = live + 1;
+    _tweetCount = newCount;
+    _applyTweetUI(newCount);
+    // Re-enable button (limit not yet reached)
+    if (btn && newCount < TWEET_LIMIT) btn.disabled = false;
+
+  } catch(e) {
+    console.error('[Tweet] Post error:', e);
+    showToast('Could not post. Try again.');
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ── Load & render tweets (View Tweets page) ──────────────────
+async function loadTweets() {
+  const feed  = document.getElementById('tweets-feed');
+  const label = document.getElementById('tweets-view-count');
+  if (label) label.textContent = '…';
+  if (feed)  feed.innerHTML = '<div class="tweets-empty">⟳ Loading…</div>';
+  if (label) label.textContent = '…';
+
+  try {
+    await waitForFirestore();
+    const { collection, getDocs, query, orderBy, where, limit, Timestamp } = window.__fs;
+    // SECURITY: Use Firestore Timestamp for cutoff — server-authoritative, not mobile clock
+    const cutoffTs = Timestamp.fromMillis(Date.now() - TWEET_TTL);
+    let tweets = [];
+    try {
+      // Server-side 24h filter + limit — efficient Firestore query
+      const q    = query(
+        collection(window.__db, 'tweets'),
+        where('createdAt', '>', cutoffTs),
+        orderBy('createdAt', 'desc'),
+        limit(100)
+      );
+      const snap = await getDocs(q);
+      snap.forEach(d => {
+        const data = d.data();
+        const ts   = data.createdAt;
+        const ms   = ts?.toMillis ? ts.toMillis() : (ts?.seconds ? ts.seconds * 1000 : 0);
+        tweets.push({ ...data, _ms: ms });
+      });
+    } catch(_) {
+      // Fallback if index not ready — filter using server Timestamp milliseconds
+      const snap = await getDocs(query(collection(window.__db, 'tweets'), orderBy('createdAt','desc'), limit(200)));
+      const cutoffMs = cutoffTs.toMillis();
+      snap.forEach(d => {
+        const data = d.data();
+        const ts   = data.createdAt;
+        // toMillis() is server-generated — tamper-proof
+        const ms   = ts?.toMillis ? ts.toMillis() : (ts?.seconds ? ts.seconds * 1000 : 0);
+        if (ms > cutoffMs) tweets.push({ ...data, _ms: ms });
+      });
+    }
+
+    _tweetCount = tweets.length;
+    _applyTweetUI(tweets.length);
+    if (label) label.textContent = `${tweets.length} / ${TWEET_LIMIT} in last 24h`;
+
+    if (!feed) return;
+    if (tweets.length === 0) {
+      feed.innerHTML = '<div class="tweets-empty">No tweets yet — be the first!</div>';
+      return;
+    }
+
+    feed.innerHTML = '';
+    tweets.forEach(tw => {
+      const ago      = _timeAgo(tw._ms);
+      const initial  = (tw.handle || 'A').replace('@','').charAt(0).toUpperCase();
+      const imgHtml  = tw.photoUrl
+        ? `<img src="${tw.photoUrl}" alt="dp" onerror="this.parentElement.textContent='${initial}'">`
+        : initial;
+
+      const card = document.createElement('div');
+      card.className = 'tweet-card';
+      card.innerHTML = `
+        <div class="tc-dp">${imgHtml}</div>
+        <div class="tc-body">
+          <div class="tc-handle">${_esc(tw.handle || 'Anonymous')}</div>
+          <div class="tc-text">${_esc(tw.text || '')}</div>
+          <div class="tc-time">${ago}</div>
+        </div>`;
+      feed.appendChild(card);
+    });
+
+  } catch(e) {
+    console.error('[Tweets] Load error:', e);
+    if (feed)  feed.innerHTML = '<div class="tweets-empty">Could not load tweets.</div>';
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+function _esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+function _timeAgo(ms) {
+  const s = Math.floor((Date.now() - ms) / 1000);
+  if (s < 60)    return 'just now';
+  if (s < 3600)  return Math.floor(s / 60) + 'm ago';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+  return Math.floor(s / 86400) + 'd ago';
+}
+
+// ──────────────────────────────────────────────────────────────
+// TWEET POPUP (bottom capsule button)
+// ──────────────────────────────────────────────────────────────
+function openTweetPopup() {
+  const overlay = document.getElementById('tweet-popup-overlay');
+  if (!overlay) return;
+  overlay.classList.add('show');
+  // Sync meta count
+  const popupMeta = document.getElementById('tweet-popup-meta');
+  const mainMeta  = document.getElementById('tweet-meta');
+  if (popupMeta && mainMeta) popupMeta.textContent = mainMeta.textContent;
+  // Focus input
+  setTimeout(() => {
+    const inp = document.getElementById('tweet-popup-input');
+    if (inp) inp.focus();
+  }, 120);
+}
+
+function closeTweetPopup(e) {
+  // If called from overlay click, only close if clicking backdrop (not sheet)
+  if (e instanceof Event && e.target !== document.getElementById('tweet-popup-overlay')) return;
+  const overlay = document.getElementById('tweet-popup-overlay');
+  if (overlay) overlay.classList.remove('show');
+}
+
+function tweetPopupOnInput(el) {
+  const rem = 50 - el.value.length;
+  const ctr = document.getElementById('tweet-popup-counter');
+  if (ctr) {
+    ctr.textContent = rem;
+    ctr.className   = 'tweet-popup-counter' + (rem <= 5 ? ' full' : rem <= 15 ? ' near' : '');
+  }
+}
+
+async function postTweetFromPopup() {
+  if (!state.connected) { showToast('Connect wallet first'); return; }
+  const inputEl = document.getElementById('tweet-popup-input');
+  const text    = inputEl ? inputEl.value.trim() : '';
+  if (!text) { showToast('Write something first!'); return; }
+
+  const btn = document.getElementById('tweet-popup-send-btn');
+  if (btn) btn.disabled = true;
+
+  try {
+    await waitForFirestore();
+    const { collection, addDoc, serverTimestamp } = window.__fs;
+
+    const live = await _getLiveTweetCount();
+    if (live >= TWEET_LIMIT) {
+      _applyTweetUI(live);
+      const popupMeta = document.getElementById('tweet-popup-meta');
+      if (popupMeta) popupMeta.textContent = `${live} / ${TWEET_LIMIT} tweets today`;
+      showToast('Daily limit reached (10/10)');
+      if (btn) btn.disabled = false;
+      return;
+    }
+
+    const handle   = state.tgUsername  || state.userId || 'Anonymous';
+    const photoUrl = state.tgPhotoUrl  || null;
+
+    await addDoc(collection(window.__db, 'tweets'), {
+      text, handle, photoUrl,
+      walletAddress: state.walletAddress || null,
+      createdAt: serverTimestamp(),
+    });
+
+    if (inputEl) { inputEl.value = ''; tweetPopupOnInput(inputEl); }
+    showToast('Tweet posted! 🎉');
+    // Close popup after post
+    const overlay = document.getElementById('tweet-popup-overlay');
+    if (overlay) overlay.classList.remove('show');
+
+    const newCount = live + 1;
+    _tweetCount = newCount;
+    _applyTweetUI(newCount);
+
+  } catch(e) {
+    console.error('[Tweet Popup] Post error:', e);
+    showToast('Could not post. Try again.');
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// INIT — render slots (pre-connection demo view)
+// ──────────────────────────────────────────────────────────────
+renderSlots();
+</script>
+
+<script>
+// ──────────────────────────────────────────────────────────────
+// SPLASH SCREEN — 4-second cinematic intro
+// ──────────────────────────────────────────────────────────────
+(function initSplash() {
+  const splash = document.getElementById('splash-screen');
+  if (!splash) return;
+
+  // Block scroll/touch interaction behind splash
+  document.body.style.overflow = 'hidden';
+
+  setTimeout(function () {
+    splash.classList.add('fade-out');
+    setTimeout(function () {
+      splash.remove();
+      document.body.style.overflow = '';
+    }, 720);
+  }, 4000);
+})();
+</script>
