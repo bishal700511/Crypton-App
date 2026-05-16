@@ -2206,6 +2206,18 @@ function waitForFirestore(timeout = 8000) {
 }
 
 async function loginUser(walletAddress) {
+  // ── Guard: we must have a Telegram numeric ID to locate the single user doc ──
+  // The document ID in Firestore is always String(chat_id) — set by the bot.
+  const tgIdFromSDK = String(
+    window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || ''
+  );
+
+  if (!tgIdFromSDK) {
+    console.warn('[Firebase] No Telegram ID available — cannot locate user document.');
+    showToast('Open this app from the Telegram bot to load your profile.');
+    updateStatsUI(); renderSlots(); return;
+  }
+
   try {
     await waitForFirestore();
   } catch(e) {
@@ -2215,117 +2227,139 @@ async function loginUser(walletAddress) {
     updateStatsUI(); renderSlots(); return;
   }
 
-  const { doc, getDoc, setDoc, updateDoc, increment } = window.__fs;
+  const { doc, getDoc, updateDoc, increment, collection, query, where, getDocs } = window.__fs;
   const db = window.__db;
 
-  const tgPayload   = typeof window.buildTelegramPayload === 'function'
+  // ── SINGLE document reference — always keyed by Telegram Chat ID ──
+  const userDocRef = doc(db, 'users', tgIdFromSDK);
+
+  const tgPayload  = typeof window.buildTelegramPayload === 'function'
     ? window.buildTelegramPayload() : {};
-  const referredBy  = tgPayload.referredBy || null;
-  const userDocRef  = doc(db, 'users', walletAddress);
+  const referredBy = tgPayload.referredBy || null;
 
   try {
     const snap = await getDoc(userDocRef);
 
     if (!snap.exists()) {
-      // ── NEW USER — create document ──────────────────────────
-      const newUserData = {
-        walletAddress,
-        tgId:       tgPayload.tgId     || null,
-        tgHandle:   tgPayload.tgHandle || null,
-        tgName:     tgPayload.tgName   || null,   // full name from URL/TMA
-        tgEmail:    tgPayload.tgEmail  || null,
-        referredBy: referredBy         || null,
-        joinedAt:   window.__fs.serverTimestamp(), // SERVER timestamp — not client clock
-        ownedSlots: [],
-        earnedTon:  0,
-        workingTon: 0,
-        passiveTon: 0,
-        referrals:  0,
-        teamSize:   0,
-      };
-      await setDoc(userDocRef, newUserData);
-      console.log('[Firebase] New user created:', walletAddress);
-
-      // ── Increment referrer's referrals + teamSize ──────────
-      if (referredBy) {
-        // referredBy stores the referrer's userId (USR + last8 chars)
-        // We need to find the referrer's wallet. Try direct wallet lookup first,
-        // then fallback to userId field scan.
-        try {
-          const refDocRef = doc(db, 'users', referredBy);
-          const refSnap   = await getDoc(refDocRef);
-          if (refSnap.exists()) {
-            await updateDoc(refDocRef, {
-              referrals: increment(1),
-              teamSize:  increment(1),
-            });
-            console.log('[Firebase] Referrer updated:', referredBy);
-          } else {
-            // referredBy may be a userId like "USR12345678" — query by userId field
-            const { collection, query, where, getDocs } = window.__fs;
-            if (where) {
-              const q    = query(collection(db, 'users'), where('userId', '==', referredBy));
-              const qSnap = await getDocs(q);
-              if (!qSnap.empty) {
-                await updateDoc(qSnap.docs[0].ref, {
-                  referrals: increment(1),
-                  teamSize:  increment(1),
-                });
-                console.log('[Firebase] Referrer (by userId) updated:', referredBy);
-              }
-            }
-          }
-        } catch(refErr) {
-          console.warn('[Firebase] Could not update referrer:', refErr);
-        }
-      }
-
-      // Start with blank state for new user
+      // ── Document missing: user skipped bot registration ──────────────────
+      // We do NOT silently create a new document here — that would defeat the
+      // single-document model.  Instead, show a clear prompt to register first.
+      console.warn('[Firebase] No Firestore document found for tgId:', tgIdFromSDK,
+        '— user must complete bot registration first.');
+      showToast('Please register via the CRYPTON bot first, then reconnect your wallet.');
       state.ownedSlots = []; state.earnedTon = 0; state.workingTon = 0;
       state.passiveTon = 0; state.referrals = 0; state.teamSize = 0;
-
-    } else {
-      // ── EXISTING USER — load data from Firestore ────────────
-      const data = snap.data();
-      console.log('[Firebase] Existing user loaded:', data);
-
-      state.ownedSlots = data.ownedSlots  || [];
-      state.earnedTon  = data.earnedTon   || 0;
-      state.workingTon = data.workingTon  || 0;
-      state.passiveTon = data.passiveTon  || 0;
-      state.referrals  = data.referrals   || 0;
-      state.teamSize   = data.teamSize    || 0;
-
-      // Restore slotFill from saved data
-      if (data.slotFill && typeof data.slotFill === 'object') {
-        Object.assign(slotFill, data.slotFill);
-      }
-
-      // ── Update join date display if available ──
-      if (data.joinedAt) {
-        const jEl = document.getElementById('join-date');
-        if (jEl) {
-          // Handle both Firestore Timestamp and legacy ISO string
-          const joinMs = data.joinedAt?.toMillis
-            ? data.joinedAt.toMillis()
-            : (data.joinedAt?.seconds ? data.joinedAt.seconds * 1000 : new Date(data.joinedAt).getTime());
-          jEl.textContent = new Date(joinMs)
-            .toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
-        }
-      }
-
-      showToast('Welcome back! Data loaded ✓');
+      updateStatsUI(); renderSlots(); return;
     }
 
-    // ── Also store userId in Firestore doc for referral lookups ──
-    // Also update tg data in case it changed
+    // ── EXISTING USER — document created by bot, load all fields ─────────
+    const data = snap.data();
+    console.log('[Firebase] User document loaded (keyed by tgId):', data);
+
+    state.ownedSlots = data.ownedSlots  || [];
+    state.earnedTon  = data.earnedTon   || 0;
+    state.workingTon = data.workingTon  || 0;
+    state.passiveTon = data.passiveTon  || 0;
+    state.referrals  = data.referrals   || 0;
+    state.teamSize   = data.teamSize    || 0;
+
+    // ── Hydrate Telegram profile fields from Firestore into UI ───────────
+    // These were saved by the bot — they are the source of truth for name/email.
+    if (data.tgName  && !state.tgFirstName) state.tgFirstName = data.tgName;
+    if (data.tgEmail && !state.tgEmail)     state.tgEmail     = data.tgEmail;
+    if (data.tgHandle && !state.tgUsername) state.tgUsername  = data.tgHandle;
+    if (data.tgId    && !state.tgNumericId) state.tgNumericId = data.tgId;
+
+    // ── Update profile UI elements with bot-supplied data ─────────────────
+    const userEl  = document.getElementById('tg-user');
+    const emailEl = document.getElementById('user-email');
+    if (userEl) {
+      const displayHandle = data.tgHandle || state.tgUsername || null;
+      const displayId     = data.tgId     || tgIdFromSDK       || null;
+      if (displayHandle || displayId) {
+        userEl.innerHTML = `<span class="fetch-loaded">${
+          displayHandle ? displayHandle + (displayId ? ' · ' + displayId : '') : displayId
+        }</span>`;
+      } else {
+        userEl.innerHTML = `<span class="fetch-na">Not available</span>`;
+      }
+    }
+    if (emailEl) {
+      const displayEmail = data.tgEmail || state.tgEmail || null;
+      emailEl.innerHTML = displayEmail
+        ? `<span class="fetch-loaded">${displayEmail}</span>`
+        : `<span class="fetch-na">Not shared</span>`;
+    }
+
+    // ── Update dashboard name with bot-supplied tgName ────────────────────
+    const dashNameEl = document.getElementById('dash-name');
+    if (dashNameEl && data.tgName) dashNameEl.textContent = data.tgName;
+
+    // ── Restore slotFill from saved data ──────────────────────────────────
+    if (data.slotFill && typeof data.slotFill === 'object') {
+      Object.assign(slotFill, data.slotFill);
+    }
+
+    // ── Update join date display ──────────────────────────────────────────
+    if (data.joinedAt) {
+      const jEl = document.getElementById('join-date');
+      if (jEl) {
+        const joinMs = data.joinedAt?.toMillis
+          ? data.joinedAt.toMillis()
+          : (data.joinedAt?.seconds ? data.joinedAt.seconds * 1000 : new Date(data.joinedAt).getTime());
+        jEl.textContent = new Date(joinMs)
+          .toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+      }
+    }
+
+    // ── Handle referral: only process if this is the wallet's first link ──
+    const isFirstWalletLink = !data.walletAddress || data.walletAddress === '';
+    if (isFirstWalletLink && referredBy) {
+      try {
+        const refDocRef = doc(db, 'users', referredBy);
+        const refSnap   = await getDoc(refDocRef);
+        if (refSnap.exists()) {
+          await updateDoc(refDocRef, { referrals: increment(1), teamSize: increment(1) });
+          console.log('[Firebase] Referrer updated:', referredBy);
+        } else {
+          // referredBy may be a tgId string — query by tgId field as fallback
+          if (where) {
+            const q     = query(collection(db, 'users'), where('tgId', '==', referredBy));
+            const qSnap = await getDocs(q);
+            if (!qSnap.empty) {
+              await updateDoc(qSnap.docs[0].ref, { referrals: increment(1), teamSize: increment(1) });
+              console.log('[Firebase] Referrer (by tgId field) updated:', referredBy);
+            }
+          }
+        }
+      } catch(refErr) {
+        console.warn('[Firebase] Could not update referrer:', refErr);
+      }
+    }
+
+    showToast('Welcome back! Data loaded ✓');
+
+    // ── Merge wallet address + userId into the single Telegram-keyed doc ──
+    // This is the bridge moment: the bot document gains the wallet address.
+    // updateDoc is used (not setDoc) so no existing bot fields are overwritten.
     const userId = 'USR' + walletAddress.slice(-8).toUpperCase();
-    const updateFields = { userId };
-    if (tgPayload.tgHandle) updateFields.tgHandle = tgPayload.tgHandle;
-    if (tgPayload.tgName)   updateFields.tgName   = tgPayload.tgName;
-    if (tgPayload.tgEmail)  updateFields.tgEmail  = tgPayload.tgEmail;
-    if (tgPayload.tgId)     updateFields.tgId     = tgPayload.tgId;
-    await updateDoc(userDocRef, updateFields).catch(() => {}); // silent if fails
+    const mergeFields = { walletAddress, userId };
+    // Also refresh any tg fields the SDK may have fresher data for
+    if (tgPayload.tgHandle) mergeFields.tgHandle = tgPayload.tgHandle;
+    if (tgPayload.tgName)   mergeFields.tgName   = tgPayload.tgName;
+    if (tgPayload.tgEmail)  mergeFields.tgEmail  = tgPayload.tgEmail;
+    if (tgPayload.tgId)     mergeFields.tgId     = tgPayload.tgId;
+    await updateDoc(userDocRef, mergeFields).catch(err =>
+      console.error('[Firebase] Failed to merge wallet into user doc:', err)
+    );
+    console.log('[Firebase] Wallet address merged into tgId doc:', tgIdFromSDK, '←', walletAddress);
+
+    // ── Push userId into state (used by referral links, tx payloads, etc.) ─
+    state.userId = userId;
+    const dashUidEl = document.getElementById('dash-uid');
+    if (dashUidEl) dashUidEl.textContent = 'UID: ' + userId;
+    const refLinkEl = document.getElementById('ref-link');
+    if (refLinkEl)  refLinkEl.textContent = `https://t.me/CryptonBot/app?startapp=${userId}`;
 
     updateStatsUI();
     renderSlots();
@@ -2340,11 +2374,15 @@ async function loginUser(walletAddress) {
 }
 
 async function saveUserData(updates) {
-  if (!state.walletAddress) return;
+  // Doc is always keyed by tgId — walletAddress is just a field inside it.
+  const tgDocId = String(
+    window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || ''
+  );
+  if (!tgDocId) return;
   try {
     await waitForFirestore();
     const { doc, updateDoc } = window.__fs;
-    const userDocRef = doc(window.__db, 'users', state.walletAddress);
+    const userDocRef = doc(window.__db, 'users', tgDocId);
     // Also persist slotFill map
     await updateDoc(userDocRef, { ...updates, slotFill: { ...slotFill } });
     console.log('[Firebase] saveUserData ✓', updates);
@@ -2354,11 +2392,14 @@ async function saveUserData(updates) {
 }
 
 async function getReferralStats() {
-  if (!state.walletAddress) return;
+  const tgDocId = String(
+    window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || ''
+  );
+  if (!tgDocId) return;
   try {
     await waitForFirestore();
     const { doc, getDoc } = window.__fs;
-    const snap = await getDoc(doc(window.__db, 'users', state.walletAddress));
+    const snap = await getDoc(doc(window.__db, 'users', tgDocId));
     if (snap.exists()) {
       const data = snap.data();
       state.referrals = data.referrals || 0;
