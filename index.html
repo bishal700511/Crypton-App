@@ -117,7 +117,7 @@
       position:sticky; top:0; z-index:100;
       background:rgba(5,13,26,0.90);
     }
-    .logo { display:flex; align-items:center; gap:8px; font-family:var(--font-head); font-size:22px; font-weight:800; letter-spacing:-0.5px; min-width:0; flex:1; }
+    .logo { display:flex; align-items:center; gap:8px; font-family:var(--font-head); font-size:17px; font-weight:800; letter-spacing:-0.5px; min-width:0; flex:1; }
     .logo-icon {
       width:36px; height:36px; border-radius:10px;
       background:linear-gradient(135deg,var(--gold) 0%,var(--cyan) 100%);
@@ -184,10 +184,10 @@
 
     /* ── Premium solid-gold account card ── */
     #dashboard > .card:first-of-type {
-      background: linear-gradient(160deg, #f5c518 0%, #f0b100 55%, #e8a000 100%);
+      background: linear-gradient(135deg, #e5c060 0%, #c49632 50%, #d8b24f 100%);
       border: none;
       border-radius: 24px;
-      box-shadow: 0 8px 32px rgba(212,168,67,0.45), 0 2px 8px rgba(0,0,0,0.35);
+      box-shadow: 0 8px 32px rgba(180,140,40,0.35), 0 2px 8px rgba(0,0,0,0.30);
     }
 
     .dash-top {
@@ -419,11 +419,11 @@
       box-shadow: 0 0 18px rgba(0,229,255,0.18), 0 4px 16px rgba(0,0,0,0.4);
     }
 
-    /* NON WORKING — solid gold card with dark-mustard belt */
+    /* NON WORKING — dark navy with gold border & glow (mirrors WORKING card) */
     .home-income-nonworking {
-      background: linear-gradient(160deg, #f5c518 0%, #f0b100 55%, #e8a000 100%);
-      border: none;
-      box-shadow: 0 8px 28px rgba(212,168,67,0.40), 0 2px 8px rgba(0,0,0,0.30);
+      background: linear-gradient(135deg, #091525 0%, #0a1e35 100%);
+      border: 1.5px solid #d4a843;
+      box-shadow: 0 0 18px rgba(212,168,67,0.20), 0 4px 16px rgba(0,0,0,0.4);
     }
 
     /* Shared body row */
@@ -451,7 +451,7 @@
       margin-bottom: 4px;
     }
     .hic-label-gold {
-      color: rgba(5,13,26,0.65) !important;
+      color: rgba(212,168,67,0.70) !important;
     }
 
     .hic-val {
@@ -463,9 +463,9 @@
       text-shadow: 0 0 16px rgba(0,229,255,0.45);
     }
     .hic-val-gold {
-      color: #050d1a !important;
-      text-shadow: none !important;
-      -webkit-text-fill-color: #050d1a !important;
+      color: #d4a843 !important;
+      text-shadow: 0 0 16px rgba(212,168,67,0.45) !important;
+      -webkit-text-fill-color: #d4a843 !important;
     }
 
     .hic-ton {
@@ -475,20 +475,20 @@
       margin-top: 3px;
     }
     .hic-ton-gold {
-      color: rgba(5,13,26,0.55) !important;
+      color: rgba(212,168,67,0.45) !important;
     }
 
-    /* Dark-mustard belt at bottom of Non-Working card */
+    /* Belt at bottom of Non-Working card — dark with gold accent */
     .hic-belt {
-      background: #c47a00;
+      background: rgba(212,168,67,0.08);
       padding: 8px 20px;
-      border-top: 1px solid rgba(0,0,0,0.15);
+      border-top: 1px solid rgba(212,168,67,0.20);
     }
     .hic-belt-text {
       font-family: var(--font-mono);
       font-size: 9px; font-weight: 700;
       letter-spacing: 2px; text-transform: uppercase;
-      color: rgba(255,255,255,0.70);
+      color: rgba(212,168,67,0.50);
     }
 
     /* ─── REFERRAL VIEW ─────────────────────────────────────── */
@@ -872,9 +872,6 @@
   <!-- ── HEADER ── -->
   <header class="header">
     <div class="logo">
-      <div class="logo-icon">
-        C
-      </div>
       <span class="logo-text">CRYPTON</span>
       <div class="logo-id-capsule" id="logo-id-capsule" style="display:none;">
         <span id="logo-tg-handle"></span><span id="logo-tg-id-sep" style="display:none;"> · </span><span id="logo-tg-id"></span>
@@ -958,7 +955,7 @@
       <!-- ── NON WORKING Income Card ── -->
       <div class="home-income-card home-income-nonworking" style="margin-top:14px;">
         <div class="hic-body">
-          <div class="hic-icon" style="color:var(--navy);">♾</div>
+          <div class="hic-icon" style="color:var(--gold);">♾</div>
           <div class="hic-info">
             <div class="hic-label hic-label-gold">NON WORKING INCOME</div>
             <div class="hic-val hic-val-gold" id="ref-passive-income-val">$0.00</div>
