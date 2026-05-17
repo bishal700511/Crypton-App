@@ -412,18 +412,18 @@
       overflow: hidden;
     }
 
-    /* WORKING — dark navy with neon-cyan border & glow */
+    /* WORKING — deep premium dark navy mesh */
     .home-income-working {
-      background: linear-gradient(135deg, #091525 0%, #0a1e35 100%);
-      border: 1.5px solid #00e5ff;
-      box-shadow: 0 0 18px rgba(0,229,255,0.18), 0 4px 16px rgba(0,0,0,0.4);
+      background: linear-gradient(180deg, #0f233c 0%, #08101c 100%);
+      border: 1px solid rgba(0, 229, 255, 0.25);
+      box-shadow: 0 0 18px rgba(0,229,255,0.12), 0 4px 16px rgba(0,0,0,0.5);
     }
 
-    /* NON WORKING — dark navy with gold border & glow (mirrors WORKING card) */
+    /* NON WORKING — deep premium dark navy mesh (identical to WORKING card) */
     .home-income-nonworking {
-      background: linear-gradient(135deg, #091525 0%, #0a1e35 100%);
-      border: 1.5px solid #d4a843;
-      box-shadow: 0 0 18px rgba(212,168,67,0.20), 0 4px 16px rgba(0,0,0,0.4);
+      background: linear-gradient(180deg, #0f233c 0%, #08101c 100%);
+      border: 1px solid rgba(0, 229, 255, 0.25);
+      box-shadow: 0 0 18px rgba(0,229,255,0.10), 0 4px 16px rgba(0,0,0,0.5);
     }
 
     /* Shared body row */
@@ -567,9 +567,10 @@
 
     /* 3 dots icon */
     .fab-dots { display:flex; flex-direction:column; gap:4px; align-items:center; transition:transform 0.28s ease; }
-    .fab.open .fab-dots { transform:rotate(90deg); }
+    .fab.open .fab-dots { transform:rotate(0deg); }
     .fab-dot  { width:4px; height:4px; border-radius:50%; background:var(--text-mid); transition:background 0.2s; }
     .fab.open .fab-dot  { background:var(--cyan); }
+    .fab.open .fab-dots span { color:var(--cyan) !important; }
 
     /* ─── POPUP MENU ────────────────────────────────────────── */
     .fab-menu {
@@ -913,7 +914,27 @@
 
     <!-- DASHBOARD -->
     <div id="dashboard" style="padding:18px;">
-      <p class="section-label">Your Account</p>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+        <p class="section-label" style="margin-bottom:0;">Your Account</p>
+        <button
+          onclick="switchView('profile')"
+          aria-label="Profile Settings"
+          style="
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 22px;
+            line-height: 1;
+            color: var(--text-mid);
+            padding: 4px 2px;
+            transition: color 0.2s, transform 0.2s;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+          "
+          onmouseover="this.style.color='var(--cyan)';this.style.transform='rotate(30deg)';"
+          onmouseout="this.style.color='var(--text-mid)';this.style.transform='rotate(0deg)';"
+        >⚙</button>
+      </div>
 
       <div class="card">
         <div class="dash-top">
@@ -1116,15 +1137,10 @@
     <button class="fab-menu-item" id="fmi-referral" onclick="switchView('referral')">
       <span class="fab-menu-icon">◈</span> Network
     </button>
-    <button class="fab-menu-item" id="fmi-profile"  onclick="switchView('profile')">
-      <span class="fab-menu-icon">◉</span> Profile
-    </button>
   </div>
   <button class="fab" id="fab-btn" onclick="toggleFabMenu()" aria-label="Open menu">
     <div class="fab-dots">
-      <div class="fab-dot"></div>
-      <div class="fab-dot"></div>
-      <div class="fab-dot"></div>
+      <span style="font-size:22px; color:var(--text-mid); line-height:1; transition:color 0.2s;">❐</span>
     </div>
   </button>
 </div>
