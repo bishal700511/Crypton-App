@@ -408,22 +408,25 @@
 
     /* ─── HOME INCOME CARDS (Working + Non Working) ─────────── */
     .home-income-card {
-      border-radius: 20px;
       overflow: hidden;
+      border-left: 1.5px solid rgba(0,229,255,0.25);
+      border-right: 1.5px solid rgba(0,229,255,0.25);
     }
 
-    /* WORKING — deep premium dark navy mesh */
+    /* WORKING — muted teal-blue from reference image, top card: rounded top only */
     .home-income-working {
-      background: linear-gradient(180deg, #0f233c 0%, #08101c 100%);
-      border: 1px solid rgba(0, 229, 255, 0.25);
-      box-shadow: 0 0 18px rgba(0,229,255,0.12), 0 4px 16px rgba(0,0,0,0.5);
+      background: #3d7d8c;
+      border-top: 1.5px solid rgba(0,229,255,0.25);
+      border-bottom: none;
+      border-radius: 20px 20px 0 0;
     }
 
-    /* NON WORKING — deep premium dark navy mesh (identical to WORKING card) */
+    /* NON WORKING — pale sage-green from reference image, bottom card: rounded bottom only */
     .home-income-nonworking {
-      background: linear-gradient(180deg, #0f233c 0%, #08101c 100%);
-      border: 1px solid rgba(0, 229, 255, 0.25);
-      box-shadow: 0 0 18px rgba(0,229,255,0.10), 0 4px 16px rgba(0,0,0,0.5);
+      background: #a8c4b8;
+      border-top: 1px solid rgba(0,229,255,0.12);
+      border-bottom: 1.5px solid rgba(0,229,255,0.25);
+      border-radius: 0 0 20px 20px;
     }
 
     /* Shared body row */
@@ -438,7 +441,7 @@
       font-size: 28px;
       flex-shrink: 0;
       line-height: 1;
-      color: var(--cyan);
+      color: #000000;
     }
 
     .hic-info { flex: 1; min-width: 0; }
@@ -447,48 +450,48 @@
       font-family: var(--font-mono);
       font-size: 9px; font-weight: 700;
       letter-spacing: 2px; text-transform: uppercase;
-      color: rgba(0,229,255,0.70);
+      color: rgba(0,0,0,0.70);
       margin-bottom: 4px;
     }
     .hic-label-gold {
-      color: rgba(212,168,67,0.70) !important;
+      color: rgba(0,0,0,0.70) !important;
     }
 
     .hic-val {
       font-family: var(--font-head);
       font-size: 26px; font-weight: 800;
-      color: #00e5ff;
+      color: #000000;
       line-height: 1;
       letter-spacing: -0.5px;
-      text-shadow: 0 0 16px rgba(0,229,255,0.45);
+      text-shadow: none;
     }
     .hic-val-gold {
-      color: #d4a843 !important;
-      text-shadow: 0 0 16px rgba(212,168,67,0.45) !important;
-      -webkit-text-fill-color: #d4a843 !important;
+      color: #000000 !important;
+      text-shadow: none !important;
+      -webkit-text-fill-color: #000000 !important;
     }
 
     .hic-ton {
       font-family: var(--font-mono);
       font-size: 11px; font-weight: 600;
-      color: rgba(0,229,255,0.45);
+      color: rgba(0,0,0,0.55);
       margin-top: 3px;
     }
     .hic-ton-gold {
-      color: rgba(212,168,67,0.45) !important;
+      color: rgba(0,0,0,0.55) !important;
     }
 
-    /* Belt at bottom of Non-Working card — dark with gold accent */
+    /* Belt at bottom of Non-Working card */
     .hic-belt {
-      background: rgba(212,168,67,0.08);
+      background: rgba(0,0,0,0.08);
       padding: 8px 20px;
-      border-top: 1px solid rgba(212,168,67,0.20);
+      border-top: 1px solid rgba(0,0,0,0.15);
     }
     .hic-belt-text {
       font-family: var(--font-mono);
       font-size: 9px; font-weight: 700;
       letter-spacing: 2px; text-transform: uppercase;
-      color: rgba(212,168,67,0.50);
+      color: rgba(0,0,0,0.55);
     }
 
     /* ─── REFERRAL VIEW ─────────────────────────────────────── */
@@ -564,13 +567,13 @@
       border-color:rgba(0,229,255,0.35);
       box-shadow:0 8px 32px rgba(0,229,255,0.18), 0 0 0 1px rgba(0,229,255,0.22);
     }
+    .fab.open #fab-icon { color: var(--cyan) !important; }
 
     /* 3 dots icon */
     .fab-dots { display:flex; flex-direction:column; gap:4px; align-items:center; transition:transform 0.28s ease; }
-    .fab.open .fab-dots { transform:rotate(0deg); }
+    .fab.open .fab-dots { transform:rotate(90deg); }
     .fab-dot  { width:4px; height:4px; border-radius:50%; background:var(--text-mid); transition:background 0.2s; }
     .fab.open .fab-dot  { background:var(--cyan); }
-    .fab.open .fab-dots span { color:var(--cyan) !important; }
 
     /* ─── POPUP MENU ────────────────────────────────────────── */
     .fab-menu {
@@ -914,27 +917,7 @@
 
     <!-- DASHBOARD -->
     <div id="dashboard" style="padding:18px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
-        <p class="section-label" style="margin-bottom:0;">Your Account</p>
-        <button
-          onclick="switchView('profile')"
-          aria-label="Profile Settings"
-          style="
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 22px;
-            line-height: 1;
-            color: var(--text-mid);
-            padding: 4px 2px;
-            transition: color 0.2s, transform 0.2s;
-            -webkit-tap-highlight-color: transparent;
-            flex-shrink: 0;
-          "
-          onmouseover="this.style.color='var(--cyan)';this.style.transform='rotate(30deg)';"
-          onmouseout="this.style.color='var(--text-mid)';this.style.transform='rotate(0deg)';"
-        >⚙</button>
-      </div>
+      <p class="section-label" style="position:relative;">Your Account<button onclick="switchView('profile')" style="position:absolute; right:0; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:20px; line-height:1; color:var(--text-mid); padding:0; -webkit-tap-highlight-color:transparent;" aria-label="Account Settings">⚙</button></p>
 
       <div class="card">
         <div class="dash-top">
@@ -962,7 +945,7 @@
       <span id="passive-income-val" style="display:none"></span>
 
       <!-- ── WORKING Income Card ── -->
-      <div class="home-income-card home-income-working" style="margin-top:14px;">
+      <div class="home-income-card home-income-working" style="margin-top:14px; margin-bottom:0;">
         <div class="hic-body">
           <div class="hic-icon">❂</div>
           <div class="hic-info">
@@ -974,9 +957,9 @@
       </div>
 
       <!-- ── NON WORKING Income Card ── -->
-      <div class="home-income-card home-income-nonworking" style="margin-top:14px;">
+      <div class="home-income-card home-income-nonworking" style="margin-top:0;">
         <div class="hic-body">
-          <div class="hic-icon" style="color:var(--gold);">♾</div>
+          <div class="hic-icon">♾</div>
           <div class="hic-info">
             <div class="hic-label hic-label-gold">NON WORKING INCOME</div>
             <div class="hic-val hic-val-gold" id="ref-passive-income-val">$0.00</div>
@@ -1137,11 +1120,10 @@
     <button class="fab-menu-item" id="fmi-referral" onclick="switchView('referral')">
       <span class="fab-menu-icon">◈</span> Network
     </button>
+
   </div>
   <button class="fab" id="fab-btn" onclick="toggleFabMenu()" aria-label="Open menu">
-    <div class="fab-dots">
-      <span style="font-size:22px; color:var(--text-mid); line-height:1; transition:color 0.2s;">❐</span>
-    </div>
+    <span style="font-size:20px; line-height:1; color:var(--text-mid); transition:color 0.2s;" id="fab-icon">❐</span>
   </button>
 </div>
 
