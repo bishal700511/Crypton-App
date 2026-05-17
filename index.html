@@ -526,6 +526,37 @@
     .ref-stat-num { font-family:var(--font-head); font-size:22px; font-weight:700; color:var(--cyan); }
     .ref-stat-lbl { font-size:10px; color:var(--text-mid); font-family:var(--font-mono); margin-top:2px; letter-spacing:0.3px; }
 
+    /* ── Blue Stat Cards (Direct Referral / Your Team) ── */
+    .blue-stat-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
+    .blue-stat-card {
+      border-radius:18px;
+      background: linear-gradient(135deg, #5bbcf8 0%, #3a8fe8 50%, #5ab0f5 100%);
+      padding: 16px 18px 18px;
+      display: flex; flex-direction: column; gap: 10px;
+      box-shadow: 0 4px 18px rgba(60,140,240,0.30), 0 1px 4px rgba(0,0,0,0.18);
+      min-height: 100px;
+      position: relative;
+      overflow: hidden;
+    }
+    .blue-stat-card::before {
+      content:''; position:absolute; inset:0;
+      background: radial-gradient(ellipse 80% 60% at 20% 20%, rgba(255,255,255,0.18) 0%, transparent 70%);
+      border-radius:18px; pointer-events:none;
+    }
+    .blue-stat-header {
+      display:flex; align-items:center; gap:8px;
+    }
+    .blue-stat-icon { font-size:17px; opacity:0.92; color:#fff; line-height:1; }
+    .blue-stat-title {
+      font-family: var(--font-body); font-size:13px; font-weight:500;
+      color: rgba(255,255,255,0.92); letter-spacing:0.2px;
+    }
+    .blue-stat-num {
+      font-family: var(--font-head); font-size:32px; font-weight:800;
+      color: #ffffff; letter-spacing:-1px; line-height:1;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+
     .ref-link-label { font-size:12px; color:var(--text-mid); margin-bottom:8px; font-family:var(--font-mono); }
     .ref-link-box { display:flex; align-items:center; gap:8px; background:rgba(0,0,0,0.25); border:1px solid var(--glass-bd); border-radius:var(--radius-sm); padding:10px 12px; }
     .ref-link-text { flex:1; font-family:var(--font-mono); font-size:12px; color:var(--cyan); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -536,17 +567,19 @@
     }
 
     /* ─── TELEGRAM FLOAT BUTTON ─────────────────────────────── */
-    .tg-float {
-      position:fixed; bottom:28px; right:24px; z-index:300;
-      width:52px; height:52px; border-radius:16px;
+    .header-tg-btn {
+      width:36px; height:36px; border-radius:10px;
       background:rgba(8,20,40,0.82);
-      border:1px solid rgba(255,255,255,0.12);
+      border:1px solid rgba(0,229,255,0.22);
       display:flex; align-items:center; justify-content:center;
-      cursor:pointer; text-decoration:none;
+      cursor:pointer; text-decoration:none; flex-shrink:0;
       -webkit-tap-highlight-color:transparent;
+      transition:background var(--transition), border-color var(--transition), transform var(--transition);
     }
-    .tg-float svg {
-      width:24px; height:24px;
+    .header-tg-btn:hover  { background:rgba(0,229,255,0.10); border-color:rgba(0,229,255,0.45); transform:scale(1.06); }
+    .header-tg-btn:active { transform:scale(0.94); }
+    .header-tg-btn svg {
+      width:18px; height:18px;
       fill:var(--cyan);
     }
     .fab {
@@ -831,6 +864,53 @@
     .flash-cyan { animation: success-flash      0.7s ease-out forwards; }
     .flash-gold { animation: success-flash-gold 0.7s ease-out forwards; }
 
+    /* ─── LEVEL INDICATOR BAR ──────────────────────────────── */
+    #level-indicator-bar {
+      display: none; /* shown by JS after wallet connect */
+      width: 100%;
+      background: #6236d0;
+      border-radius: 0px;
+      padding: 10px 14px;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      margin-top: 14px;
+      margin-bottom: 0;
+    }
+    .lvl-cell {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 34px;
+      font-family: var(--font-head);
+      font-size: 13px;
+      font-weight: 800;
+      color: rgba(255,255,255,0.35);
+      background: rgba(0,0,0,0.18);
+      border-radius: 4px;
+      letter-spacing: -0.3px;
+      transition: background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+    }
+    .lvl-cell.active {
+      background: #22c55e;
+      color: #ffffff;
+      box-shadow: 0 0 10px rgba(34,197,94,0.55), 0 2px 6px rgba(0,0,0,0.3);
+    }
+    .lvl-label {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.55);
+      margin-right: 8px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
     /* ─── SPLASH SCREEN ─────────────────────────────────────── */
     #splash-screen {
       position: fixed; inset: 0; z-index: 9999;
@@ -848,6 +928,111 @@
       width: 140px; height: 140px;
       object-fit: contain;
       border-radius: 28px;
+    }
+
+    /* ─── MY REFERRALS LIST ─────────────────────────────────── */
+    .ref-list-wrap {
+      margin-top: 14px;
+    }
+    .ref-list-header {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--cyan);
+      opacity: 0.8;
+      margin-bottom: 10px;
+      padding: 0 2px;
+    }
+    .ref-list-inner {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .ref-list-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-bd);
+      border-radius: var(--radius-md);
+      padding: 11px 14px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: border-color 0.2s;
+    }
+    .ref-list-row:hover { border-color: rgba(0,229,255,0.28); }
+    .ref-list-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      flex-shrink: 0;
+      overflow: hidden;
+      background: rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1.5px solid rgba(255,255,255,0.09);
+    }
+    .ref-list-avatar img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+      border-radius: 11px;
+    }
+    .ref-list-avatar svg {
+      width: 22px; height: 22px;
+      fill: #8aa5c0;
+      opacity: 0.7;
+    }
+    .ref-list-info { flex: 1; min-width: 0; }
+    .ref-list-name {
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-hi);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ref-list-uid {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-mid);
+      margin-top: 2px;
+      letter-spacing: 0.3px;
+    }
+    .ref-list-badge {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--cyan);
+      background: var(--cyan-dim);
+      border: 1px solid rgba(0,229,255,0.20);
+      border-radius: 6px;
+      padding: 3px 8px;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+    .ref-list-empty {
+      text-align: center;
+      padding: 28px 16px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-lo);
+      letter-spacing: 0.5px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-bd);
+      border-radius: var(--radius-md);
+    }
+    .ref-list-loading {
+      text-align: center;
+      padding: 22px 16px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-mid);
+      letter-spacing: 0.5px;
     }
   </style>
 </head>
@@ -876,12 +1061,16 @@
   <!-- ── HEADER ── -->
   <header class="header">
     <div class="logo">
-      <span class="logo-text">CRYPTON</span>
+      <span class="logo-text">💠 CRYPTON</span>
       <div class="logo-id-capsule" id="logo-id-capsule" style="display:none;">
         <span id="logo-tg-handle"></span><span id="logo-tg-id-sep" style="display:none;"> · </span><span id="logo-tg-id"></span>
       </div>
     </div>
-
+    <a class="header-tg-btn" href="https://t.me/CRYPTONDecentralizedOfficial" target="_blank" rel="noopener" aria-label="Join Telegram">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+      </svg>
+    </a>
   </header>
 
   <!-- ══════════ VIEW: HOME ══════════ -->
@@ -944,8 +1133,30 @@
       <span id="working-income-val" style="display:none"></span>
       <span id="passive-income-val" style="display:none"></span>
 
+      <!-- ── LEVEL INDICATOR BAR ── -->
+      <div id="level-indicator-bar" style="display:none; flex-direction:row; align-items:center; background:#6236d0; border-radius:0px; padding:10px 14px; margin-top:14px; gap:4px; width:100%;">
+        <span class="lvl-label">LVL</span>
+        <div class="lvl-cell" id="lvl-1">1</div>
+        <div class="lvl-cell" id="lvl-2">2</div>
+        <div class="lvl-cell" id="lvl-3">3</div>
+        <div class="lvl-cell" id="lvl-4">4</div>
+        <div class="lvl-cell" id="lvl-5">5</div>
+        <div class="lvl-cell" id="lvl-6">6</div>
+        <div class="lvl-cell" id="lvl-7">7</div>
+        <div class="lvl-cell" id="lvl-8">8</div>
+        <div class="lvl-cell" id="lvl-9">9</div>
+        <div class="lvl-cell" id="lvl-10">10</div>
+      </div>
+
+      <!-- ── PROGRAM separator ── -->
+      <div style="display:flex; align-items:center; gap:10px; margin-top:16px; margin-bottom:0px; padding:0 2px;">
+        <div style="flex:1; height:1px; background:var(--glass-bd);"></div>
+        <span style="font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:var(--text-lo); flex-shrink:0;">PROGRAM</span>
+        <div style="flex:1; height:1px; background:var(--glass-bd);"></div>
+      </div>
+
       <!-- ── WORKING Income Card ── -->
-      <div class="home-income-card home-income-working" style="margin-top:14px; margin-bottom:0;">
+      <div class="home-income-card home-income-working" style="margin-top:10px; margin-bottom:0;">
         <div class="hic-body">
           <div class="hic-icon">❂</div>
           <div class="hic-info">
@@ -1020,19 +1231,31 @@
 
 
 
-      <div class="card referral-card" style="margin-top:14px;">
-        <div class="ref-stats">
-          <div class="ref-stat">
-            <div class="ref-stat-num" id="ref-direct">0</div>
-            <div class="ref-stat-lbl">DIRECT</div>
+      <!-- Blue stat cards: Direct Referral + Your Team -->
+      <p class="section-label" style="margin-top:14px; margin-bottom:10px;">NETWORK MARKETING</p>
+      <div class="blue-stat-row" style="margin-top:0;">
+        <div class="blue-stat-card">
+          <div class="blue-stat-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+            <span class="blue-stat-title">Direct Referral</span>
           </div>
-          <div class="ref-stat">
-            <div class="ref-stat-num" id="ref-total">0</div>
-            <div class="ref-stat-lbl">TOTAL TEAM</div>
+          <div class="blue-stat-num" id="ref-direct">0</div>
+        </div>
+        <div class="blue-stat-card">
+          <div class="blue-stat-header">
+            <svg width="22" height="20" viewBox="0 0 28 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M20 11c2.2 0 3.9-1.8 3.9-4S22.2 3 20 3c-2.2 0-3.9 1.8-3.9 4s1.7 4 3.9 4zm-12 0c2.2 0 3.9-1.8 3.9-4S10.2 3 8 3C5.8 3 4.1 4.8 4.1 7s1.7 4 3.9 4zm0 2c-2.7 0-8 1.3-8 4v2h16v-2c0-2.7-5.3-4-8-4zm12 0c-.3 0-.7 0-1 .1 1.2.9 2 2.1 2 3.9v2h6v-2c0-2.7-5.3-4-7-4z"/></svg>
+            <span class="blue-stat-title">Your Team</span>
           </div>
+          <div class="blue-stat-num" id="ref-total">0</div>
+        </div>
+      </div>
+
+      <!-- REF TON + Referral Link card -->
+      <div class="card referral-card" style="margin-top:12px;">
+        <div class="ref-stats" style="grid-template-columns:1fr; margin-bottom:14px;">
           <div class="ref-stat">
             <div class="ref-stat-num" id="ref-income">0</div>
-            <div class="ref-stat-lbl">REF TON</div>
+            <div class="ref-stat-lbl">REF TON ⛁</div>
           </div>
         </div>
 
@@ -1040,6 +1263,14 @@
         <div class="ref-link-box">
           <span class="ref-link-text" id="ref-link">Connect wallet to get your link</span>
           <button class="btn-copy" id="btn-copy-ref" onclick="copyReferral()">COPY</button>
+        </div>
+      </div>
+
+      <!-- ── MY REFERRALS LIST ── -->
+      <div class="ref-list-wrap" id="ref-list-wrap">
+        <div class="ref-list-header">Downline Team</div>
+        <div class="ref-list-inner" id="ref-list-inner">
+          <div class="ref-list-loading" id="ref-list-loading">View ◔</div>
         </div>
       </div>
 
@@ -1127,12 +1358,7 @@
   </button>
 </div>
 
-<!-- ── TELEGRAM FLOATING BUTTON ── -->
-<a class="tg-float" href="https://t.me/CRYPTONDecentralizedOfficial" target="_blank" rel="noopener" aria-label="Join Telegram">
-  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
-  </svg>
-</a>
+
 <script>
 // ──────────────────────────────────────────────────────────────
 // CONFIG
@@ -1410,6 +1636,10 @@ function handleWalletConnected(rawAddress) {
   if (heroEl) heroEl.style.display = 'none';
   if (dashEl) dashEl.style.display = 'block';
 
+  // ── Show and update level indicator bar ──
+  const lvlBar = document.getElementById('level-indicator-bar');
+  if (lvlBar) { lvlBar.style.display = 'flex'; updateLevelBar(); }
+
   // ── Safely set dashboard UI elements (they live inside #dashboard) ──
   const walletDisplayEl = document.getElementById('wallet-display');
   const dashAvatarEl    = document.getElementById('dash-avatar');
@@ -1425,7 +1655,7 @@ function handleWalletConnected(rawAddress) {
   if (dashUidEl)       dashUidEl.textContent       = 'UID: ' + state.userId;
   if (joinDateEl)      joinDateEl.textContent      =
     new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-  if (refLinkEl)       refLinkEl.textContent       = `https://t.me/CryptonBot/app?startapp=${state.userId}`;
+  if (refLinkEl)       refLinkEl.textContent       = `https://t.me/CryptonOfficialBot/app?startapp=${state.userId}`;
 
   // ── Unlock Matrix Gate in view-matrix with smooth reveal animation ──
   const gate    = document.getElementById('matrix-wallet-gate');
@@ -1537,6 +1767,22 @@ function resetStats() {
 function tonToUsd(ton) { return TON_TO_USD ? (ton * TON_TO_USD).toFixed(2) : '—'; }
 function fmtTon(ton)   { return ton % 1 === 0 ? ton.toFixed(0) : ton.toFixed(2); }
 
+// ──────────────────────────────────────────────────────────────
+// LEVEL INDICATOR BAR — update cells based on ownedSlots
+// ──────────────────────────────────────────────────────────────
+function updateLevelBar() {
+  const owned = state.ownedSlots.length;
+  for (let i = 1; i <= 10; i++) {
+    const cell = document.getElementById('lvl-' + i);
+    if (!cell) continue;
+    if (i <= owned) {
+      cell.classList.add('active');
+    } else {
+      cell.classList.remove('active');
+    }
+  }
+}
+
 function updateStatsUI() {
   const totalUsd = tonToUsd(state.earnedTon || 0);
 
@@ -1577,6 +1823,9 @@ function updateStatsUI() {
   if (rdEl) rdEl.textContent = state.referrals;
   if (rtEl) rtEl.textContent = state.teamSize;
   if (riEl) riEl.textContent = fmtTon(state.earnedTon || 0);
+
+  // ── Level indicator bar ──
+  updateLevelBar();
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -2101,7 +2350,7 @@ async function loginUser(walletAddress) {
     const dashUidEl = document.getElementById('dash-uid');
     if (dashUidEl) dashUidEl.textContent = 'UID: ' + userId;
     const refLinkEl = document.getElementById('ref-link');
-    if (refLinkEl)  refLinkEl.textContent = `https://t.me/CryptonBot/app?startapp=${userId}`;
+    if (refLinkEl)  refLinkEl.textContent = `https://t.me/CryptonOfficialBot/app?startapp=${userId}`;
 
     _updateDashAvatar();
     updateStatsUI();
@@ -2152,6 +2401,83 @@ async function getReferralStats() {
     }
   } catch(e) {
     console.error('[Firebase] getReferralStats error:', e);
+  }
+  // Fetch & render referral list alongside stats
+  await renderReferralList();
+}
+
+// ──────────────────────────────────────────────────────────────
+// MY REFERRALS LIST — fetch users where referredBy == myId
+// ──────────────────────────────────────────────────────────────
+async function renderReferralList() {
+  const inner   = document.getElementById('ref-list-inner');
+  const loading = document.getElementById('ref-list-loading');
+  if (!inner) return;
+
+  // Determine current user's ID (tgId used as doc key in Firestore)
+  const myId = String(
+    window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || state.userId || ''
+  );
+  if (!myId) {
+    if (loading) loading.textContent = 'View ◔';
+    return;
+  }
+
+  // Show loading state
+  inner.innerHTML = '<div class="ref-list-loading">Loading referrals…</div>';
+
+  try {
+    await waitForFirestore();
+    const { collection, query, where, getDocs } = window.__fs;
+    const db = window.__db;
+
+    // Query: users collection where referredBy == myId
+    const q    = query(collection(db, 'users'), where('referredBy', '==', myId));
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+      inner.innerHTML = '<div class="ref-list-empty">No referrals yet.<br>Share your link to invite friends!</div>';
+      return;
+    }
+
+    // Build rows
+    const silhouetteSVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+    </svg>`;
+
+    let html = '';
+    snap.forEach(docSnap => {
+      const d        = docSnap.data();
+      const name     = d.tgName || d.tgHandle || 'Unknown';
+      const handle   = d.tgHandle ? '@' + d.tgHandle.replace(/^@/, '') : '';
+      const uid      = d.tgId    || docSnap.id;
+      const photoUrl = d.tgPhotoUrl || null;
+
+      const displayName = name !== 'Unknown' ? name : (handle || 'User');
+      const uidLine     = handle
+        ? `${handle} · UID: ${uid}`
+        : `UID: ${uid}`;
+
+      const avatarInner = photoUrl
+        ? `<img src="${photoUrl}" alt="avatar" onerror="this.parentNode.innerHTML='${silhouetteSVG.replace(/"/g,"'")}'"/>`
+        : silhouetteSVG;
+
+      html += `
+      <div class="ref-list-row">
+        <div class="ref-list-avatar">${avatarInner}</div>
+        <div class="ref-list-info">
+          <div class="ref-list-name">${displayName}</div>
+          <div class="ref-list-uid">${uidLine}</div>
+        </div>
+        <span class="ref-list-badge">DIRECT</span>
+      </div>`;
+    });
+
+    inner.innerHTML = html;
+    console.log('[Firebase] Referral list rendered:', snap.size, 'users');
+  } catch(e) {
+    inner.innerHTML = '<div class="ref-list-empty">Could not load referrals.</div>';
+    console.error('[Firebase] renderReferralList error:', e);
   }
 }
 
