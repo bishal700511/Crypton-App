@@ -138,8 +138,6 @@
       background:rgba(0,0,0,0.10);
     }
 
-    /* 4th fab item stagger — kept for safety */
-    .fab-menu.open .fab-menu-item:nth-child(4) { transition-delay:0.16s; }
     section { padding:24px 18px 0; }
     .section-label {
       font-family:var(--font-mono); font-size:10px; font-weight:500;
@@ -561,11 +559,6 @@
     .ref-link-box { display:flex; align-items:center; gap:8px; background:rgba(0,0,0,0.25); border:1px solid var(--glass-bd); border-radius:var(--radius-sm); padding:10px 12px; }
     .ref-link-text { flex:1; font-family:var(--font-mono); font-size:12px; color:var(--cyan); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
-    /* ─── FLOATING MENU BUTTON ──────────────────────────────── */
-    .fab-wrap {
-      position:fixed; bottom:28px; left:24px; z-index:300;
-    }
-
     /* ─── TELEGRAM FLOAT BUTTON ─────────────────────────────── */
     .header-tg-btn {
       width:36px; height:36px; border-radius:10px;
@@ -578,70 +571,168 @@
     }
     .header-tg-btn:hover  { background:rgba(0,229,255,0.10); border-color:rgba(0,229,255,0.45); transform:scale(1.06); }
     .header-tg-btn:active { transform:scale(0.94); }
-    .header-tg-btn svg {
-      width:18px; height:18px;
-      fill:var(--cyan);
-    }
+    .header-tg-btn svg { width:18px; height:18px; fill:var(--cyan); }
+
+    /* ─── FAB TRIGGER BUTTON — fixed bottom-right tab ──────── */
     .fab {
-      width:52px; height:52px; border-radius:16px; border:none; cursor:pointer;
-      background:rgba(8,20,40,0.82);
-      backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
-      border:1px solid rgba(255,255,255,0.12);
-      box-shadow:0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(0,229,255,0.08);
-      display:flex; align-items:center; justify-content:center;
-      transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1),
-                 box-shadow 0.22s ease, background 0.22s ease;
-      -webkit-tap-highlight-color:transparent;
+      position: fixed;
+      bottom: 20px;
+      right: 16px;
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      border: none;
+      cursor: pointer;
+      background: rgba(12,24,44,0.96);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 401;
+      transition: opacity 0.22s ease, transform 0.22s ease, background 0.22s ease;
+      -webkit-tap-highlight-color: transparent;
     }
-    .fab:hover  { transform:scale(1.08); box-shadow:0 12px 36px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,229,255,0.18); }
-    .fab:active { transform:scale(0.94); }
-    .fab.open   {
-      background:rgba(0,229,255,0.12);
-      border-color:rgba(0,229,255,0.35);
-      box-shadow:0 8px 32px rgba(0,229,255,0.18), 0 0 0 1px rgba(0,229,255,0.22);
+    .fab:active { transform: scale(0.92); }
+    .fab.open {
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.85);
     }
     .fab.open #fab-icon { color: var(--cyan) !important; }
 
-    /* 3 dots icon */
-    .fab-dots { display:flex; flex-direction:column; gap:4px; align-items:center; transition:transform 0.28s ease; }
-    .fab.open .fab-dots { transform:rotate(90deg); }
-    .fab-dot  { width:4px; height:4px; border-radius:50%; background:var(--text-mid); transition:background 0.2s; }
-    .fab.open .fab-dot  { background:var(--cyan); }
-
-    /* ─── POPUP MENU ────────────────────────────────────────── */
+    /* ─── HORIZONTAL BOTTOM SHEET PANEL ─────────────────────── */
+    /*
+     * The panel is a full-width horizontal strip anchored to the
+     * bottom viewport edge. It starts fully off-screen below
+     * (translateY(100%)) and slides UP into view on .open.
+     * position:fixed keeps it locked during scroll — never moves.
+     */
     .fab-menu {
-      position:fixed; bottom:92px; left:20px; z-index:299;
-      display:flex; flex-direction:column; gap:6px;
-      pointer-events:none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      z-index: 399;
+      pointer-events: none;
+
+      transform: translateY(100%);
+      transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+
+      background: rgb(18, 47, 72);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border-top: 1px solid rgba(255,255,255,0.06);
+      box-shadow: 0 -2px 20px rgba(0,0,0,0.50);
+      border-radius: 14px 14px 0 0;
+
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-around;
+      gap: 0;
+      overflow: hidden;
+      padding: 6px 6px 18px;             /* slim top, home-bar safe bottom */
     }
+
+    /* drag handle */
+    .fab-menu::before {
+      content: '';
+      position: absolute;
+      top: 5px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 30px;
+      height: 2.5px;
+      border-radius: 99px;
+      background: rgba(255,255,255,0.13);
+    }
+
+    .fab-menu.open {
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    /* ─── BOTTOM SHEET ITEMS — borderless icon+label ─────────── */
     .fab-menu-item {
-      display:flex; align-items:center; gap:12px;
-      padding:12px 16px 12px 14px;
-      background:rgba(8,20,40,0.90);
-      backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
-      border:1px solid rgba(255,255,255,0.10);
-      border-radius:14px;
-      cursor:pointer;
-      font-family:var(--font-body); font-size:13px; font-weight:500;
-      letter-spacing:0.3px;
-      color:var(--text-mid);
-      box-shadow:0 4px 20px rgba(0,0,0,0.4);
-      opacity:0; transform:translateY(12px) scale(0.95);
-      transition:opacity 0.22s ease, transform 0.22s cubic-bezier(0.34,1.56,0.64,1),
-                 background 0.18s, color 0.18s, border-color 0.18s;
-      pointer-events:none; white-space:nowrap;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      flex: 1;
+      padding: 8px 4px 6px;
+      background: transparent;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--text-mid);
+      white-space: nowrap;
+
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.16s ease, transform 0.16s ease, color 0.15s;
+      pointer-events: none;
     }
-    .fab-menu-item:hover  { background:rgba(0,229,255,0.10); color:var(--cyan); border-color:rgba(0,229,255,0.28); }
-    .fab-menu-item:active { transform:scale(0.96) !important; }
-    .fab-menu-item.active-view { color:var(--cyan); border-color:rgba(0,229,255,0.30); background:rgba(0,229,255,0.08); }
+    .fab-menu-item:hover  { color: var(--cyan); }
+    .fab-menu-item:active { transform: scale(0.90) !important; opacity: 0.7; }
+    .fab-menu-item.active-view { color: var(--cyan); }
+    .fab-menu-item.active-view .fab-menu-icon {
+      filter: drop-shadow(0 0 6px rgba(0,229,255,0.55));
+    }
 
-    .fab-menu.open .fab-menu-item { opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
-    .fab-menu.open .fab-menu-item:nth-child(1) { transition-delay:0.04s; }
-    .fab-menu.open .fab-menu-item:nth-child(2) { transition-delay:0.08s; }
-    .fab-menu.open .fab-menu-item:nth-child(3) { transition-delay:0.12s; }
+    .fab-menu.open .fab-menu-item {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .fab-menu.open .fab-menu-item:nth-child(1) { transition-delay: 0.06s; }
+    .fab-menu.open .fab-menu-item:nth-child(2) { transition-delay: 0.11s; }
+    .fab-menu.open .fab-menu-item:nth-child(3) { transition-delay: 0.16s; }
+    .fab-menu.open .fab-menu-item:nth-child(4) { transition-delay: 0.21s; }
 
-    .fab-menu-icon { font-size:16px; flex-shrink:0; }
-    .fab-menu-lock { font-size:9px; color:var(--text-lo); margin-left:auto; opacity:0.7; }
+    /* icon — bigger, no border */
+    .fab-menu-icon { font-size: 26px; flex-shrink: 0; line-height: 1; }
+    .fab-menu-lock { font-size: 7px; color: var(--text-lo); opacity: 0.55; margin-top: 1px; }
+
+    /* ─── CLOSE BUTTON inside sheet ─────────────────────────── */
+    .fab-menu-close {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255,255,255,0.06);
+      color: var(--text-mid);
+      font-size: 15px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      margin-right: 6px;
+
+      opacity: 0;
+      transform: scale(0.75);
+      transition: opacity 0.16s ease 0.15s, transform 0.16s ease 0.15s,
+                  background 0.15s, color 0.15s;
+      pointer-events: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .fab-menu.open .fab-menu-close {
+      opacity: 1;
+      transform: scale(1);
+      pointer-events: auto;
+    }
+    .fab-menu-close:hover  { background: rgba(255,77,109,0.18); color: var(--red); }
+    .fab-menu-close:active { transform: scale(0.88) !important; }
 
     /* ─── BACK BUTTON ───────────────────────────────────────── */
     .view-back-btn {
@@ -1034,6 +1125,598 @@
       color: var(--text-mid);
       letter-spacing: 0.5px;
     }
+
+    /* ─── SEARCH VIEW ───────────────────────────────────────── */
+    .search-input-wrap {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      align-items: stretch;
+    }
+    .search-input {
+      flex: 1;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--glass-bd);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--text-hi);
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+      -webkit-appearance: none;
+    }
+    .search-input::placeholder { color: var(--text-lo); }
+    .search-input:focus {
+      border-color: rgba(0,229,255,0.45);
+      box-shadow: 0 0 0 3px rgba(0,229,255,0.08);
+    }
+    .btn-search {
+      padding: 12px 18px;
+      border-radius: var(--radius-md);
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--cyan) 0%, #0099bb 100%);
+      color: var(--navy);
+      font-family: var(--font-head);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+      transition: opacity var(--transition), transform var(--transition);
+      box-shadow: var(--shadow-cyan);
+    }
+    .btn-search:hover  { opacity: 0.88; transform: translateY(-1px); }
+    .btn-search:active { transform: scale(0.96); }
+    .btn-search:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    /* Search result profile card */
+    .srch-profile-card {
+      background: linear-gradient(135deg, #e5c060 0%, #c49632 50%, #d8b24f 100%);
+      border-radius: 20px;
+      padding: 18px 20px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 6px 24px rgba(180,140,40,0.28);
+    }
+    .srch-avatar {
+      width: 52px; height: 52px; border-radius: 14px;
+      flex-shrink: 0; overflow: hidden;
+      background: rgba(0,0,0,0.12);
+      border: 2px solid rgba(0,0,0,0.15);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .srch-avatar img { width:100%; height:100%; object-fit:cover; border-radius:12px; display:block; }
+    .srch-avatar svg { width:26px; height:26px; fill:#8aa5c0; }
+    .srch-name {
+      font-family: var(--font-head); font-size: 17px; font-weight: 800;
+      color: #050d1a; line-height: 1.2;
+    }
+    .srch-uid {
+      font-family: var(--font-mono); font-size: 11px;
+      color: rgba(5,13,26,0.65); margin-top: 3px; font-weight: 600;
+    }
+
+    /* Stats row — 2 cols grid */
+    .srch-stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .srch-stat-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-bd);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      backdrop-filter: blur(14px);
+    }
+    .srch-stat-label {
+      font-family: var(--font-mono); font-size: 9px; font-weight: 700;
+      letter-spacing: 1.8px; text-transform: uppercase;
+      color: var(--text-mid); margin-bottom: 6px;
+    }
+    .srch-stat-val {
+      font-family: var(--font-head); font-size: 20px; font-weight: 800;
+      color: var(--cyan); line-height: 1; letter-spacing: -0.5px;
+    }
+    .srch-stat-val.gold { color: var(--gold-lt); }
+    .srch-stat-val.green { color: var(--green); }
+    .srch-stat-sub {
+      font-family: var(--font-mono); font-size: 10px;
+      color: var(--text-lo); margin-top: 3px;
+    }
+
+    /* Slots badge strip */
+    .srch-slots-wrap {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-bd);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      margin-bottom: 14px;
+      backdrop-filter: blur(14px);
+    }
+    .srch-slots-label {
+      font-family: var(--font-mono); font-size: 9px; font-weight: 700;
+      letter-spacing: 1.8px; text-transform: uppercase;
+      color: var(--text-mid); margin-bottom: 10px;
+    }
+    .srch-slots-badges {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .srch-slot-badge {
+      font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+      padding: 4px 10px; border-radius: 6px; letter-spacing: 0.5px;
+    }
+    .srch-slot-badge.owned {
+      background: var(--cyan-dim);
+      border: 1px solid rgba(0,229,255,0.30);
+      color: var(--cyan);
+    }
+    .srch-slot-badge.locked {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      color: var(--text-lo);
+    }
+
+    /* Downline section */
+    .srch-downline-header {
+      font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+      letter-spacing: 2px; text-transform: uppercase;
+      color: var(--cyan); opacity: 0.8;
+      margin-bottom: 10px; padding: 0 2px;
+    }
+    #srch-result-area { display: none; animation: fade-up 0.3s ease both; }
+    #srch-empty-state {
+      text-align: center; padding: 36px 20px;
+      font-family: var(--font-mono); font-size: 12px;
+      color: var(--text-lo); letter-spacing: 0.5px;
+    }
+    #srch-loading-state {
+      text-align: center; padding: 28px;
+      font-family: var(--font-mono); font-size: 12px;
+      color: var(--text-mid); letter-spacing: 0.5px;
+      display: none;
+    }
+    #srch-loading-state::before {
+      content: ''; display: inline-block; width: 8px; height: 8px;
+      border-radius: 50%; border: 1.5px solid var(--text-lo);
+      border-top-color: var(--cyan);
+      animation: spin-fetch 0.9s linear infinite;
+      margin-right: 8px; vertical-align: middle;
+    }
+
+    /* ─── SEARCH VIEW HEADER ROW (label + trophy btn) ────────── */
+    .srch-topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .srch-topbar .section-label { margin-bottom: 0; }
+    .btn-trophy {
+      width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+      background: linear-gradient(135deg, rgba(212,168,67,0.18) 0%, rgba(212,168,67,0.08) 100%);
+      border: 1px solid rgba(212,168,67,0.35);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 18px; line-height: 1;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-trophy:hover  { background: rgba(212,168,67,0.26); box-shadow: 0 0 14px rgba(212,168,67,0.30); }
+    .btn-trophy:active { transform: scale(0.90); }
+
+    /* ─── LEADERBOARD PANEL (inside search view) ─────────────── */
+    #srch-lb-panel {
+      display: none;
+      animation: fade-up 0.28s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    #srch-lb-panel.lb-visible { display: block; }
+
+    .lb-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .lb-title-group { display: flex; align-items: center; gap: 10px; }
+    .lb-icon-wrap {
+      width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
+      background: linear-gradient(135deg, rgba(212,168,67,0.22), rgba(240,201,106,0.12));
+      border: 1px solid rgba(212,168,67,0.30);
+      display: flex; align-items: center; justify-content: center; font-size: 19px;
+    }
+    .lb-title {
+      font-family: var(--font-head); font-size: 17px; font-weight: 800;
+      background: linear-gradient(90deg, var(--gold-lt), #fff8e0);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .lb-subtitle {
+      font-family: var(--font-mono); font-size: 9.5px; color: var(--text-lo);
+      letter-spacing: 1.5px; margin-top: 2px;
+    }
+    .btn-lb-back {
+      display: flex; align-items: center; gap: 5px;
+      background: var(--glass-bg); border: 1px solid var(--glass-bd);
+      border-radius: 9px; padding: 7px 13px;
+      font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+      color: var(--text-mid); cursor: pointer; letter-spacing: 0.8px;
+      transition: color 0.2s, background 0.2s, transform 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-lb-back:hover  { color: var(--cyan); background: rgba(0,229,255,0.07); }
+    .btn-lb-back:active { transform: scale(0.93); }
+
+    /* Loading / error states */
+    .lb-loading {
+      text-align: center; padding: 42px 20px;
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--text-mid); letter-spacing: 0.5px;
+    }
+    .lb-loading::before {
+      content: ''; display: block; width: 28px; height: 28px; margin: 0 auto 14px;
+      border-radius: 50%; border: 2px solid var(--glass-bd);
+      border-top-color: var(--gold); animation: spin-fetch 0.9s linear infinite;
+    }
+    .lb-error {
+      text-align: center; padding: 36px 20px;
+      font-family: var(--font-mono); font-size: 11px; color: var(--red);
+      letter-spacing: 0.3px; line-height: 1.8;
+    }
+
+    /* Rank list */
+    .lb-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .lb-row {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--glass-bg); border: 1px solid var(--glass-bd);
+      border-radius: var(--radius-md); padding: 12px 14px;
+      transition: border-color 0.2s, background 0.2s;
+      animation: fade-up 0.28s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .lb-row:nth-child(1) { border-color: rgba(212,168,67,0.45); background: linear-gradient(135deg,rgba(212,168,67,0.10),rgba(8,20,40,0.72)); animation-delay: 0.03s; }
+    .lb-row:nth-child(2) { border-color: rgba(180,180,190,0.35); background: linear-gradient(135deg,rgba(180,180,190,0.07),rgba(8,20,40,0.72)); animation-delay: 0.06s; }
+    .lb-row:nth-child(3) { border-color: rgba(180,120,60,0.35);  background: linear-gradient(135deg,rgba(180,120,60,0.08),rgba(8,20,40,0.72));  animation-delay: 0.09s; }
+    .lb-row:nth-child(n+4) { animation-delay: calc(0.06s + (var(--i,0) * 0.03s)); }
+
+    .lb-rank {
+      font-family: var(--font-head); font-size: 15px; font-weight: 800;
+      min-width: 28px; text-align: center; flex-shrink: 0;
+    }
+    .lb-rank.r1 { color: var(--gold-lt); text-shadow: 0 0 12px rgba(212,168,67,0.55); }
+    .lb-rank.r2 { color: #c0c8d4; }
+    .lb-rank.r3 { color: #c87040; }
+    .lb-rank.rn { color: var(--text-lo); font-size: 13px; }
+
+    .lb-avatar {
+      width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+      overflow: hidden; background: rgba(255,255,255,0.06);
+      border: 1.5px solid rgba(255,255,255,0.08);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .lb-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; display: block; }
+
+    .lb-info { flex: 1; min-width: 0; }
+    .lb-name {
+      font-family: var(--font-head); font-size: 13.5px; font-weight: 700;
+      color: var(--text-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .lb-uid {
+      font-family: var(--font-mono); font-size: 10px; color: var(--text-lo);
+      letter-spacing: 0.3px; margin-top: 2px;
+    }
+
+    .lb-ton {
+      text-align: right; flex-shrink: 0;
+    }
+    .lb-ton-val {
+      font-family: var(--font-head); font-size: 14px; font-weight: 800;
+    }
+    .lb-row:nth-child(1) .lb-ton-val { color: var(--gold-lt); }
+    .lb-row:nth-child(2) .lb-ton-val { color: #c0c8d4; }
+    .lb-row:nth-child(3) .lb-ton-val { color: #c87040; }
+    .lb-row:nth-child(n+4) .lb-ton-val { color: var(--cyan); }
+    .lb-ton-unit {
+      font-family: var(--font-mono); font-size: 9px; color: var(--text-lo);
+      letter-spacing: 0.5px; margin-top: 2px;
+    }
+
+    .lb-footer-note {
+      text-align: center; padding: 16px 0 6px;
+      font-family: var(--font-mono); font-size: 9.5px;
+      color: var(--text-lo); letter-spacing: 0.3px; line-height: 1.8;
+    }
+
+    /* ─── PREVIEW MODE BUTTON (hero screen) ─────────────────── */
+    .btn-preview-wrap {
+      margin-top: 18px; text-align: center;
+    }
+    .btn-preview {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 11px 28px; border-radius: 50px;
+      background: transparent;
+      border: 1.5px solid rgba(0,229,255,0.30);
+      color: var(--cyan);
+      font-family: var(--font-head); font-size: 14px; font-weight: 700;
+      cursor: pointer; letter-spacing: 0.3px;
+      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-preview:hover {
+      background: rgba(0,229,255,0.08);
+      border-color: rgba(0,229,255,0.55);
+      box-shadow: 0 0 18px rgba(0,229,255,0.18);
+    }
+    .btn-preview:active { transform: scale(0.95); }
+    .btn-preview-hint {
+      font-family: var(--font-mono); font-size: 10px;
+      color: var(--text-lo); margin-top: 9px; letter-spacing: 0.3px;
+    }
+
+    /* ─── PREVIEW MODE VIEW ──────────────────────────────────── */
+    #view-preview { padding-bottom: 96px; }
+
+    /* badge strip at top of preview */
+    .pv-badge-strip {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 10px 18px 0; margin-bottom: 4px;
+    }
+    .pv-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 11px; border-radius: 20px;
+      font-family: var(--font-mono); font-size: 9.5px; font-weight: 600;
+      letter-spacing: 1px; text-transform: uppercase;
+    }
+    .pv-badge-ro {
+      background: rgba(0,229,255,0.10); border: 1px solid rgba(0,229,255,0.25);
+      color: var(--cyan);
+    }
+    .pv-badge-ro::before {
+      content: ''; display: inline-block; width: 6px; height: 6px;
+      border-radius: 50%; background: var(--cyan);
+      animation: pv-pulse 1.8s ease-in-out infinite;
+    }
+    @keyframes pv-pulse {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.4; transform: scale(0.7); }
+    }
+    .pv-badge-lock {
+      background: rgba(255,77,109,0.09); border: 1px solid rgba(255,77,109,0.22);
+      color: var(--red);
+    }
+
+    /* preview section divider */
+    .pv-divider {
+      display: flex; align-items: center; gap: 10px;
+      padding: 20px 0 16px;
+    }
+    .pv-divider-line {
+      flex: 1; height: 1px; background: var(--glass-bd);
+    }
+    .pv-divider-label {
+      font-family: var(--font-mono); font-size: 9px; font-weight: 600;
+      color: var(--text-lo); letter-spacing: 2px; text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    /* connect CTA at bottom of preview */
+    .pv-connect-cta {
+      margin: 24px 0 8px;
+      background: linear-gradient(135deg, rgba(212,168,67,0.10), rgba(0,229,255,0.07));
+      border: 1px solid rgba(212,168,67,0.25);
+      border-radius: var(--radius-lg); padding: 20px 18px;
+      text-align: center;
+    }
+    .pv-cta-title {
+      font-family: var(--font-head); font-size: 16px; font-weight: 800;
+      background: linear-gradient(90deg, var(--gold-lt), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+    .pv-cta-sub {
+      font-size: 12px; color: var(--text-mid); line-height: 1.6; margin-bottom: 14px;
+    }
+    .btn-pv-connect {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 13px 30px; border-radius: 50px; border: none; cursor: pointer;
+      font-family: var(--font-head); font-size: 14px; font-weight: 700;
+      color: var(--navy);
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-lt) 60%, var(--cyan) 100%);
+      background-size: 200% 200%; background-position: 0% 50%;
+      box-shadow: var(--shadow-gold), 0 4px 18px rgba(0,0,0,0.35);
+      animation: shimmer-btn 3s ease infinite;
+      transition: transform 0.15s, box-shadow 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-pv-connect:hover  { transform: translateY(-1px) scale(1.02); }
+    .btn-pv-connect:active { transform: scale(0.97); }
+
+    /* ─── GLOBAL STATS VIEW ─────────────────────────────────── */
+    #view-stats { padding-bottom: 96px; }
+
+    .gstat-header-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 22px;
+    }
+    .gstat-header-icon {
+      width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+      background: linear-gradient(135deg, rgba(212,168,67,0.22) 0%, rgba(0,229,255,0.18) 100%);
+      border: 1px solid rgba(212,168,67,0.30);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .gstat-header-title {
+      font-family: var(--font-head); font-size: 18px; font-weight: 800;
+      background: linear-gradient(90deg, var(--gold-lt), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .gstat-header-sub {
+      font-family: var(--font-mono); font-size: 10px; color: var(--text-lo);
+      letter-spacing: 1px; margin-top: 2px;
+    }
+
+    .gstat-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .gstat-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-bd);
+      border-radius: var(--radius-lg);
+      backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+      padding: 20px 16px 18px;
+      position: relative; overflow: hidden;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .gstat-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .gstat-card.gold-card {
+      border-color: rgba(212,168,67,0.28);
+      background: linear-gradient(135deg, rgba(212,168,67,0.08) 0%, rgba(8,20,40,0.72) 100%);
+    }
+    .gstat-card.cyan-card {
+      border-color: rgba(0,229,255,0.22);
+      background: linear-gradient(135deg, rgba(0,229,255,0.07) 0%, rgba(8,20,40,0.72) 100%);
+    }
+
+    .gstat-card-icon {
+      width: 34px; height: 34px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 14px;
+    }
+    .gold-card .gstat-card-icon { background: rgba(212,168,67,0.18); }
+    .cyan-card .gstat-card-icon { background: rgba(0,229,255,0.14); }
+
+    .gstat-label {
+      font-family: var(--font-mono); font-size: 9.5px; font-weight: 500;
+      letter-spacing: 1.8px; text-transform: uppercase;
+      color: var(--text-mid); margin-bottom: 10px; line-height: 1.4;
+    }
+    .gstat-value {
+      font-family: var(--font-head); font-size: 26px; font-weight: 800;
+      line-height: 1; letter-spacing: -0.5px;
+    }
+    .gold-card .gstat-value { color: var(--gold-lt); }
+    .cyan-card .gstat-value { color: var(--cyan); }
+
+    .gstat-unit {
+      font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+      margin-top: 5px;
+    }
+    .gold-card .gstat-unit { color: rgba(212,168,67,0.65); }
+    .cyan-card .gstat-unit { color: rgba(0,229,255,0.55); }
+
+    .gstat-shimmer {
+      display: inline-block; width: 70px; height: 22px; border-radius: 6px;
+      background: linear-gradient(90deg, var(--glass-bd) 25%, rgba(255,255,255,0.08) 50%, var(--glass-bd) 75%);
+      background-size: 200% 100%;
+      animation: gstat-skeleton 1.4s ease infinite;
+    }
+    @keyframes gstat-skeleton {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .gstat-refresh-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--glass-bg); border: 1px solid var(--glass-bd);
+      border-radius: var(--radius-md);
+      margin-bottom: 14px;
+    }
+    .gstat-refresh-label {
+      font-family: var(--font-mono); font-size: 10px;
+      color: var(--text-lo); letter-spacing: 0.5px;
+    }
+    .gstat-refresh-label span {
+      color: var(--green); font-size: 9px; margin-left: 6px;
+    }
+    .gstat-refresh-btn {
+      background: rgba(0,229,255,0.10); border: 1px solid rgba(0,229,255,0.22);
+      border-radius: 8px; padding: 6px 14px;
+      font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+      color: var(--cyan); cursor: pointer; letter-spacing: 1px;
+      transition: background 0.2s, transform 0.15s;
+    }
+    .gstat-refresh-btn:hover  { background: rgba(0,229,255,0.18); }
+    .gstat-refresh-btn:active { transform: scale(0.94); }
+    .gstat-refresh-btn.spinning svg { animation: spin-fetch 0.7s linear infinite; }
+
+    .gstat-note {
+      font-family: var(--font-mono); font-size: 10px;
+      color: var(--text-lo); text-align: center;
+      padding: 10px 0 4px; letter-spacing: 0.3px; line-height: 1.7;
+    }
+
+    /* ─── CUSTOM EYE SYMBOL ─────────────────────────────────── */
+    /*
+     * Built entirely from styled text characters — no graphic emoji.
+     * Outer arcs: mirrored ( ) scaled vertically to form an oval lens.
+     * Inner pupil: a small filled circle ● scaled down.
+     * The .eye-sym wrapper keeps all three pieces inline-aligned.
+     */
+    .eye-sym {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      gap: 0;
+      font-style: normal;
+      vertical-align: middle;
+      user-select: none;
+    }
+    .eye-sym .eye-arc-l,
+    .eye-sym .eye-arc-r {
+      font-family: var(--font-head);
+      font-weight: 800;
+      display: inline-block;
+      transform: scaleY(1.55) scaleX(0.72);
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+    .eye-sym .eye-dot {
+      font-family: var(--font-head);
+      display: inline-block;
+      font-size: 0.46em;
+      transform: translateY(0.02em);
+      line-height: 1;
+      margin: 0 1px;
+    }
+
+    /* ─── VIEW USER BUTTON (Global Stats top-right) ──────────── */
+    .gstat-header-row {
+      position: relative; /* anchor for absolute positioning */
+    }
+    .btn-view-user {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 13px;
+      border-radius: 20px;
+      border: 1px solid rgba(0,229,255,0.30);
+      background: rgba(0,229,255,0.08);
+      color: var(--cyan);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      margin-left: auto;
+    }
+    .btn-view-user:hover {
+      background: rgba(0,229,255,0.16);
+      border-color: rgba(0,229,255,0.55);
+      box-shadow: 0 0 12px rgba(0,229,255,0.18);
+    }
+    .btn-view-user:active { transform: scale(0.93); }
+    .btn-view-user .eye-sym .eye-arc-l,
+    .btn-view-user .eye-sym .eye-arc-r { font-size: 1.15em; }
+    .btn-view-user .eye-sym .eye-dot   { font-size: 0.50em; }
   </style>
 </head>
 <body>
@@ -1089,6 +1772,14 @@
         Connect TON Wallet
       </button>
       <p class="btn-connect-sub">TonConnect 2.0 · 1 TON = $<span id="rate-info">—</span></p>
+
+      <!-- Preview Mode entry -->
+      <div class="btn-preview-wrap">
+        <button class="btn-preview" onclick="enterPreviewMode()">
+          <span class="eye-sym" aria-hidden="true"><span class="eye-arc-l">(</span><span class="eye-dot">&#9679;</span><span class="eye-arc-r">)</span></span> Preview Mode
+        </button>
+        <p class="btn-preview-hint">Read-only · No wallet needed</p>
+      </div>
     </div>
 
     <!-- #RANK TICKER — horizontal auto-scroll, below connect button -->
@@ -1111,17 +1802,22 @@
       <div class="card">
         <div class="dash-top">
           <div class="dash-avatar-dp" id="dash-avatar"></div>
-          <div>
-            <div class="dash-name" id="dash-name">Loading…</div>
-            <div class="dash-id" id="dash-uid">UID: —</div>
+          <div style="flex:1; min-width:0;">
+            <div class="dash-id" id="dash-uid" style="font-size:14px; font-weight:800; margin-top:0;">UID: —</div>
+          </div>
+          <!-- REF TON ticker — top-right corner of account card -->
+          <div style="display:flex; flex-direction:column; align-items:flex-end; flex-shrink:0; gap:2px;">
+            <span style="font-family:var(--font-mono); font-size:8px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:rgba(5,13,26,0.60);">total TON ⛁</span>
+            <span id="ref-income" style="font-family:var(--font-head); font-size:18px; font-weight:800; color:#050d1a; letter-spacing:-0.5px; line-height:1;">0</span>
           </div>
         </div>
+        <!-- Referral Link row (replaces wallet address) -->
         <div class="wallet-row">
-          <div>
-            <div class="wallet-label">WALLET ADDRESS</div>
-            <div class="wallet-addr" id="wallet-display">Not connected</div>
+          <div style="flex:1; min-width:0;">
+            <div class="wallet-label">REFERRAL LINK</div>
+            <div class="ref-link-text" id="ref-link" style="font-family:var(--font-mono); font-size:12px; color:#ffffff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:3px;">Connect wallet to get your link</div>
           </div>
-          <button class="btn-copy" onclick="copyWallet()">COPY</button>
+          <button class="btn-copy" id="btn-copy-ref" onclick="copyReferralGold()">COPY</button>
         </div>
       </div>
       <!-- Hidden stat anchors so updateStatsUI() never throws -->
@@ -1135,7 +1831,7 @@
 
       <!-- ── LEVEL INDICATOR BAR ── -->
       <div id="level-indicator-bar" style="display:none; flex-direction:row; align-items:center; background:#6236d0; border-radius:0px; padding:10px 14px; margin-top:14px; gap:4px; width:100%;">
-        <span class="lvl-label">LVL</span>
+        <span class="lvl-label">Slots</span>
         <div class="lvl-cell" id="lvl-1">1</div>
         <div class="lvl-cell" id="lvl-2">2</div>
         <div class="lvl-cell" id="lvl-3">3</div>
@@ -1153,6 +1849,25 @@
         <div style="flex:1; height:1px; background:var(--glass-bd);"></div>
         <span style="font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:var(--text-lo); flex-shrink:0;">PROGRAM</span>
         <div style="flex:1; height:1px; background:var(--glass-bd);"></div>
+      </div>
+
+      <!-- ── NETWORK STAT CARDS (Direct Referral + Your Team) ── -->
+      <p class="section-label" style="margin-top:14px; margin-bottom:10px;">NETWORK ☈</p>
+      <div class="blue-stat-row" style="margin-top:0; margin-bottom:14px;">
+        <div class="blue-stat-card">
+          <div class="blue-stat-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+            <span class="blue-stat-title">Direct Referral</span>
+          </div>
+          <div class="blue-stat-num" id="ref-direct">0</div>
+        </div>
+        <div class="blue-stat-card">
+          <div class="blue-stat-header">
+            <svg width="22" height="20" viewBox="0 0 28 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M20 11c2.2 0 3.9-1.8 3.9-4S22.2 3 20 3c-2.2 0-3.9 1.8-3.9 4s1.7 4 3.9 4zm-12 0c2.2 0 3.9-1.8 3.9-4S10.2 3 8 3C5.8 3 4.1 4.8 4.1 7s1.7 4 3.9 4zm0 2c-2.7 0-8 1.3-8 4v2h16v-2c0-2.7-5.3-4-8-4zm12 0c-.3 0-.7 0-1 .1 1.2.9 2 2.1 2 3.9v2h6v-2c0-2.7-5.3-4-7-4z"/></svg>
+            <span class="blue-stat-title">Your Team</span>
+          </div>
+          <div class="blue-stat-num" id="ref-total">0</div>
+        </div>
       </div>
 
       <!-- ── WORKING Income Card ── -->
@@ -1231,41 +1946,6 @@
 
 
 
-      <!-- Blue stat cards: Direct Referral + Your Team -->
-      <p class="section-label" style="margin-top:14px; margin-bottom:10px;">NETWORK MARKETING</p>
-      <div class="blue-stat-row" style="margin-top:0;">
-        <div class="blue-stat-card">
-          <div class="blue-stat-header">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
-            <span class="blue-stat-title">Direct Referral</span>
-          </div>
-          <div class="blue-stat-num" id="ref-direct">0</div>
-        </div>
-        <div class="blue-stat-card">
-          <div class="blue-stat-header">
-            <svg width="22" height="20" viewBox="0 0 28 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M20 11c2.2 0 3.9-1.8 3.9-4S22.2 3 20 3c-2.2 0-3.9 1.8-3.9 4s1.7 4 3.9 4zm-12 0c2.2 0 3.9-1.8 3.9-4S10.2 3 8 3C5.8 3 4.1 4.8 4.1 7s1.7 4 3.9 4zm0 2c-2.7 0-8 1.3-8 4v2h16v-2c0-2.7-5.3-4-8-4zm12 0c-.3 0-.7 0-1 .1 1.2.9 2 2.1 2 3.9v2h6v-2c0-2.7-5.3-4-7-4z"/></svg>
-            <span class="blue-stat-title">Your Team</span>
-          </div>
-          <div class="blue-stat-num" id="ref-total">0</div>
-        </div>
-      </div>
-
-      <!-- REF TON + Referral Link card -->
-      <div class="card referral-card" style="margin-top:12px;">
-        <div class="ref-stats" style="grid-template-columns:1fr; margin-bottom:14px;">
-          <div class="ref-stat">
-            <div class="ref-stat-num" id="ref-income">0</div>
-            <div class="ref-stat-lbl">REF TON ⛁</div>
-          </div>
-        </div>
-
-        <div class="ref-link-label">YOUR REFERRAL LINK</div>
-        <div class="ref-link-box">
-          <span class="ref-link-text" id="ref-link">Connect wallet to get your link</span>
-          <button class="btn-copy" id="btn-copy-ref" onclick="copyReferral()">COPY</button>
-        </div>
-      </div>
-
       <!-- ── MY REFERRALS LIST ── -->
       <div class="ref-list-wrap" id="ref-list-wrap">
         <div class="ref-list-header">Downline Team</div>
@@ -1328,8 +2008,350 @@
 
 </div><!-- /app -->
 
-<!-- ── UPGRADE MODAL (single, no duplicate) ── -->
-<div class="modal-overlay" id="upgrade-modal" onclick="closeUpgradeModal(event)">
+<!-- ══════════ VIEW: SEARCH ══════════ -->
+<div class="view" id="view-search" style="padding-bottom: 96px;">
+  <button class="view-back-btn" id="back-search" onclick="switchView('home')">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Home
+  </button>
+  <section>
+    <!-- Search components wrapper (hidden when leaderboard is open) -->
+    <div id="srch-main-wrap">
+
+    <!-- Top bar: label left, trophy icon right -->
+    <div class="srch-topbar">
+      <p class="section-label" style="display:flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> PUBLIC LOOKUP</p>
+      <button class="btn-trophy" id="btn-open-lb" onclick="openLeaderboard()" aria-label="View Leaderboard">🏆</button>
+    </div>
+
+    <!-- Search Input -->
+    <div class="search-input-wrap">
+      <input
+        class="search-input"
+        id="srch-uid-input"
+        type="text"
+        inputmode="numeric"
+        placeholder="Enter Telegram User ID…"
+        autocomplete="off"
+        autocorrect="off"
+        spellcheck="false"
+        onkeydown="if(event.key==='Enter')doSearchUser()"
+      />
+      <button class="btn-search" id="btn-search" onclick="doSearchUser()">SEARCH</button>
+    </div>
+
+    <!-- Loading indicator -->
+    <div id="srch-loading-state">Searching…</div>
+
+    <!-- Empty / placeholder -->
+    <div id="srch-empty-state">
+      <div style="margin-bottom:12px;display:flex;justify-content:center;"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-mid)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+      <div style="color:var(--text-mid); font-size:13px; line-height:1.7;">Enter a Telegram User ID<br>to look up their public profile.</div>
+    </div>
+
+    <!-- Result area — shown after a successful query -->
+    <div id="srch-result-area">
+
+      <!-- Profile card -->
+      <div class="srch-profile-card" id="srch-profile-card">
+        <div class="srch-avatar" id="srch-avatar"></div>
+        <div>
+          <div class="srch-name" id="srch-name">—</div>
+          <div class="srch-uid" id="srch-uid-display">UID: —</div>
+        </div>
+      </div>
+
+      <!-- Slot status -->
+      <div class="srch-slots-wrap">
+        <div class="srch-slots-label">Slot Status</div>
+        <div class="srch-slots-badges" id="srch-slots-badges"></div>
+      </div>
+
+      <!-- Stats 2×2 grid -->
+      <div class="srch-stats-grid">
+        <div class="srch-stat-card">
+          <div class="srch-stat-label">Working Income</div>
+          <div class="srch-stat-val" id="srch-working-val">0</div>
+          <div class="srch-stat-sub" id="srch-working-sub">TON</div>
+        </div>
+        <div class="srch-stat-card">
+          <div class="srch-stat-label">Non-Working Income</div>
+          <div class="srch-stat-val gold" id="srch-passive-val">0</div>
+          <div class="srch-stat-sub" id="srch-passive-sub">TON</div>
+        </div>
+        <div class="srch-stat-card">
+          <div class="srch-stat-label">Direct Referral</div>
+          <div class="srch-stat-val green" id="srch-direct-val">0</div>
+          <div class="srch-stat-sub">members</div>
+        </div>
+        <div class="srch-stat-card">
+          <div class="srch-stat-label">Your Team</div>
+          <div class="srch-stat-val" id="srch-team-val">0</div>
+          <div class="srch-stat-sub">total</div>
+        </div>
+      </div>
+
+      <!-- Downline team list -->
+      <div class="srch-downline-header">Downline Team</div>
+      <div id="srch-downline-inner">
+        <div class="ref-list-loading">Loading team…</div>
+      </div>
+
+    </div><!-- /srch-result-area -->
+    </div><!-- /srch-main-wrap -->
+
+    <!-- ── LEADERBOARD PANEL (renders inside search view) ── -->
+    <div id="srch-lb-panel">
+
+      <!-- Panel header -->
+      <div class="lb-header">
+        <div class="lb-title-group">
+          <div class="lb-icon-wrap">🏆</div>
+          <div>
+            <div class="lb-title">Leaderboard</div>
+            <div class="lb-subtitle">TOP 10 · BY TOTAL EARNINGS</div>
+          </div>
+        </div>
+        <button class="btn-lb-back" onclick="closeLeaderboard()">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          BACK
+        </button>
+      </div>
+
+      <!-- Dynamic content injected by JS -->
+      <div id="lb-content">
+        <div class="lb-loading">Fetching top earners…</div>
+      </div>
+
+      <div class="lb-footer-note">Live data from Crypton network · Top 10 by earnedTon</div>
+
+    </div><!-- /srch-lb-panel -->
+  </section>
+</div><!-- /view-search -->
+
+<!-- ── GLOBAL STATS VIEW ── -->
+<div class="view" id="view-stats" style="padding-bottom: 96px;">
+  <button class="view-back-btn" id="back-stats" onclick="switchView('home')">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Home
+  </button>
+  <section>
+
+    <!-- Header -->
+    <div class="gstat-header-row">
+      <div class="gstat-header-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold-lt)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      </div>
+      <div>
+        <div class="gstat-header-title">Global Stats</div>
+        <div class="gstat-header-sub">LIVE PLATFORM AGGREGATES</div>
+      </div>
+      <!-- View User button — top-right of Global Stats panel -->
+      <button class="btn-view-user" onclick="switchView('search')" aria-label="View User">
+        View User
+        <span class="eye-sym" aria-hidden="true">
+          <span class="eye-arc-l">(</span><span class="eye-dot">&#9679;</span><span class="eye-arc-r">)</span>
+        </span>
+      </button>
+    </div>
+
+    <!-- Refresh row -->
+    <div class="gstat-refresh-row">
+      <div class="gstat-refresh-label">
+        Last updated: <span id="gstat-last-updated">—</span>
+      </div>
+      <button class="gstat-refresh-btn" id="gstat-refresh-btn" onclick="fetchGlobalStats()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:middle;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>REFRESH
+      </button>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="gstat-grid">
+
+      <!-- Total Active Users -->
+      <div class="gstat-card cyan-card">
+        <div class="gstat-card-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="gstat-label">Total Active<br>Users</div>
+        <div class="gstat-value" id="gstat-user-count"><span class="gstat-shimmer"></span></div>
+        <div class="gstat-unit">registered</div>
+      </div>
+
+      <!-- Total TON Distributed -->
+      <div class="gstat-card gold-card">
+        <div class="gstat-card-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold-lt)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        </div>
+        <div class="gstat-label">Total TON<br>Distributed</div>
+        <div class="gstat-value" id="gstat-ton-total"><span class="gstat-shimmer"></span></div>
+        <div class="gstat-unit" id="gstat-ton-unit">TON</div>
+      </div>
+
+    </div><!-- /gstat-grid -->
+
+    <div class="gstat-note">
+      Data aggregated live from Firestore · Auto-refreshes on tab open
+    </div>
+
+  </section>
+</div><!-- /view-stats -->
+
+<!-- ── PREVIEW MODE VIEW ── -->
+<div class="view" id="view-preview" style="padding-bottom: 96px;">
+
+  <!-- Back to hero -->
+  <button class="view-back-btn" id="back-preview" onclick="exitPreviewMode()">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Back
+  </button>
+
+  <!-- Read-only badge strip -->
+  <div class="pv-badge-strip">
+    <span class="pv-badge pv-badge-ro">Read-Only</span>
+    <span class="pv-badge pv-badge-lock">🔒 Wallet Not Connected</span>
+  </div>
+
+  <section>
+
+    <!-- ── SEARCH SUB-PANEL ── -->
+    <div class="pv-divider">
+      <div class="pv-divider-line"></div>
+      <span class="pv-divider-label">
+        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>User Lookup
+      </span>
+      <div class="pv-divider-line"></div>
+    </div>
+
+    <!-- Search wrapper (toggled by trophy btn) -->
+    <div id="pv-srch-main-wrap">
+
+      <!-- Topbar: label + trophy -->
+      <div class="srch-topbar">
+        <p class="section-label" style="display:flex;align-items:center;gap:6px;margin-bottom:0;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          PUBLIC LOOKUP
+        </p>
+        <button class="btn-trophy" id="pv-btn-open-lb" onclick="pvOpenLeaderboard()" aria-label="View Leaderboard">🏆</button>
+      </div>
+
+      <!-- Search input -->
+      <div class="search-input-wrap" style="margin-top:14px;">
+        <input
+          class="search-input"
+          id="pv-srch-uid-input"
+          type="text"
+          inputmode="numeric"
+          placeholder="Enter Telegram User ID…"
+          autocomplete="off"
+          autocorrect="off"
+          spellcheck="false"
+          onkeydown="if(event.key==='Enter')pvDoSearch()"
+        />
+        <button class="btn-search" id="pv-btn-search" onclick="pvDoSearch()">SEARCH</button>
+      </div>
+
+      <!-- Loading -->
+      <div id="pv-srch-loading" style="text-align:center;padding:28px;font-family:var(--font-mono);font-size:12px;color:var(--text-mid);letter-spacing:0.5px;display:none;">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;border:1.5px solid var(--text-lo);border-top-color:var(--cyan);animation:spin-fetch 0.9s linear infinite;margin-right:8px;vertical-align:middle;"></span>Searching…
+      </div>
+
+      <!-- Empty state -->
+      <div id="pv-srch-empty" style="text-align:center;padding:36px 20px;font-family:var(--font-mono);font-size:12px;color:var(--text-lo);letter-spacing:0.5px;">
+        <div style="margin-bottom:12px;display:flex;justify-content:center;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-mid)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <div style="color:var(--text-mid);font-size:13px;line-height:1.7;">Enter a Telegram User ID<br>to look up their public profile.</div>
+      </div>
+
+      <!-- Result area -->
+      <div id="pv-srch-result" style="display:none;animation:fade-up 0.3s ease both;">
+
+        <div class="srch-profile-card" id="pv-srch-profile-card">
+          <div class="srch-avatar" id="pv-srch-avatar"></div>
+          <div>
+            <div class="srch-name" id="pv-srch-name">—</div>
+            <div class="srch-uid" id="pv-srch-uid-display">UID: —</div>
+          </div>
+        </div>
+
+        <div class="srch-slots-wrap">
+          <div class="srch-slots-label">Slot Status</div>
+          <div class="srch-slots-badges" id="pv-srch-slots-badges"></div>
+        </div>
+
+        <div class="srch-stats-grid">
+          <div class="srch-stat-card">
+            <div class="srch-stat-label">Working Income</div>
+            <div class="srch-stat-val" id="pv-srch-working-val">0</div>
+            <div class="srch-stat-sub" id="pv-srch-working-sub">TON</div>
+          </div>
+          <div class="srch-stat-card">
+            <div class="srch-stat-label">Non-Working Income</div>
+            <div class="srch-stat-val gold" id="pv-srch-passive-val">0</div>
+            <div class="srch-stat-sub" id="pv-srch-passive-sub">TON</div>
+          </div>
+          <div class="srch-stat-card">
+            <div class="srch-stat-label">Direct Referral</div>
+            <div class="srch-stat-val green" id="pv-srch-direct-val">0</div>
+            <div class="srch-stat-sub">members</div>
+          </div>
+          <div class="srch-stat-card">
+            <div class="srch-stat-label">Your Team</div>
+            <div class="srch-stat-val" id="pv-srch-team-val">0</div>
+            <div class="srch-stat-sub">total</div>
+          </div>
+        </div>
+
+        <div class="srch-downline-header">Downline Team</div>
+        <div id="pv-srch-downline-inner">
+          <div class="ref-list-loading">Loading team…</div>
+        </div>
+
+      </div><!-- /pv-srch-result -->
+    </div><!-- /pv-srch-main-wrap -->
+
+    <!-- ── LEADERBOARD SUB-PANEL ── -->
+    <div id="pv-lb-panel" style="display:none;animation:fade-up 0.28s cubic-bezier(0.22,1,0.36,1) both;">
+
+      <div class="lb-header">
+        <div class="lb-title-group">
+          <div class="lb-icon-wrap">🏆</div>
+          <div>
+            <div class="lb-title">Leaderboard</div>
+            <div class="lb-subtitle">TOP 10 · BY TOTAL EARNINGS</div>
+          </div>
+        </div>
+        <button class="btn-lb-back" onclick="pvCloseLeaderboard()">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          BACK
+        </button>
+      </div>
+
+      <div id="pv-lb-content">
+        <div class="lb-loading">Fetching top earners…</div>
+      </div>
+      <div class="lb-footer-note">Live data from Crypton network · Top 10 by earnedTon</div>
+
+    </div><!-- /pv-lb-panel -->
+
+    <!-- ── CONNECT CTA ── -->
+    <div class="pv-connect-cta">
+      <div class="pv-cta-title">Ready to Earn?</div>
+      <p class="pv-cta-sub">Connect your TON wallet to activate slots, build your team, and start earning automatically across all levels.</p>
+      <button class="btn-pv-connect" onclick="exitPreviewMode()">
+        <svg width="18" height="18" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M28 56C43.464 56 56 43.464 56 28C56 12.536 43.464 0 28 0C12.536 0 0 12.536 0 28C0 43.464 12.536 56 28 56Z" fill="currentColor" fill-opacity="0.15"/>
+          <path d="M37.5603 15.6277H18.4386C14.9191 15.6277 12.6388 19.3888 14.3833 22.4597L26.0929 43.2555C26.9607 44.7984 29.0381 44.7984 29.906 43.2555L41.6156 22.4597C43.3612 19.3888 41.0798 15.6277 37.5603 15.6277ZM26.0929 36.3236L23.2795 31.1978L17.291 20.4529C16.8813 19.7241 17.3993 18.8069 18.4386 18.8069H26.0929V36.3236ZM38.707 20.4529L32.7185 31.1978L29.9051 36.3236V18.8069H37.5594C38.5987 18.8069 39.1167 19.7241 38.707 20.4529Z" fill="#050D1A"/>
+        </svg>
+        Connect TON Wallet
+      </button>
+    </div>
+
+  </section>
+</div><!-- /view-preview -->
+
+<!-- ── UPGRADE MODAL (single, no duplicate) ── --><div class="modal-overlay" id="upgrade-modal" onclick="closeUpgradeModal(event)">
   <div class="modal-sheet">
     <div class="modal-icon">&#x267B;&#xFE0F;</div>
     <div class="modal-title">Matrix Complete!</div>
@@ -1341,22 +2363,32 @@
   </div>
 </div>
 
-<!-- ── FLOATING MENU BUTTON + POPUP ── -->
-<div class="fab-wrap">
-  <div class="fab-menu" id="fab-menu">
-    <button class="fab-menu-item" id="fmi-matrix"  onclick="switchView('matrix')">
-      <span class="fab-menu-icon">⊞</span> Matrix
-      <span class="fab-menu-lock" id="fmi-matrix-lock">●</span>
-    </button>
-    <button class="fab-menu-item" id="fmi-referral" onclick="switchView('referral')">
-      <span class="fab-menu-icon">◈</span> Network
-    </button>
-
-  </div>
-  <button class="fab" id="fab-btn" onclick="toggleFabMenu()" aria-label="Open menu">
-    <span style="font-size:20px; line-height:1; color:var(--text-mid); transition:color 0.2s;" id="fab-icon">❐</span>
+<!-- ── RIGHT-EDGE SLIM DRAWER PANEL ── -->
+<div class="fab-menu" id="fab-menu">
+  <button class="fab-menu-item" id="fmi-matrix" onclick="switchView('matrix')">
+    <span class="fab-menu-icon">⊞</span>
+    <span>Matrix</span>
+    <span class="fab-menu-lock" id="fmi-matrix-lock">●</span>
   </button>
+  <button class="fab-menu-item" id="fmi-referral" onclick="switchView('referral')">
+    <span class="fab-menu-icon">◈</span>
+    <span>☣</span>
+  </button>
+  <button class="fab-menu-item" id="fmi-search" onclick="switchView('search')">
+    <span class="fab-menu-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+    <span>Search</span>
+  </button>
+  <button class="fab-menu-item" id="fmi-stats" onclick="switchView('stats')">
+    <span class="fab-menu-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+    <span>Stats</span>
+  </button>
+  <button class="fab-menu-close" onclick="closeFabMenu()" aria-label="Close">✕</button>
 </div>
+
+<!-- ── FAB TRIGGER ── -->
+<button class="fab" id="fab-btn" onclick="toggleFabMenu()" aria-label="Open menu">
+  <span style="font-size:20px; line-height:1; color:var(--text-mid); transition:color 0.2s;" id="fab-icon">◩</span>
+</button>
 
 
 <script>
@@ -1652,10 +2684,12 @@ function handleWalletConnected(rawAddress) {
   // Avatar will be set by _updateDashAvatar() after loginUser loads TG data
   // Show TG name/handle if available, else wallet short
   if (dashNameEl)      dashNameEl.textContent      = state.tgFirstName || state.tgUsername || short;
-  if (dashUidEl)       dashUidEl.textContent       = 'UID: ' + state.userId;
+  if (dashUidEl)       dashUidEl.textContent       = 'TG ID: ' + (state.tgNumericId || state.userId);
   if (joinDateEl)      joinDateEl.textContent      =
     new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
   if (refLinkEl)       refLinkEl.textContent       = `https://t.me/CryptonOfficialBot/app?startapp=${state.userId}`;
+  const refLinkNetEl = document.getElementById('ref-link-network');
+  if (refLinkNetEl)    refLinkNetEl.textContent    = `https://t.me/CryptonOfficialBot/app?startapp=${state.userId}`;
 
   // ── Unlock Matrix Gate in view-matrix with smooth reveal animation ──
   const gate    = document.getElementById('matrix-wallet-gate');
@@ -1712,6 +2746,8 @@ function handleWalletDisconnected() {
   if (dashEl)          dashEl.style.display          = 'none';
   if (walletDisplayEl) walletDisplayEl.textContent   = 'Not connected';
   if (refLinkEl)       refLinkEl.textContent         = 'Connect wallet to get your link';
+  const refLinkNetDis = document.getElementById('ref-link-network');
+  if (refLinkNetDis)   refLinkNetDis.textContent     = 'Connect wallet to get your link';
 
   // ── Re-lock Matrix Gate ──
   const gate    = document.getElementById('matrix-wallet-gate');
@@ -2348,9 +3384,11 @@ async function loginUser(walletAddress) {
     // ── Push userId into state (used by referral links, tx payloads, etc.) ─
     state.userId = userId;
     const dashUidEl = document.getElementById('dash-uid');
-    if (dashUidEl) dashUidEl.textContent = 'UID: ' + userId;
+    if (dashUidEl) dashUidEl.textContent = 'TG ID: ' + (state.tgNumericId || userId);
     const refLinkEl = document.getElementById('ref-link');
     if (refLinkEl)  refLinkEl.textContent = `https://t.me/CryptonOfficialBot/app?startapp=${userId}`;
+    const refLinkNetEl2 = document.getElementById('ref-link-network');
+    if (refLinkNetEl2) refLinkNetEl2.textContent = `https://t.me/CryptonOfficialBot/app?startapp=${userId}`;
 
     _updateDashAvatar();
     updateStatsUI();
@@ -2499,9 +3537,9 @@ function closeFabMenu() {
   document.getElementById('fab-menu').classList.remove('open');
 }
 
-// Close on outside tap
+// Close on outside tap (clicks outside both the trigger button and the drawer)
 document.addEventListener('click', (e) => {
-  if (_fabOpen && !e.target.closest('.fab-wrap')) closeFabMenu();
+  if (_fabOpen && !e.target.closest('.fab-menu') && !e.target.closest('.fab')) closeFabMenu();
 });
 
 // ──────────────────────────────────────────────────────────────
@@ -2515,18 +3553,20 @@ function switchView(name) {
   if (view) view.classList.add('active');
 
   // Show/hide back buttons in non-home views
-  ['matrix','referral','profile'].forEach(n => {
+  ['matrix','referral','profile','search','stats','preview'].forEach(n => {
     const btn = document.getElementById('back-' + n);
     if (btn) btn.style.display = (name === n) ? 'flex' : 'none';
   });
 
   // Highlight active item in popup menu
-  ['matrix','referral','profile'].forEach(n => {
+  ['matrix','referral','profile','search','stats'].forEach(n => {
     const mi = document.getElementById('fmi-' + n);
     if (mi) mi.classList.toggle('active-view', name === n);
   });
 
   if (name === 'referral') getReferralStats();
+  if (name === 'search') resetSearchView();
+  if (name === 'stats') fetchGlobalStats();
   window.scrollTo({ top:0, behavior:'smooth' });
 }
 
@@ -2555,6 +3595,116 @@ function copyReferral() {
   });
 }
 
+// Copy referral from the gold card button — always reads fresh link from state
+function copyReferralGold() {
+  // Prefer live state.userId link, fall back to DOM element
+  const link = state.userId
+    ? `https://t.me/CryptonOfficialBot/app?startapp=${state.userId}`
+    : (document.getElementById('ref-link') ? document.getElementById('ref-link').textContent : '');
+  if (!link || link.startsWith('Connect')) { showToast('Connect wallet first'); return; }
+  // Update the display element to keep in sync
+  const linkEl = document.getElementById('ref-link');
+  if (linkEl && state.userId) linkEl.textContent = link;
+  navigator.clipboard.writeText(link).then(() => {
+    const btn = document.getElementById('btn-copy-ref');
+    if (btn) { btn.textContent='✓ COPIED'; btn.classList.add('copied'); setTimeout(() => { btn.textContent='COPY'; btn.classList.remove('copied'); }, 2000); }
+    showToast('Referral link copied ✓');
+  }).catch(() => {
+    // fallback for older browsers
+    const ta = document.createElement('textarea');
+    ta.value = link; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    showToast('Referral link copied ✓');
+  });
+}
+
+// ──────────────────────────────────────────────────────────────
+// GLOBAL STATS — live Firestore aggregation
+// Fetches: total user doc count + sum of all earnedTon across users
+// Safe read-only: touches NO personal data, NO rank/wallet listeners
+// ──────────────────────────────────────────────────────────────
+let _gstatFetching = false;
+
+async function fetchGlobalStats() {
+  if (_gstatFetching) return;
+  _gstatFetching = true;
+
+  // Spin the refresh button icon
+  const refreshBtn = document.getElementById('gstat-refresh-btn');
+  if (refreshBtn) refreshBtn.classList.add('spinning');
+
+  // Reset to shimmer skeleton while loading
+  const userCountEl = document.getElementById('gstat-user-count');
+  const tonTotalEl  = document.getElementById('gstat-ton-total');
+  if (userCountEl) userCountEl.innerHTML = '<span class="gstat-shimmer"></span>';
+  if (tonTotalEl)  tonTotalEl.innerHTML  = '<span class="gstat-shimmer"></span>';
+
+  try {
+    // Wait for Firebase to be ready
+    await new Promise((resolve, reject) => {
+      if (window.__db && window.__fs) { resolve(); return; }
+      let attempts = 0;
+      const check = setInterval(() => {
+        attempts++;
+        if (window.__db && window.__fs) { clearInterval(check); resolve(); }
+        else if (attempts > 40) { clearInterval(check); reject(new Error('Firebase timeout')); }
+      }, 150);
+    });
+
+    const { collection, getDocs } = window.__fs;
+    const db = window.__db;
+
+    // Fetch ALL user documents — count + sum earnedTon in one pass
+    const usersSnap = await getDocs(collection(db, 'users'));
+
+    let totalUsers   = 0;
+    let totalTon     = 0;
+
+    usersSnap.forEach(docSnap => {
+      totalUsers++;
+      const d = docSnap.data();
+      // Sum all earnings fields — workingTon + passiveTon preferred; fallback to earnedTon
+      const working = typeof d.workingTon === 'number' ? d.workingTon : 0;
+      const passive = typeof d.passiveTon === 'number' ? d.passiveTon : 0;
+      const earned  = typeof d.earnedTon  === 'number' ? d.earnedTon  : 0;
+      // Use workingTon+passiveTon if available, else earnedTon to avoid double-count
+      totalTon += (working + passive > 0) ? (working + passive) : earned;
+    });
+
+    // Format user count — compact for large numbers
+    const fmtUsers = totalUsers >= 1000
+      ? (totalUsers / 1000).toFixed(1).replace(/\.0$/, '') + 'K'
+      : String(totalUsers);
+
+    // Format TON — 2 decimals, compact above 1000
+    const fmtTon = totalTon >= 1000
+      ? (totalTon / 1000).toFixed(2).replace(/\.?0+$/, '') + 'K'
+      : totalTon.toFixed(2);
+
+    if (userCountEl) userCountEl.textContent = fmtUsers;
+    if (tonTotalEl)  tonTotalEl.textContent  = fmtTon;
+
+    // Update last-refreshed timestamp
+    const lastEl = document.getElementById('gstat-last-updated');
+    if (lastEl) {
+      const now = new Date();
+      const hh  = String(now.getHours()).padStart(2, '0');
+      const mm  = String(now.getMinutes()).padStart(2, '0');
+      const ss  = String(now.getSeconds()).padStart(2, '0');
+      lastEl.textContent = `${hh}:${mm}:${ss}`;
+    }
+
+  } catch (err) {
+    console.warn('[GlobalStats] Fetch error:', err);
+    if (userCountEl) userCountEl.textContent = '—';
+    if (tonTotalEl)  tonTotalEl.textContent  = '—';
+  } finally {
+    _gstatFetching = false;
+    if (refreshBtn) refreshBtn.classList.remove('spinning');
+  }
+}
+
 // ──────────────────────────────────────────────────────────────
 // TOAST
 // ──────────────────────────────────────────────────────────────
@@ -2565,6 +3715,560 @@ function showToast(msg) {
   el.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+// ──────────────────────────────────────────────────────────────
+// PUBLIC USER SEARCH — lookup any user by Telegram UID
+// ──────────────────────────────────────────────────────────────
+function resetSearchView() {
+  const input = document.getElementById('srch-uid-input');
+  if (input) input.value = '';
+  document.getElementById('srch-result-area').style.display = 'none';
+  document.getElementById('srch-empty-state').style.display = 'block';
+  document.getElementById('srch-loading-state').style.display = 'none';
+  // Always close leaderboard panel when search view resets
+  const lbPanel   = document.getElementById('srch-lb-panel');
+  const mainWrap  = document.getElementById('srch-main-wrap');
+  if (lbPanel)  { lbPanel.classList.remove('lb-visible'); lbPanel.style.display = 'none'; }
+  if (mainWrap) mainWrap.style.display = 'block';
+}
+
+// ──────────────────────────────────────────────────────────────
+// LEADERBOARD — open / close / fetch
+// Read-only Firestore query: does NOT touch wallet, rank, or
+// registration listeners. Pure frontend display layer.
+// ──────────────────────────────────────────────────────────────
+function openLeaderboard() {
+  const mainWrap = document.getElementById('srch-main-wrap');
+  const lbPanel  = document.getElementById('srch-lb-panel');
+  if (!mainWrap || !lbPanel) return;
+
+  // Slide search out, slide leaderboard in
+  mainWrap.style.display = 'none';
+  lbPanel.style.display  = 'block';
+  lbPanel.classList.add('lb-visible');
+
+  // Scroll to top of view
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Fire Firestore fetch
+  fetchLeaderboard();
+}
+
+function closeLeaderboard() {
+  const mainWrap = document.getElementById('srch-main-wrap');
+  const lbPanel  = document.getElementById('srch-lb-panel');
+  if (!mainWrap || !lbPanel) return;
+
+  lbPanel.classList.remove('lb-visible');
+  lbPanel.style.display  = 'none';
+  mainWrap.style.display = 'block';
+}
+
+// Silhouette SVG for missing avatars (inline, no external dep)
+const _lbSilSVG =
+  '<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="40" height="40">' +
+  '<rect width="40" height="40" rx="10" fill="rgba(255,255,255,0.06)"/>' +
+  '<circle cx="20" cy="15" r="7" fill="#3a5470"/>' +
+  '<path d="M4 38 Q4 27 20 27 Q36 27 36 38" fill="#3a5470"/></svg>';
+
+async function fetchLeaderboard() {
+  const contentEl = document.getElementById('lb-content');
+  if (!contentEl) return;
+
+  // Show spinner
+  contentEl.innerHTML = '<div class="lb-loading">Fetching top earners…</div>';
+
+  try {
+    await waitForFirestore();
+    const { collection, query, orderBy, limit, getDocs } = window.__fs;
+    const db = window.__db;
+
+    // Top 10 users ordered by earnedTon descending
+    const q    = query(collection(db, 'users'), orderBy('earnedTon', 'desc'), limit(10));
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+      contentEl.innerHTML = '<div class="lb-error">No data found yet.<br>Be the first to earn TON!</div>';
+      return;
+    }
+
+    const rankLabels = ['🥇','🥈','🥉'];
+    const rankClass  = ['r1','r2','r3'];
+
+    let html = '<div class="lb-list">';
+
+    snap.docs.forEach((docSnap, idx) => {
+      const d        = docSnap.data();
+      const rank     = idx + 1;
+      const rLabel   = rankLabels[idx] || ('#' + rank);
+      const rCls     = rankClass[idx]  || 'rn';
+
+      // Name: prefer tgName → tgHandle → truncated UID
+      const rawName  = d.tgName || d.tgHandle || null;
+      const safeName = rawName
+        ? rawName.replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0, 22)
+        : ('User…' + String(d.tgId || docSnap.id).slice(-4));
+
+      // UID display
+      const uid      = d.tgId || docSnap.id;
+      const safeUid  = String(uid).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+      // TON balance
+      const ton      = typeof d.earnedTon === 'number' ? d.earnedTon.toFixed(2) : '0.00';
+
+      // Avatar
+      const photoUrl = d.tgPhotoUrl || null;
+      const avatarHtml = photoUrl
+        ? `<img src="${photoUrl.replace(/"/g,'')}" alt="avatar" style="width:100%;height:100%;object-fit:cover;border-radius:10px;display:block;" onerror="this.parentNode.innerHTML='${_lbSilSVG.replace(/'/g,'"').replace(/"/g,"'")}'"/>`
+        : _lbSilSVG;
+
+      html += `
+        <div class="lb-row" style="--i:${idx}">
+          <div class="lb-rank ${rCls}">${rLabel}</div>
+          <div class="lb-avatar">${avatarHtml}</div>
+          <div class="lb-info">
+            <div class="lb-name">${safeName}</div>
+            <div class="lb-uid">UID: ${safeUid}</div>
+          </div>
+          <div class="lb-ton">
+            <div class="lb-ton-val">${ton}</div>
+            <div class="lb-ton-unit">TON</div>
+          </div>
+        </div>`;
+    });
+
+    html += '</div>';
+    contentEl.innerHTML = html;
+
+  } catch (err) {
+    console.warn('[Leaderboard] Fetch error:', err);
+    contentEl.innerHTML =
+      '<div class="lb-error">Could not load leaderboard.<br>Check connection and try again.</div>';
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// PREVIEW MODE — enter / exit
+// Pure navigation + read-only Firestore. Zero writes.
+// Does NOT touch wallet, registration, ranks, or team data.
+// ──────────────────────────────────────────────────────────────
+function enterPreviewMode() {
+  // Hide hero, activate preview view
+  const heroEl = document.getElementById('hero-section');
+  if (heroEl) heroEl.style.display = 'none';
+
+  // Use switchView so all view machinery works correctly
+  switchView('preview');
+
+  // Reset preview search to clean state
+  pvResetSearch();
+}
+
+function exitPreviewMode() {
+  // Deactivate preview view, show hero again
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const heroEl = document.getElementById('hero-section');
+  if (heroEl) heroEl.style.display = 'block';
+
+  // Reset preview internals
+  pvResetSearch();
+  pvCloseLeaderboard();
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── Preview Search helpers ────────────────────────────────────
+function pvResetSearch() {
+  const inp = document.getElementById('pv-srch-uid-input');
+  if (inp) inp.value = '';
+  const res  = document.getElementById('pv-srch-result');
+  const emp  = document.getElementById('pv-srch-empty');
+  const load = document.getElementById('pv-srch-loading');
+  if (res)  res.style.display  = 'none';
+  if (emp)  emp.style.display  = 'block';
+  if (load) load.style.display = 'none';
+}
+
+async function pvDoSearch() {
+  const input = document.getElementById('pv-srch-uid-input');
+  const uid   = input ? input.value.trim() : '';
+  const btn   = document.getElementById('pv-btn-search');
+  if (!uid) { showToast('Enter a Telegram User ID'); return; }
+
+  const resEl  = document.getElementById('pv-srch-result');
+  const empEl  = document.getElementById('pv-srch-empty');
+  const loadEl = document.getElementById('pv-srch-loading');
+
+  if (empEl)  empEl.style.display  = 'none';
+  if (resEl)  resEl.style.display  = 'none';
+  if (loadEl) loadEl.style.display = 'block';
+  if (btn) btn.disabled = true;
+
+  try {
+    await waitForFirestore();
+    const { doc, getDoc, collection, query, where, getDocs } = window.__fs;
+    const db = window.__db;
+
+    let userData = null;
+    let docId    = uid;
+
+    const snap = await getDoc(doc(db, 'users', uid));
+    if (snap.exists()) {
+      userData = snap.data();
+    } else {
+      const q   = query(collection(db, 'users'), where('tgId', '==', uid));
+      const res = await getDocs(q);
+      if (!res.empty) { userData = res.docs[0].data(); docId = res.docs[0].id; }
+    }
+
+    if (loadEl) loadEl.style.display = 'none';
+    if (btn) btn.disabled = false;
+
+    if (!userData) {
+      if (empEl) {
+        empEl.innerHTML =
+          '<div style="font-size:28px;margin-bottom:10px;">🚫</div>' +
+          '<div style="color:var(--text-mid);font-size:13px;line-height:1.7;">No user found for UID:<br>' +
+          '<span style="color:var(--cyan);font-family:var(--font-mono);">' + uid + '</span></div>';
+        empEl.style.display = 'block';
+      }
+      return;
+    }
+
+    // ── Populate result card ────────────────────────────────
+    const silSVG =
+      '<svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg" width="26" height="26">' +
+      '<circle cx="26" cy="18" r="10" fill="#8aa5c0"/>' +
+      '<path d="M5 50 Q5 36 26 36 Q47 36 47 50" fill="#8aa5c0"/></svg>';
+
+    const avatarEl = document.getElementById('pv-srch-avatar');
+    const photoUrl = userData.tgPhotoUrl || null;
+    if (avatarEl) {
+      if (photoUrl) {
+        avatarEl.innerHTML = `<img src="${photoUrl}" alt="avatar"
+          style="width:100%;height:100%;object-fit:cover;border-radius:12px;display:block;"
+          onerror="this.parentNode.innerHTML='${silSVG.replace(/'/g,'"').replace(/"/g,"'")}'" />`;
+      } else {
+        avatarEl.innerHTML = silSVG;
+      }
+    }
+
+    const displayName = userData.tgName || userData.tgHandle || 'Unknown User';
+    const displayUid  = userData.tgId   || docId;
+
+    const nameEl = document.getElementById('pv-srch-name');
+    const uidEl  = document.getElementById('pv-srch-uid-display');
+    if (nameEl) nameEl.textContent = displayName;
+    if (uidEl)  uidEl.textContent  = 'UID: ' + displayUid;
+
+    // Slots
+    const ownedSlots  = Array.isArray(userData.ownedSlots) ? userData.ownedSlots : [];
+    const SLOT_COUNT  = 10;
+    const badgesEl    = document.getElementById('pv-srch-slots-badges');
+    if (badgesEl) {
+      badgesEl.innerHTML = '';
+      for (let i = 1; i <= SLOT_COUNT; i++) {
+        const owned = ownedSlots.includes(i);
+        const b = document.createElement('div');
+        b.className = 'srch-slot-badge ' + (owned ? 'owned' : 'locked');
+        b.textContent = i;
+        badgesEl.appendChild(b);
+      }
+    }
+
+    // Stats
+    const fmtTonLocal = v => {
+      const n = typeof v === 'number' ? v : 0;
+      return n >= 1000 ? (n/1000).toFixed(2) + 'K' : n.toFixed(2);
+    };
+    const working = userData.workingTon || 0;
+    const passive = userData.passiveTon || 0;
+    const dirRef  = typeof userData.referrals === 'number' ? userData.referrals : 0;
+    const team    = typeof userData.teamSize   === 'number' ? userData.teamSize   : 0;
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    set('pv-srch-working-val',  fmtTonLocal(working));
+    set('pv-srch-working-sub',  'TON');
+    set('pv-srch-passive-val',  fmtTonLocal(passive));
+    set('pv-srch-passive-sub',  'TON');
+    set('pv-srch-direct-val',   dirRef);
+    set('pv-srch-team-val',     team);
+
+    // Downline team
+    const downlineEl = document.getElementById('pv-srch-downline-inner');
+    if (downlineEl) {
+      downlineEl.innerHTML = '<div class="ref-list-loading">Loading team…</div>';
+      try {
+        const { collection: col, query: qry, where: whr, getDocs: gds } = window.__fs;
+        const tq    = qry(col(db, 'users'), whr('referredBy', '==', String(displayUid)));
+        const tSnap = await gds(tq);
+        if (tSnap.empty) {
+          downlineEl.innerHTML = '<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-lo);padding:14px 0;text-align:center;">No downline members yet.</div>';
+        } else {
+          downlineEl.innerHTML = '';
+          tSnap.docs.forEach(dSnap => {
+            const d    = dSnap.data();
+            const nm   = (d.tgName || d.tgHandle || 'Unknown').substring(0,20);
+            const uid2 = d.tgId || dSnap.id;
+            const ton  = fmtTonLocal(d.earnedTon || 0);
+            const row  = document.createElement('div');
+            row.className = 'ref-list-item';
+            row.innerHTML =
+              `<span class="ref-list-name">${nm.replace(/</g,'&lt;')}</span>` +
+              `<span class="ref-list-uid">${String(uid2).replace(/</g,'&lt;')}</span>` +
+              `<span class="ref-list-ton">${ton} TON</span>`;
+            downlineEl.appendChild(row);
+          });
+        }
+      } catch (_) {
+        downlineEl.innerHTML = '<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-lo);padding:14px 0;text-align:center;">—</div>';
+      }
+    }
+
+    if (resEl) resEl.style.display = 'block';
+
+  } catch (err) {
+    console.error('[Preview Search] error:', err);
+    if (loadEl) loadEl.style.display = 'none';
+    if (btn) btn.disabled = false;
+    if (empEl) {
+      empEl.innerHTML = '<div style="color:var(--red);font-family:var(--font-mono);font-size:12px;padding:20px 0;text-align:center;">Error fetching user. Try again.</div>';
+      empEl.style.display = 'block';
+    }
+  }
+}
+
+// ── Preview Leaderboard helpers ───────────────────────────────
+function pvOpenLeaderboard() {
+  const main = document.getElementById('pv-srch-main-wrap');
+  const lb   = document.getElementById('pv-lb-panel');
+  if (!main || !lb) return;
+  main.style.display = 'none';
+  lb.style.display   = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  pvFetchLeaderboard();
+}
+
+function pvCloseLeaderboard() {
+  const main = document.getElementById('pv-srch-main-wrap');
+  const lb   = document.getElementById('pv-lb-panel');
+  if (main) main.style.display = 'block';
+  if (lb)   lb.style.display   = 'none';
+}
+
+async function pvFetchLeaderboard() {
+  const contentEl = document.getElementById('pv-lb-content');
+  if (!contentEl) return;
+  contentEl.innerHTML = '<div class="lb-loading">Fetching top earners…</div>';
+
+  try {
+    await waitForFirestore();
+    const { collection, query, orderBy, limit, getDocs } = window.__fs;
+    const db = window.__db;
+
+    const q    = query(collection(db, 'users'), orderBy('earnedTon', 'desc'), limit(10));
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+      contentEl.innerHTML = '<div class="lb-error">No data found yet.<br>Be the first to earn TON!</div>';
+      return;
+    }
+
+    const rankLabels = ['🥇','🥈','🥉'];
+    const rankClass  = ['r1','r2','r3'];
+    const pvSilSVG   =
+      '<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="40" height="40">' +
+      '<rect width="40" height="40" rx="10" fill="rgba(255,255,255,0.06)"/>' +
+      '<circle cx="20" cy="15" r="7" fill="#3a5470"/>' +
+      '<path d="M4 38 Q4 27 20 27 Q36 27 36 38" fill="#3a5470"/></svg>';
+
+    let html = '<div class="lb-list">';
+    snap.docs.forEach((docSnap, idx) => {
+      const d       = docSnap.data();
+      const rLabel  = rankLabels[idx] || ('#' + (idx+1));
+      const rCls    = rankClass[idx]  || 'rn';
+      const safeName = (d.tgName || d.tgHandle || ('User…' + String(d.tgId || docSnap.id).slice(-4)))
+        .replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0,22);
+      const safeUid  = String(d.tgId || docSnap.id).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const ton      = typeof d.earnedTon === 'number' ? d.earnedTon.toFixed(2) : '0.00';
+      const avatarHtml = d.tgPhotoUrl
+        ? `<img src="${(d.tgPhotoUrl||'').replace(/"/g,'')}" alt="av"
+             style="width:100%;height:100%;object-fit:cover;border-radius:10px;display:block;"
+             onerror="this.parentNode.innerHTML='${pvSilSVG.replace(/'/g,'"').replace(/"/g,"'")}'">`
+        : pvSilSVG;
+      html += `
+        <div class="lb-row" style="--i:${idx}">
+          <div class="lb-rank ${rCls}">${rLabel}</div>
+          <div class="lb-avatar">${avatarHtml}</div>
+          <div class="lb-info">
+            <div class="lb-name">${safeName}</div>
+            <div class="lb-uid">UID: ${safeUid}</div>
+          </div>
+          <div class="lb-ton">
+            <div class="lb-ton-val">${ton}</div>
+            <div class="lb-ton-unit">TON</div>
+          </div>
+        </div>`;
+    });
+    html += '</div>';
+    contentEl.innerHTML = html;
+
+  } catch (err) {
+    console.warn('[Preview LB] Fetch error:', err);
+    contentEl.innerHTML = '<div class="lb-error">Could not load leaderboard.<br>Check connection and try again.</div>';
+  }
+}
+
+async function doSearchUser() {
+  const input   = document.getElementById('srch-uid-input');
+  const uid     = (input ? input.value.trim() : '');
+  const btn     = document.getElementById('btn-search');
+  if (!uid) { showToast('Enter a Telegram User ID'); return; }
+
+  // UI: show loading
+  document.getElementById('srch-empty-state').style.display   = 'none';
+  document.getElementById('srch-result-area').style.display   = 'none';
+  document.getElementById('srch-loading-state').style.display = 'block';
+  if (btn) btn.disabled = true;
+
+  try {
+    await waitForFirestore();
+    const { doc, getDoc, collection, query, where, getDocs } = window.__fs;
+    const db = window.__db;
+
+    // Primary lookup: document keyed by tgId
+    let userData = null;
+    let docId    = uid;
+
+    const snap = await getDoc(doc(db, 'users', uid));
+    if (snap.exists()) {
+      userData = snap.data();
+    } else {
+      // Fallback: query by tgId field (some docs may use numeric field)
+      const q   = query(collection(db, 'users'), where('tgId', '==', uid));
+      const res = await getDocs(q);
+      if (!res.empty) {
+        const first = res.docs[0];
+        userData = first.data();
+        docId    = first.id;
+      }
+    }
+
+    document.getElementById('srch-loading-state').style.display = 'none';
+    if (btn) btn.disabled = false;
+
+    if (!userData) {
+      document.getElementById('srch-empty-state').innerHTML =
+        '<div style="font-size:28px;margin-bottom:10px;">🚫</div>' +
+        '<div style="color:var(--text-mid);font-size:13px;line-height:1.7;">No user found for UID:<br><span style="color:var(--cyan);font-family:var(--font-mono);">' + uid + '</span></div>';
+      document.getElementById('srch-empty-state').style.display = 'block';
+      return;
+    }
+
+    // ── Populate profile card ──────────────────────────────────
+    const displayName = userData.tgName || userData.tgHandle || 'Unknown User';
+    const displayUid  = userData.tgId   || docId;
+    const photoUrl    = userData.tgPhotoUrl || null;
+
+    document.getElementById('srch-name').textContent        = displayName;
+    document.getElementById('srch-uid-display').textContent = 'TG ID: ' + displayUid;
+
+    const avatarEl = document.getElementById('srch-avatar');
+    const silSVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width:26px;height:26px;fill:#8aa5c0;"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>`;
+    if (photoUrl) {
+      avatarEl.innerHTML = `<img src="${photoUrl}" alt="avatar" onerror="this.parentNode.innerHTML='${silSVG.replace(/"/g,"'")}'" />`;
+    } else {
+      avatarEl.innerHTML = silSVG;
+    }
+
+    // ── Slots badges ─────────────────────────────────────────
+    const ownedSlots = userData.ownedSlots || [];
+    const badgesEl   = document.getElementById('srch-slots-badges');
+    let badgesHtml   = '';
+    for (let i = 1; i <= 10; i++) {
+      const owned = ownedSlots.includes(i);
+      badgesHtml += `<span class="srch-slot-badge ${owned ? 'owned' : 'locked'}">L${i}</span>`;
+    }
+    badgesEl.innerHTML = badgesHtml;
+
+    // ── Income stats ─────────────────────────────────────────
+    const workingTon = userData.workingTon || 0;
+    const passiveTon = userData.passiveTon || 0;
+    const fmtT = v => (v % 1 === 0 ? v.toFixed(0) : v.toFixed(2));
+
+    document.getElementById('srch-working-val').textContent = fmtT(workingTon);
+    document.getElementById('srch-working-sub').textContent =
+      TON_TO_USD ? (workingTon * TON_TO_USD).toFixed(2) + ' USD' : 'TON';
+    document.getElementById('srch-passive-val').textContent = fmtT(passiveTon);
+    document.getElementById('srch-passive-sub').textContent =
+      TON_TO_USD ? (passiveTon * TON_TO_USD).toFixed(2) + ' USD' : 'TON';
+    document.getElementById('srch-direct-val').textContent = userData.referrals || 0;
+    document.getElementById('srch-team-val').textContent   = userData.teamSize  || 0;
+
+    // ── Downline list ─────────────────────────────────────────
+    document.getElementById('srch-result-area').style.display = 'block';
+    await renderSearchDownline(String(displayUid));
+
+  } catch(e) {
+    document.getElementById('srch-loading-state').style.display = 'none';
+    if (btn) btn.disabled = false;
+    document.getElementById('srch-empty-state').innerHTML =
+      '<div style="font-size:28px;margin-bottom:10px;">⚠️</div>' +
+      '<div style="color:var(--red);font-size:12px;font-family:var(--font-mono);">Error: ' + (e.message || 'Unknown error') + '</div>';
+    document.getElementById('srch-empty-state').style.display = 'block';
+    console.error('[Search] doSearchUser error:', e);
+  }
+}
+
+async function renderSearchDownline(targetUid) {
+  const inner = document.getElementById('srch-downline-inner');
+  if (!inner) return;
+  inner.innerHTML = '<div class="ref-list-loading">Loading team…</div>';
+
+  try {
+    await waitForFirestore();
+    const { collection, query, where, getDocs } = window.__fs;
+    const db = window.__db;
+
+    const q    = query(collection(db, 'users'), where('referredBy', '==', targetUid));
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+      inner.innerHTML = '<div class="ref-list-empty">No downline members yet.</div>';
+      return;
+    }
+
+    const silSVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>`;
+
+    let html = '';
+    snap.forEach(docSnap => {
+      const d        = docSnap.data();
+      const name     = d.tgName || d.tgHandle || 'Unknown';
+      const handle   = d.tgHandle ? '@' + d.tgHandle.replace(/^@/, '') : '';
+      const uid      = d.tgId    || docSnap.id;
+      const photoUrl = d.tgPhotoUrl || null;
+      const uidLine  = handle ? `${handle} · UID: ${uid}` : `UID: ${uid}`;
+      const avatar   = photoUrl
+        ? `<img src="${photoUrl}" alt="avatar" onerror="this.parentNode.innerHTML='${silSVG.replace(/"/g,"'")}'" />`
+        : silSVG;
+
+      html += `
+      <div class="ref-list-row">
+        <div class="ref-list-avatar">${avatar}</div>
+        <div class="ref-list-info">
+          <div class="ref-list-name">${name !== 'Unknown' ? name : (handle || 'User')}</div>
+          <div class="ref-list-uid">${uidLine}</div>
+        </div>
+        <span class="ref-list-badge">MEMBER</span>
+      </div>`;
+    });
+
+    inner.innerHTML = html;
+  } catch(e) {
+    inner.innerHTML = '<div class="ref-list-empty">Could not load downline.</div>';
+    console.error('[Search] renderSearchDownline error:', e);
+  }
 }
 
 // ──────────────────────────────────────────────────────────────
