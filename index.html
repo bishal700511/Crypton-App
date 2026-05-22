@@ -2007,6 +2007,118 @@
     .header-hamburger-btn:active { transform: scale(0.90); }
     /* Hide the old floating FAB button — menu is now in the header */
     .fab { display: none !important; }
+    /* ─── PREVIEW MODE — PROFILE CARD ──────────────────────── */
+    .srch-profile-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 18px 16px;
+      background: linear-gradient(135deg, #e5c060 0%, #c49632 50%, #d8b24f 100%);
+      border-radius: 20px 20px 0 0;
+      box-shadow: 0 8px 32px rgba(180,140,40,0.30), 0 2px 8px rgba(0,0,0,0.25);
+      margin-bottom: 0;
+    }
+    .srch-profile-card .srch-avatar {
+      width: 56px; height: 56px; border-radius: 16px;
+      flex-shrink: 0; overflow: hidden;
+      border: 2.5px solid rgba(0,0,0,0.18);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.28);
+      background: rgba(0,0,0,0.10);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .srch-profile-card .srch-name {
+      color: #050d1a !important;
+      -webkit-text-fill-color: #050d1a !important;
+    }
+    .srch-profile-card .srch-uid {
+      color: rgba(5,13,26,0.70) !important;
+    }
+
+    /* ─── PREVIEW MODE — SLOT BADGE STRIP ───────────────────── */
+    .srch-slots-wrap {
+      background: #6236d0;
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 18px rgba(98,54,208,0.35), 0 1px 4px rgba(0,0,0,0.20);
+    }
+    .srch-slots-label {
+      font-family: var(--font-mono);
+      font-size: 9px; font-weight: 700;
+      letter-spacing: 2px; text-transform: uppercase;
+      color: rgba(255,255,255,0.60);
+      margin-bottom: 10px;
+    }
+    .srch-slots-badges {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: nowrap;
+    }
+    .srch-slot-badge {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 38px;
+      font-family: var(--font-head);
+      font-size: 13px;
+      font-weight: 800;
+      border-radius: 6px;
+      letter-spacing: -0.3px;
+      transition: background 0.2s, box-shadow 0.2s;
+      min-width: 0;
+    }
+    .srch-slot-badge.owned {
+      background: #22c55e;
+      color: #ffffff;
+      box-shadow: 0 0 10px rgba(34,197,94,0.55), 0 2px 6px rgba(0,0,0,0.28);
+    }
+    .srch-slot-badge.locked {
+      background: rgba(0,0,0,0.20);
+      color: rgba(255,255,255,0.35);
+    }
+
+    /* ─── PREVIEW MODE — STATS GRID ─────────────────────────── */
+    .srch-stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .srch-stat-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-bd);
+      border-radius: var(--radius-md);
+      padding: 16px 14px;
+      text-align: center;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    .srch-stat-label {
+      font-family: var(--font-mono);
+      font-size: 9px; font-weight: 700;
+      letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--text-mid);
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    .srch-stat-val {
+      font-family: var(--font-head);
+      font-size: 22px; font-weight: 800;
+      color: var(--cyan);
+      line-height: 1; letter-spacing: -0.5px;
+    }
+    .srch-stat-val.gold { color: var(--gold-lt); }
+    .srch-stat-val.green { color: var(--green); }
+    .srch-stat-sub {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-lo);
+      margin-top: 4px;
+      letter-spacing: 0.3px;
+    }
 
   </style>
 </head>
@@ -2754,50 +2866,9 @@
         <div style="color:var(--text-mid);font-size:13px;line-height:1.7;">Enter a Telegram User ID<br>to look up their public profile.</div>
       </div>
 
-      <!-- Result area -->
+      <!-- Result area — full dashboard mirror injected by pvDoSearch() -->
       <div id="pv-srch-result" style="display:none;animation:fade-up 0.3s ease both;">
-
-        <div class="srch-profile-card" id="pv-srch-profile-card">
-          <div class="srch-avatar" id="pv-srch-avatar"></div>
-          <div>
-            <div class="srch-name" id="pv-srch-name">—</div>
-            <div class="srch-uid" id="pv-srch-uid-display">UID: —</div>
-          </div>
-        </div>
-
-        <div class="srch-slots-wrap">
-          <div class="srch-slots-label">Slot Status</div>
-          <div class="srch-slots-badges" id="pv-srch-slots-badges"></div>
-        </div>
-
-        <div class="srch-stats-grid">
-          <div class="srch-stat-card">
-            <div class="srch-stat-label">Working Income</div>
-            <div class="srch-stat-val" id="pv-srch-working-val">0</div>
-            <div class="srch-stat-sub" id="pv-srch-working-sub">TON</div>
-          </div>
-          <div class="srch-stat-card">
-            <div class="srch-stat-label">Non-Working Income</div>
-            <div class="srch-stat-val gold" id="pv-srch-passive-val">0</div>
-            <div class="srch-stat-sub" id="pv-srch-passive-sub">TON</div>
-          </div>
-          <div class="srch-stat-card">
-            <div class="srch-stat-label">Direct Referral</div>
-            <div class="srch-stat-val green" id="pv-srch-direct-val">0</div>
-            <div class="srch-stat-sub">members</div>
-          </div>
-          <div class="srch-stat-card">
-            <div class="srch-stat-label">Your Team</div>
-            <div class="srch-stat-val" id="pv-srch-team-val">0</div>
-            <div class="srch-stat-sub">total</div>
-          </div>
-        </div>
-
-        <div class="srch-downline-header">Downline Team</div>
-        <div id="pv-srch-downline-inner">
-          <div class="ref-list-loading">Loading team…</div>
-        </div>
-
+        <!-- Content injected dynamically by pvDoSearch() -->
       </div><!-- /pv-srch-result -->
     </div><!-- /pv-srch-main-wrap -->
 
@@ -3174,8 +3245,54 @@ async function connectWallet() {
 }
 
 async function disconnectWallet() {
-  if (state.tonConnectUI) await state.tonConnectUI.disconnect();
+  // Step 1: Call TonConnect disconnect
+  if (state.tonConnectUI) {
+    try { await state.tonConnectUI.disconnect(); } catch(e) { console.warn('[Disconnect] TonConnect disconnect error:', e.message); }
+  }
+  // Step 2: Clear all local session/state parameters
+  state.connected     = false;
+  state.walletAddress = null;
+  state.userId        = null;
+  state.tgUsername    = null;
+  state.tgNumericId   = null;
+  state.tgEmail       = null;
+  state.tgPhotoUrl    = null;
+  state.tgFirstName   = null;
+  state.ownedSlots    = [];
+  state.earnedTon     = 0;
+  state.workingTon    = 0;
+  state.passiveTon    = 0;
+  state.referrals     = 0;
+  state.teamSize      = 0;
+  Object.keys(slotFill).forEach(k => delete slotFill[k]);
+  // Clear sessionStorage referral/user params
+  ['ref','url_name','url_username','url_email','url_id'].forEach(k => sessionStorage.removeItem(k));
+
+  // Step 3: Hide hamburger menu button immediately
+  const menuBtn = document.getElementById('header-menu-btn');
+  if (menuBtn) menuBtn.style.display = 'none';
+
+  // Step 4: Close any open fab menu panel
+  closeFabMenu();
+
+  // Step 5: Run the standard disconnect handler (resets UI elements)
   handleWalletDisconnected();
+
+  // Step 6: Navigate back to home view (root connect screen)
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const homeView = document.getElementById('view-home');
+  if (homeView) homeView.classList.add('active');
+  // Hide all back buttons
+  ['matrix','referral','profile','search','stats','preview','users','leaderboard'].forEach(n => {
+    const btn = document.getElementById('back-' + n);
+    if (btn) btn.style.display = 'none';
+  });
+  // Ensure hero is visible (handleWalletDisconnected already does this, but be explicit)
+  const heroEl = document.getElementById('hero-section');
+  if (heroEl) heroEl.style.display = 'block';
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  showToast('Wallet disconnected');
 }
 
 function handleWalletConnected(rawAddress) {
@@ -4171,6 +4288,20 @@ function switchView(name) {
   if (name === 'referral') getReferralStats();
   if (name === 'search') resetSearchView();
   if (name === 'stats') fetchGlobalStats();
+
+  // When returning to home, restore correct hero/dashboard visibility
+  if (name === 'home') {
+    var heroEl2 = document.getElementById('hero-section');
+    var dashEl2 = document.getElementById('dashboard');
+    if (!state.connected) {
+      if (heroEl2) heroEl2.style.display = 'block';
+      if (dashEl2) dashEl2.style.display = 'none';
+    } else {
+      if (heroEl2) heroEl2.style.display = 'none';
+      if (dashEl2) dashEl2.style.display = 'block';
+    }
+  }
+
   window.scrollTo({ top:0, behavior:'smooth' });
 }
 
@@ -4476,12 +4607,33 @@ function enterPreviewMode() {
 }
 
 function exitPreviewMode() {
-  // Deactivate preview view, show hero again
+  // Step 1: Remove active class from ALL views
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  const heroEl = document.getElementById('hero-section');
-  if (heroEl) heroEl.style.display = 'block';
 
-  // Reset preview internals
+  // Step 2: CRITICAL — explicitly re-add active to view-home so it becomes visible
+  const homeView = document.getElementById('view-home');
+  if (homeView) homeView.classList.add('active');
+
+  // Step 3: Restore correct inner state of view-home
+  // If wallet NOT connected — show hero (Connect TON Wallet screen)
+  // If wallet IS connected — show dashboard instead
+  const heroEl = document.getElementById('hero-section');
+  const dashEl = document.getElementById('dashboard');
+  if (!state.connected) {
+    if (heroEl) heroEl.style.display = 'block';
+    if (dashEl) dashEl.style.display = 'none';
+  } else {
+    if (heroEl) heroEl.style.display = 'none';
+    if (dashEl) dashEl.style.display = 'block';
+  }
+
+  // Step 4: Hide all back buttons (we are at root home)
+  ['matrix','referral','profile','search','stats','preview','users','leaderboard'].forEach(function(n) {
+    var btn = document.getElementById('back-' + n);
+    if (btn) btn.style.display = 'none';
+  });
+
+  // Step 5: Reset preview internals cleanly
   pvResetSearch();
   pvCloseLeaderboard();
 
@@ -4523,19 +4675,21 @@ async function pvDoSearch() {
 
   try {
     await waitForFirestore();
-    const { doc, getDoc, collection, query, where, getDocs } = window.__fs;
+    const { doc, getDoc, collection, query, where, orderBy, getDocs } = window.__fs;
     const db = window.__db;
 
     let userData = null;
     let docId    = uid;
+    let resolvedDocId = uid;
 
     const snap = await getDoc(doc(db, 'users', uid));
     if (snap.exists()) {
       userData = snap.data();
+      resolvedDocId = uid;
     } else {
       const q   = query(collection(db, 'users'), where('tgId', '==', uid));
       const res = await getDocs(q);
-      if (!res.empty) { userData = res.docs[0].data(); docId = res.docs[0].id; }
+      if (!res.empty) { userData = res.docs[0].data(); docId = res.docs[0].id; resolvedDocId = res.docs[0].id; }
     }
 
     if (loadEl) loadEl.style.display = 'none';
@@ -4552,65 +4706,152 @@ async function pvDoSearch() {
       return;
     }
 
-    // ── Populate result card ────────────────────────────────
-    const silSVG =
-      '<svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg" width="26" height="26">' +
-      '<circle cx="26" cy="18" r="10" fill="#8aa5c0"/>' +
-      '<path d="M5 50 Q5 36 26 36 Q47 36 47 50" fill="#8aa5c0"/></svg>';
-
-    const avatarEl = document.getElementById('pv-srch-avatar');
-    const photoUrl = userData.tgPhotoUrl || null;
-    if (avatarEl) {
-      if (photoUrl) {
-        avatarEl.innerHTML = `<img src="${photoUrl}" alt="avatar"
-          style="width:100%;height:100%;object-fit:cover;border-radius:12px;display:block;"
-          onerror="this.parentNode.innerHTML='${silSVG.replace(/'/g,'"').replace(/"/g,"'")}'" />`;
-      } else {
-        avatarEl.innerHTML = silSVG;
-      }
-    }
-
+    // ── Build full dashboard-mirror result HTML (same structure as doSearchUser) ──
     const displayName = userData.tgName || userData.tgHandle || 'Unknown User';
     const displayUid  = userData.tgId   || docId;
+    const photoUrl    = userData.tgPhotoUrl || null;
 
-    const nameEl = document.getElementById('pv-srch-name');
-    const uidEl  = document.getElementById('pv-srch-uid-display');
-    if (nameEl) nameEl.textContent = displayName;
-    if (uidEl)  uidEl.textContent  = 'UID: ' + displayUid;
+    const silSVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width:26px;height:26px;fill:#8aa5c0;"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>`;
+    const avatarHtml = photoUrl
+      ? `<img src="${photoUrl}" alt="avatar" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:12px;" onerror="this.parentNode.innerHTML='${silSVG.replace(/'/g,'"').replace(/"/g,"'")}'"/>`
+      : silSVG;
 
-    // Slots
-    const ownedSlots  = Array.isArray(userData.ownedSlots) ? userData.ownedSlots : [];
-    const SLOT_COUNT  = 10;
-    const badgesEl    = document.getElementById('pv-srch-slots-badges');
-    if (badgesEl) {
-      badgesEl.innerHTML = '';
-      for (let i = 1; i <= SLOT_COUNT; i++) {
-        const owned = ownedSlots.includes(i);
-        const b = document.createElement('div');
-        b.className = 'srch-slot-badge ' + (owned ? 'owned' : 'locked');
-        b.textContent = i;
-        badgesEl.appendChild(b);
-      }
+    const workingTon = typeof userData.workingTon === 'number' ? userData.workingTon : 0;
+    const passiveTon = typeof userData.passiveTon === 'number' ? userData.passiveTon : 0;
+    const totalTon   = (typeof userData.earnedTon === 'number' && userData.earnedTon > 0)
+      ? userData.earnedTon : (workingTon + passiveTon);
+    const fmtT = v => (v % 1 === 0 ? v.toFixed(0) : v.toFixed(2));
+    const dirRef = typeof userData.referrals === 'number' ? userData.referrals : 0;
+    const team   = typeof userData.teamSize   === 'number' ? userData.teamSize   : 0;
+
+    const ownedSlots = Array.isArray(userData.ownedSlots) ? userData.ownedSlots : [];
+
+    // Build slots grid cells (mirrors renderSrchSlots)
+    let slotCells = '<span style="font-family:var(--font-mono);font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-right:8px;white-space:nowrap;flex-shrink:0;">Slots</span>';
+    for (let level = 1; level <= 10; level++) {
+      const owned = ownedSlots.includes(level);
+      slotCells += `<div style="flex:1;display:flex;align-items:center;justify-content:center;height:40px;font-family:var(--font-head);font-size:14px;font-weight:800;border-radius:6px;letter-spacing:-0.3px;pointer-events:none;${owned ? 'background:#22c55e;color:#ffffff;box-shadow:0 0 10px rgba(34,197,94,0.55),0 2px 6px rgba(0,0,0,0.3);' : 'background:rgba(0,0,0,0.18);color:rgba(255,255,255,0.35);'}">${level}</div>`;
     }
 
-    // Stats
-    const working = userData.workingTon || 0;
-    const passive = userData.passiveTon || 0;
-    const dirRef  = typeof userData.referrals === 'number' ? userData.referrals : 0;
-    const team    = typeof userData.teamSize   === 'number' ? userData.teamSize   : 0;
+    const walletAddr = userData.walletAddress || null;
+    const walletDisplay = walletAddr
+      ? (walletAddr.length > 20 ? walletAddr.slice(0,8)+'…'+walletAddr.slice(-6) : walletAddr)
+      : displayName + ' · #' + String(displayUid).slice(-4);
 
-    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-    set('pv-srch-working-val',  fmtTonLocal(working));
-    set('pv-srch-working-sub',  'TON');
-    set('pv-srch-passive-val',  fmtTonLocal(passive));
-    set('pv-srch-passive-sub',  'TON');
-    set('pv-srch-direct-val',   dirRef);
-    set('pv-srch-team-val',     team);
+    // Working/passive sub-labels with USD if available
+    const workingSub = TON_TO_USD
+      ? fmtT(workingTon) + ' TON  ≈ $' + (workingTon * TON_TO_USD).toFixed(2)
+      : fmtT(workingTon) + ' TON';
+    const passiveSub = TON_TO_USD
+      ? fmtT(passiveTon) + ' TON  ≈ $' + (passiveTon * TON_TO_USD).toFixed(2)
+      : fmtT(passiveTon) + ' TON';
 
-    // Downline team
-    const downlineEl = document.getElementById('pv-srch-downline-inner');
+    // Inject full dashboard mirror HTML into result container
+    resEl.innerHTML = `
+      <div style="pointer-events:none; user-select:none;">
+
+      <!-- ① YOUR ACCOUNT — gold card -->
+      <div class="srch-account-card">
+        <div class="srch-account-top">
+          <div class="srch-avatar" id="pv-srch-avatar-box">${avatarHtml}</div>
+          <div style="flex:1; min-width:0;">
+            <div id="pv-srch-reg-index" style="font-family:var(--font-mono);font-size:10px;font-weight:700;color:rgba(5,13,26,0.52);-webkit-text-fill-color:rgba(5,13,26,0.52);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:3px;">ID - #…</div>
+            <div class="srch-uid">TG ID: ${String(displayUid).replace(/</g,'&lt;')}</div>
+            <div class="srch-name">${String(displayName).replace(/</g,'&lt;').substring(0,30)}</div>
+          </div>
+          <div class="srch-account-ton-corner">
+            <span class="srch-account-ton-label">total TON ⛁</span>
+            <span class="srch-account-ton-val">${fmtT(totalTon)}</span>
+          </div>
+        </div>
+        <div class="srch-account-wallet-row">
+          <div style="flex:1; min-width:0;">
+            <div class="srch-account-wallet-label">REGISTERED USER</div>
+            <div class="srch-account-wallet-val">${walletDisplay}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ② SLOTS — purple level bar -->
+      <div style="margin-top:14px; margin-bottom:14px;">
+        <p style="font-family:var(--font-mono);font-size:10px;font-weight:500;color:var(--cyan);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;margin-top:4px;opacity:0.8;">MATRIX SLOTS</p>
+        <div style="display:flex;flex-direction:row;align-items:center;background:#6236d0;border-radius:10px;padding:12px 14px;gap:5px;width:100%;box-shadow:0 4px 18px rgba(98,54,208,0.38),0 1px 4px rgba(0,0,0,0.22);">
+          ${slotCells}
+        </div>
+      </div>
+
+      <!-- ③ DIRECT REFERRAL + YOUR TEAM -->
+      <div class="srch-blue-stat-row">
+        <div class="srch-blue-stat-card">
+          <div class="srch-blue-stat-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+            <span class="srch-blue-stat-title">Direct Referral</span>
+          </div>
+          <div class="srch-blue-stat-num">${dirRef}</div>
+        </div>
+        <div class="srch-blue-stat-card">
+          <div class="srch-blue-stat-header">
+            <svg width="22" height="20" viewBox="0 0 28 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M20 11c2.2 0 3.9-1.8 3.9-4S22.2 3 20 3c-2.2 0-3.9 1.8-3.9 4s1.7 4 3.9 4zm-12 0c2.2 0 3.9-1.8 3.9-4S10.2 3 8 3C5.8 3 4.1 4.8 4.1 7s1.7 4 3.9 4zm0 2c-2.7 0-8 1.3-8 4v2h16v-2c0-2.7-5.3-4-8-4zm12 0c-.3 0-.7 0-1 .1 1.2.9 2 2.1 2 3.9v2h6v-2c0-2.7-5.3-4-7-4z"/></svg>
+            <span class="srch-blue-stat-title">Your Team</span>
+          </div>
+          <div class="srch-blue-stat-num">${team}</div>
+        </div>
+      </div>
+
+      <!-- ④ WORKING INCOME -->
+      <div class="srch-income-working">
+        <div class="srch-hic-body">
+          <div class="srch-hic-icon">❂</div>
+          <div class="srch-hic-info">
+            <div class="srch-hic-label">WORKING INCOME</div>
+            <div class="srch-hic-val">${fmtT(workingTon)}</div>
+            <div class="srch-hic-ton">${workingSub}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ④ NON-WORKING INCOME -->
+      <div class="srch-income-nonworking">
+        <div class="srch-hic-body">
+          <div class="srch-hic-icon">♾</div>
+          <div class="srch-hic-info">
+            <div class="srch-hic-label">NON WORKING INCOME</div>
+            <div class="srch-hic-val">${fmtT(passiveTon)}</div>
+            <div class="srch-hic-ton">${passiveSub}</div>
+          </div>
+        </div>
+        <div class="srch-hic-belt">
+          <span class="srch-hic-belt-text">PASSIVE · MATRIX SPILLOVER</span>
+        </div>
+      </div>
+
+      </div><!-- /read-only wrapper -->
+
+      <!-- Downline team -->
+      <div class="srch-downline-header" style="margin-top:14px;">Downline Team</div>
+      <div id="pv-srch-downline-inner-new">
+        <div class="ref-list-loading">Loading team…</div>
+      </div>
+    `;
+
+    resEl.style.display = 'block';
+
+    // Async: fetch registration sequence index
+    (async () => {
+      const regEl = document.getElementById('pv-srch-reg-index');
+      if (!regEl) return;
+      try {
+        const allQ    = query(collection(db, 'users'), orderBy('registeredAt', 'asc'));
+        const allSnap = await getDocs(allQ);
+        let seqNum = null, pos = 1;
+        allSnap.forEach(d => { if (d.id === resolvedDocId) seqNum = pos; pos++; });
+        regEl.textContent = seqNum ? 'ID - #' + seqNum : 'ID - #—';
+      } catch(_) { regEl.textContent = 'ID - #—'; }
+    })();
+
+    // Async: load downline team
+    const downlineEl = document.getElementById('pv-srch-downline-inner-new');
     if (downlineEl) {
-      downlineEl.innerHTML = '<div class="ref-list-loading">Loading team…</div>';
       try {
         const { collection: col, query: qry, where: whr, getDocs: gds } = window.__fs;
         const tq    = qry(col(db, 'users'), whr('referredBy', '==', String(displayUid)));
@@ -4618,27 +4859,33 @@ async function pvDoSearch() {
         if (tSnap.empty) {
           downlineEl.innerHTML = '<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-lo);padding:14px 0;text-align:center;">No downline members yet.</div>';
         } else {
-          downlineEl.innerHTML = '';
+          const silDown = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>`;
+          let downHtml = '';
           tSnap.docs.forEach(dSnap => {
-            const d    = dSnap.data();
-            const nm   = (d.tgName || d.tgHandle || 'Unknown').substring(0,20);
-            const uid2 = d.tgId || dSnap.id;
-            const ton  = fmtTonLocal(d.earnedTon || 0);
-            const row  = document.createElement('div');
-            row.className = 'ref-list-item';
-            row.innerHTML =
-              `<span class="ref-list-name">${nm.replace(/</g,'&lt;')}</span>` +
-              `<span class="ref-list-uid">${String(uid2).replace(/</g,'&lt;')}</span>` +
-              `<span class="ref-list-ton">${ton} TON</span>`;
-            downlineEl.appendChild(row);
+            const d     = dSnap.data();
+            const nm    = (d.tgName || d.tgHandle || 'Unknown').substring(0,20);
+            const uid2  = d.tgId || dSnap.id;
+            const tonD  = fmtTonLocal(d.earnedTon || 0);
+            const ph    = d.tgPhotoUrl || null;
+            const avHtml = ph
+              ? `<img src="${ph}" alt="avatar" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:11px;" onerror="this.parentNode.innerHTML='${silDown.replace(/'/g,'"').replace(/"/g,"'")}'"/>`
+              : silDown;
+            downHtml += `
+            <div class="ref-list-row">
+              <div class="ref-list-avatar">${avHtml}</div>
+              <div class="ref-list-info">
+                <div class="ref-list-name">${nm.replace(/</g,'&lt;')}</div>
+                <div class="ref-list-uid">UID: ${String(uid2).replace(/</g,'&lt;')}</div>
+              </div>
+              <span class="ref-list-badge">${tonD} TON</span>
+            </div>`;
           });
+          downlineEl.innerHTML = downHtml;
         }
       } catch (_) {
         downlineEl.innerHTML = '<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-lo);padding:14px 0;text-align:center;">—</div>';
       }
     }
-
-    if (resEl) resEl.style.display = 'block';
 
   } catch (err) {
     console.error('[Preview Search] error:', err);
@@ -5241,9 +5488,7 @@ function _updateDashAvatar() {
 // INIT — render slots (pre-connection demo view)
 // ──────────────────────────────────────────────────────────────
 renderSlots();
-</script>
 
-<script>
 // ──────────────────────────────────────────────────────────────
 // USER DIRECTORY — Global members list, chronological order
 // ──────────────────────────────────────────────────────────────
@@ -5296,26 +5541,38 @@ async function loadUserDirectory() {
       return;
     }
 
-    // Build row HTML
+    // Build row HTML — each row shows: avatar, real TG name, UID, TON balance, seq ID
     const rows = users.map((u, idx) => {
       const seq       = idx + 1;
-      const firstName = escHtml(u.firstName || u.first_name || u.name || 'Unknown');
+      // Use tgName as primary (set by bot), then fallback chain
+      const firstName = escHtml(u.tgName || u.tgHandle || u.firstName || u.first_name || u.name || 'Unknown');
       const tgId      = escHtml(String(u.tgId || u.userId || u.telegram_id || u.id || '—'));
-      const photoUrl  = u.photoUrl || u.photo_url || u.tgPhotoUrl || '';
+      // Avatar: tgPhotoUrl is the canonical field written by the bot/SDK
+      const photoUrl  = u.tgPhotoUrl || u.photoUrl || u.photo_url || '';
+      // TON balance — sum workingTon+passiveTon, fallback to earnedTon
+      const tonVal    = typeof u.earnedTon === 'number' && u.earnedTon > 0
+        ? u.earnedTon
+        : ((typeof u.workingTon === 'number' ? u.workingTon : 0) + (typeof u.passiveTon === 'number' ? u.passiveTon : 0));
+      const tonDisplay = tonVal > 0
+        ? (tonVal >= 1000 ? (tonVal/1000).toFixed(2)+'K' : tonVal.toFixed(2)) + ' TON'
+        : '0 TON';
 
+      // Avatar: uses same 56×56 gold-card silhouette styling
+      const silSvgDir = `<svg viewBox="0 0 42 42" width="42" height="42" xmlns="http://www.w3.org/2000/svg"><rect width="42" height="42" rx="10" fill="rgba(255,255,255,0.06)"/><circle cx="21" cy="16" r="7.5" fill="#8aa5c0"/><path d="M4 40 Q4 28 21 28 Q38 28 38 40" fill="#8aa5c0"/></svg>`;
       const avatarHtml = photoUrl
-        ? `<img src="${escAttr(photoUrl)}" alt="" loading="lazy" onerror="this.parentElement.innerHTML=silhouetteSvg()">`
-        : silhouetteSvg();
+        ? `<img src="${escAttr(photoUrl)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:10px;" onerror="this.parentElement.innerHTML='${silSvgDir.replace(/'/g,'"').replace(/"/g,"'")}';">`
+        : silSvgDir;
 
       return `
         <div class="dir-row">
+          <div class="dir-seq">#${seq}</div>
           <div class="dir-avatar">${avatarHtml}</div>
           <div class="dir-info">
             <div class="dir-name">${firstName}</div>
-            <div class="dir-uid">@${tgId}</div>
+            <div class="dir-uid">UID: ${tgId}</div>
           </div>
           <div style="flex-shrink:0; text-align:right;">
-            <div style="font-family:var(--font-mono); font-size:9px; font-weight:700; color:var(--text-lo); letter-spacing:0.5px;">ID - #${seq}</div>
+            <div style="font-family:var(--font-head); font-size:13px; font-weight:800; color:var(--cyan); letter-spacing:-0.3px;">${tonDisplay}</div>
           </div>
         </div>`;
     });
@@ -5390,14 +5647,18 @@ async function loadLeaderboardView() {
 
     const rows = users.map((u, idx) => {
       const rank      = idx + 1;
-      const firstName = escHtml(u.firstName || u.first_name || u.name || 'Unknown');
+      // Use tgName as primary (written by bot), then fallback chain
+      const firstName = escHtml(u.tgName || u.tgHandle || u.firstName || u.first_name || u.name || 'Unknown');
       const tgId      = escHtml(String(u.tgId || u.userId || u.telegram_id || u.id || '—'));
-      const photoUrl  = u.photoUrl || u.photo_url || u.tgPhotoUrl || '';
+      // tgPhotoUrl is the canonical avatar field written by the bot/SDK
+      const photoUrl  = u.tgPhotoUrl || u.photoUrl || u.photo_url || '';
       const earned    = typeof u.earnedTon === 'number' ? u.earnedTon.toFixed(2) : '0.00';
 
+      // Silhouette matching gold card avatar silhouette design
+      const silLbSvg = `<svg viewBox="0 0 42 42" width="42" height="42" xmlns="http://www.w3.org/2000/svg"><rect width="42" height="42" rx="10" fill="rgba(255,255,255,0.06)"/><circle cx="21" cy="16" r="7.5" fill="#8aa5c0"/><path d="M4 40 Q4 28 21 28 Q38 28 38 40" fill="#8aa5c0"/></svg>`;
       const avatarHtml = photoUrl
-        ? `<img src="${escAttr(photoUrl)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:11px;" onerror="this.parentElement.innerHTML=silhouetteSvg()">`
-        : silhouetteSvg();
+        ? `<img src="${escAttr(photoUrl)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:11px;" onerror="this.parentElement.innerHTML='${silLbSvg.replace(/'/g,'"').replace(/"/g,"'")}';">`
+        : silLbSvg;
 
       const rankColor = medalColors[idx] || 'var(--text-lo)';
       const medal     = rank <= 3 ? `<span style="font-size:15px;line-height:1;">${medalEmoji[idx]}</span>` : `<span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:${rankColor};">${rank}</span>`;
@@ -5439,9 +5700,7 @@ async function loadLeaderboardView() {
     contentEl.innerHTML = `<div class="dir-empty">⚠ Could not load leaderboard.<br><span style="font-size:10px;opacity:0.6;">${escHtml(err.message)}</span></div>`;
   }
 }
-</script>
 
-<script>
 // ──────────────────────────────────────────────────────────────
 // SPLASH SCREEN — 4-second cinematic intro
 // ──────────────────────────────────────────────────────────────
