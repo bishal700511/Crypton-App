@@ -280,26 +280,44 @@
       padding:10px 14px 24px;
     }
 
-    /* ── Slot card — borderless, all slots equally visible ── */
+    /* ── Slot card — clean white-glass base, all 10 slots fully visible ── */
     .slot-card {
       position:relative;
-      background:transparent;
-      border:none;
-      border-radius:0;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: var(--radius-md);
       display:flex; flex-direction:column; align-items:center;
       text-align:center;
       cursor:pointer;
-      transition:opacity 0.2s, transform 0.18s;
+      transition:opacity 0.2s, transform 0.18s, border-color 0.2s, background 0.2s;
       padding:12px 6px 8px;
     }
 
-    /* ── Locked: full brightness — status shown via badge only ── */
+    /* ── Locked: clean neutral white-glass default ── */
     .slot-card.locked-card {
       opacity:1;
       cursor:pointer;
+      background: rgba(255,255,255,0.03);
+      border-color: rgba(255,255,255,0.07);
       filter:none;
     }
-    .slot-card.locked-card:hover { transform:translateY(-3px); opacity:1; }
+    .slot-card.locked-card:hover { transform:translateY(-2px); border-color: rgba(255,255,255,0.14); }
+
+    /* ── ACTIVE: primary "You" container turns GREEN ── */
+    .slot-card.active-card {
+      background: rgba(34,197,94,0.06);
+      border-color: rgba(34,197,94,0.25);
+    }
+    .slot-card.active-card:not(.premium) .slot-matrix svg {
+      filter:drop-shadow(0 0 8px rgba(34,197,94,0.35));
+    }
+    .slot-card.active-card.premium {
+      background: rgba(212,168,67,0.07);
+      border-color: rgba(212,168,67,0.28);
+    }
+    .slot-card.active-card.premium .slot-matrix svg {
+      filter:drop-shadow(0 0 8px rgba(212,168,67,0.38));
+    }
 
     /* ── All unlocked slots: subtle lift on hover ── */
     .slot-card:not(.locked-card):hover { transform:translateY(-3px); }
@@ -314,14 +332,6 @@
       to  {filter:drop-shadow(0 0 14px rgba(212,168,67,0.65));}
     }
 
-    /* ── Active cyan glow on tree ── */
-    .slot-card.active-card:not(.premium) .slot-matrix svg {
-      filter:drop-shadow(0 0 6px rgba(0,229,255,0.30));
-    }
-    .slot-card.active-card.premium .slot-matrix svg {
-      filter:drop-shadow(0 0 6px rgba(212,168,67,0.35));
-    }
-
     /* ── Slot top row: level label + status dot centered ── */
     .slot-header {
       display:flex; align-items:center; justify-content:center; gap:6px;
@@ -330,21 +340,24 @@
       letter-spacing:1.5px; text-transform:uppercase;
     }
     /* All non-locked level labels — same brightness */
-    .slot-header-lvl { color:rgba(138,165,192,0.55); }
-    .active-card   .slot-header-lvl { color:rgba(0,229,255,0.70); }
-    .active-card.premium .slot-header-lvl { color:rgba(240,201,106,0.70); }
-    .full-card     .slot-header-lvl { color:rgba(240,201,106,0.80); }
-    .locked-card   .slot-header-lvl { color:rgba(138,165,192,0.70); }
+    .slot-header-lvl { color:rgba(255,255,255,0.25); }
+    .active-card   .slot-header-lvl { color:rgba(34,197,94,0.80); }
+    .active-card.premium .slot-header-lvl { color:rgba(240,201,106,0.80); }
+    .full-card     .slot-header-lvl { color:rgba(240,201,106,0.90); }
+    .locked-card   .slot-header-lvl { color:rgba(255,255,255,0.25); }
 
-    /* Status dot */
+    /* Status badge — show text for active state */
     .slot-status-badge {
-      width:5px; height:5px; border-radius:50%;
-      font-size:0; padding:0; border:none; flex-shrink:0;
+      border-radius: 20px;
+      font-size: 7.5px; font-weight: 700; font-family: var(--font-mono);
+      padding: 2px 6px; border: none; flex-shrink: 0;
+      letter-spacing: 0.8px;
+      line-height: 1.4;
     }
-    .badge-locked   { background:rgba(138,165,192,0.55); box-shadow:0 0 4px rgba(138,165,192,0.3); }
-    .badge-buy      { background:rgba(212,168,67,0.55); box-shadow:0 0 5px rgba(212,168,67,0.4); }
-    .badge-active   { background:var(--cyan); box-shadow:0 0 5px rgba(0,229,255,0.65); }
-    .badge-full     { background:var(--gold-lt); box-shadow:0 0 7px rgba(212,168,67,0.75); animation:dot-pulse 1.8s ease-in-out infinite; }
+    .badge-locked   { background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.28); }
+    .badge-buy      { background:rgba(212,168,67,0.18); color:rgba(212,168,67,0.85); }
+    .badge-active   { background:rgba(34,197,94,0.18); color:#22c55e; box-shadow:0 0 8px rgba(34,197,94,0.25); }
+    .badge-full     { background:rgba(212,168,67,0.22); color:var(--gold-lt); box-shadow:0 0 7px rgba(212,168,67,0.40); animation:dot-pulse 1.8s ease-in-out infinite; }
     @keyframes dot-pulse { 0%,100%{opacity:1;} 50%{opacity:0.45;} }
 
     /* ── Slot body ── */
@@ -354,15 +367,15 @@
     .slot-price-wrap { display:flex; align-items:baseline; gap:4px; }
     .slot-price {
       font-family:var(--font-head); font-size:17px; font-weight:800;
-      color:rgba(200,218,240,0.85); line-height:1; letter-spacing:-0.5px;
+      color:rgba(255,255,255,0.40); line-height:1; letter-spacing:-0.5px;
     }
     .slot-price-unit {
-      font-size:9px; font-weight:500; color:rgba(138,165,192,0.75);
+      font-size:9px; font-weight:500; color:rgba(255,255,255,0.28);
       font-family:var(--font-mono);
     }
     .slot-usd { display:none; }
-    .active-card .slot-price         { color:rgba(0,229,255,0.85); }
-    .active-card.premium .slot-price { color:rgba(240,201,106,0.85); }
+    .active-card .slot-price         { color:rgba(34,197,94,0.90); }
+    .active-card.premium .slot-price { color:rgba(240,201,106,0.90); }
     .full-card .slot-price           { color:rgba(240,201,106,0.90); }
 
     /* ── Hidden income elements ── */
@@ -385,7 +398,7 @@
     .fill-bar-wrap { width:78%; margin-top:5px; }
     .fill-bar-track { width:100%; height:1.5px; border-radius:2px; background:rgba(255,255,255,0.05); }
     .fill-bar-fill  { height:1.5px; border-radius:2px; transition:width 0.4s ease; }
-    .active-card .fill-bar-fill         { background:rgba(0,229,255,0.45); }
+    .active-card .fill-bar-fill         { background:rgba(34,197,94,0.55); }
     .active-card.premium .fill-bar-fill { background:rgba(212,168,67,0.45); }
     .full-card .fill-bar-fill           { background:rgba(212,168,67,0.60); width:100% !important; }
     .fill-count {
@@ -617,19 +630,7 @@
     .ref-link-box { display:flex; align-items:center; gap:8px; background:rgba(0,0,0,0.25); border:1px solid var(--glass-bd); border-radius:var(--radius-sm); padding:10px 12px; }
     .ref-link-text { flex:1; font-family:var(--font-mono); font-size:12px; color:var(--cyan); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
-    /* ─── TELEGRAM FLOAT BUTTON ─────────────────────────────── */
-    .header-tg-btn {
-      width:36px; height:36px; border-radius:10px;
-      background:rgba(8,20,40,0.82);
-      border:1px solid rgba(0,229,255,0.22);
-      display:flex; align-items:center; justify-content:center;
-      cursor:pointer; text-decoration:none; flex-shrink:0;
-      -webkit-tap-highlight-color:transparent;
-      transition:background var(--transition), border-color var(--transition), transform var(--transition);
-    }
-    .header-tg-btn:hover  { background:rgba(0,229,255,0.10); border-color:rgba(0,229,255,0.45); transform:scale(1.06); }
-    .header-tg-btn:active { transform:scale(0.94); }
-    .header-tg-btn svg { width:18px; height:18px; fill:var(--cyan); }
+    /* ─── TELEGRAM FLOAT BUTTON (see .header-tg-btn above) ─── */
 
     /* ─── FAB TRIGGER BUTTON — fixed bottom-right tab ──────── */
     .fab {
@@ -1019,27 +1020,28 @@
       display: none; /* shown by JS after wallet connect */
       width: 100%;
       background: #6236d0;
-      border-radius: 0px;
-      padding: 10px 14px;
+      border-radius: 10px;
+      padding: 12px 14px;
       flex-direction: row;
       align-items: center;
       justify-content: space-between;
-      gap: 4px;
+      gap: 5px;
       margin-top: 14px;
       margin-bottom: 0;
+      box-shadow: 0 4px 18px rgba(98,54,208,0.38), 0 1px 4px rgba(0,0,0,0.22);
     }
     .lvl-cell {
       flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
-      height: 34px;
+      height: 40px;
       font-family: var(--font-head);
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 800;
       color: rgba(255,255,255,0.35);
-      background: rgba(0,0,0,0.18);
-      border-radius: 4px;
+      background: rgba(0,0,0,0.20);
+      border-radius: 6px;
       letter-spacing: -0.3px;
       transition: background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease, transform 0.15s ease;
       position: relative;
@@ -1050,7 +1052,7 @@
     .lvl-cell.active {
       background: #22c55e;
       color: #ffffff;
-      box-shadow: 0 0 10px rgba(34,197,94,0.55), 0 2px 6px rgba(0,0,0,0.3);
+      box-shadow: 0 0 12px rgba(34,197,94,0.60), 0 2px 6px rgba(0,0,0,0.3);
     }
     .lvl-label {
       font-family: var(--font-mono);
@@ -1064,24 +1066,7 @@
       flex-shrink: 0;
     }
 
-    /* ─── SPLASH SCREEN ─────────────────────────────────────── */
-    #splash-screen {
-      position: fixed; inset: 0; z-index: 9999;
-      background: #050d1a;
-      display: flex;
-      align-items: center; justify-content: center;
-      pointer-events: all;
-      transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    #splash-screen.fade-out {
-      opacity: 0;
-      pointer-events: none;
-    }
-    .splash-logo {
-      width: 140px; height: 140px;
-      object-fit: contain;
-      border-radius: 28px;
-    }
+    /* ─── SPLASH SCREEN (second block removed — defined above) ─── */
 
     /* ─── MY REFERRALS LIST ─────────────────────────────────── */
     .ref-list-wrap {
@@ -1188,6 +1173,41 @@
       letter-spacing: 0.5px;
     }
 
+    /* ── ref-list-item: compact row used in preview downline list ── */
+    .ref-list-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-bd);
+      border-radius: var(--radius-sm);
+      margin-bottom: 6px;
+    }
+    .ref-list-item .ref-list-name {
+      flex: 1;
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-hi);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ref-list-item .ref-list-uid {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-mid);
+      flex-shrink: 0;
+    }
+    .ref-list-item .ref-list-ton {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--cyan);
+      flex-shrink: 0;
+    }
+
     /* ─── SEARCH VIEW ───────────────────────────────────────── */
     .search-input-wrap {
       display: flex;
@@ -1232,95 +1252,171 @@
     .btn-search:active { transform: scale(0.96); }
     .btn-search:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
-    /* Search result profile card */
-    .srch-profile-card {
+    /* ─── SEARCH RESULT — HOME-MIRROR STYLES ─────────────────── */
+
+    /* 1. Top gold "Your Account" card clone */
+    .srch-account-card {
       background: linear-gradient(135deg, #e5c060 0%, #c49632 50%, #d8b24f 100%);
-      border-radius: 20px;
-      padding: 18px 20px;
-      margin-bottom: 14px;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      box-shadow: 0 6px 24px rgba(180,140,40,0.28);
+      border: none;
+      border-radius: 24px;
+      box-shadow: 0 8px 32px rgba(180,140,40,0.35), 0 2px 8px rgba(0,0,0,0.30);
+      overflow: hidden;
+      margin-bottom: 0;
+    }
+    .srch-account-top {
+      padding: 20px;
+      background: transparent;
+      border-bottom: 1px solid rgba(0,0,0,0.12);
+      display: flex; align-items: center; gap: 14px;
     }
     .srch-avatar {
-      width: 52px; height: 52px; border-radius: 14px;
+      width: 56px; height: 56px; border-radius: 16px;
       flex-shrink: 0; overflow: hidden;
-      background: rgba(0,0,0,0.12);
-      border: 2px solid rgba(0,0,0,0.15);
+      border: 2.5px solid rgba(0,0,0,0.20);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.30);
+      background: rgba(0,0,0,0.10);
       display: flex; align-items: center; justify-content: center;
     }
-    .srch-avatar img { width:100%; height:100%; object-fit:cover; border-radius:12px; display:block; }
+    .srch-avatar img { width:100%; height:100%; object-fit:cover; display:block; }
     .srch-avatar svg { width:26px; height:26px; fill:#8aa5c0; }
     .srch-name {
-      font-family: var(--font-head); font-size: 17px; font-weight: 800;
-      color: #050d1a; line-height: 1.2;
+      font-family: var(--font-head); font-size: 18px; font-weight: 800;
+      color: #050d1a !important; -webkit-text-fill-color: #050d1a !important;
+      line-height: 1.2;
     }
     .srch-uid {
       font-family: var(--font-mono); font-size: 11px;
-      color: rgba(5,13,26,0.65); margin-top: 3px; font-weight: 600;
+      color: rgba(5,13,26,0.70) !important; margin-top: 3px; font-weight: 600;
+    }
+    .srch-account-ton-corner {
+      display: flex; flex-direction: column; align-items: flex-end;
+      flex-shrink: 0; gap: 2px;
+    }
+    .srch-account-ton-label {
+      font-family: var(--font-mono); font-size: 8px; font-weight: 700;
+      letter-spacing: 1.5px; text-transform: uppercase;
+      color: rgba(5,13,26,0.60);
+    }
+    .srch-account-ton-val {
+      font-family: var(--font-head); font-size: 18px; font-weight: 800;
+      color: #050d1a; letter-spacing: -0.5px; line-height: 1;
+    }
+    .srch-account-wallet-row {
+      padding: 14px 18px; display: flex; align-items: center; justify-content: space-between;
+      background: #c47a00;
+      border-top: 1px solid rgba(0,0,0,0.15);
+    }
+    .srch-account-wallet-label {
+      font-size: 11px; font-family: var(--font-mono); letter-spacing: 0.5px;
+      color: rgba(255,255,255,0.75) !important;
+    }
+    .srch-account-wallet-val {
+      font-family: var(--font-mono); font-size: 12px;
+      color: #ffffff !important; font-weight: 600;
+      word-break: break-all; margin-top: 3px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      max-width: 200px;
     }
 
-    /* Stats row — 2 cols grid */
-    .srch-stats-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 14px;
+    /* 2. Srch Working / Non-Working income cards — clone of .home-income-card */
+    .srch-income-working {
+      background: #3d7d8c;
+      border-top: 1.5px solid rgba(0,229,255,0.25);
+      border-left: 1.5px solid rgba(0,229,255,0.25);
+      border-right: 1.5px solid rgba(0,229,255,0.25);
+      border-bottom: none;
+      border-radius: 20px 20px 0 0;
+      overflow: hidden;
+      margin-top: 14px; margin-bottom: 0;
     }
-    .srch-stat-card {
-      background: var(--glass-bg);
-      border: 1px solid var(--glass-bd);
-      border-radius: var(--radius-md);
-      padding: 14px 16px;
-      backdrop-filter: blur(14px);
+    .srch-income-nonworking {
+      background: #a8c4b8;
+      border-top: 1px solid rgba(0,229,255,0.12);
+      border-left: 1.5px solid rgba(0,229,255,0.25);
+      border-right: 1.5px solid rgba(0,229,255,0.25);
+      border-bottom: 1.5px solid rgba(0,229,255,0.25);
+      border-radius: 0 0 20px 20px;
+      overflow: hidden;
+      margin-top: 0; margin-bottom: 14px;
     }
-    .srch-stat-label {
+    .srch-hic-body {
+      display: flex; align-items: center; gap: 16px; padding: 18px 20px;
+    }
+    .srch-hic-icon { font-size: 28px; flex-shrink: 0; line-height: 1; color: #000000; }
+    .srch-hic-info { flex: 1; min-width: 0; }
+    .srch-hic-label {
       font-family: var(--font-mono); font-size: 9px; font-weight: 700;
-      letter-spacing: 1.8px; text-transform: uppercase;
-      color: var(--text-mid); margin-bottom: 6px;
+      letter-spacing: 2px; text-transform: uppercase;
+      color: rgba(0,0,0,0.70); margin-bottom: 4px;
     }
-    .srch-stat-val {
-      font-family: var(--font-head); font-size: 20px; font-weight: 800;
-      color: var(--cyan); line-height: 1; letter-spacing: -0.5px;
+    .srch-hic-val {
+      font-family: var(--font-head); font-size: 26px; font-weight: 800;
+      color: #000000; line-height: 1; letter-spacing: -0.5px;
     }
-    .srch-stat-val.gold { color: var(--gold-lt); }
-    .srch-stat-val.green { color: var(--green); }
-    .srch-stat-sub {
-      font-family: var(--font-mono); font-size: 10px;
-      color: var(--text-lo); margin-top: 3px;
+    .srch-hic-ton {
+      font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+      color: rgba(0,0,0,0.55); margin-top: 3px;
+    }
+    .srch-hic-belt {
+      background: rgba(0,0,0,0.08); padding: 8px 20px;
+      border-top: 1px solid rgba(0,0,0,0.15);
+    }
+    .srch-hic-belt-text {
+      font-family: var(--font-mono); font-size: 9px; font-weight: 700;
+      letter-spacing: 2px; text-transform: uppercase; color: rgba(0,0,0,0.55);
     }
 
-    /* Slots badge strip */
-    .srch-slots-wrap {
-      background: var(--glass-bg);
-      border: 1px solid var(--glass-bd);
-      border-radius: var(--radius-md);
-      padding: 14px 16px;
-      margin-bottom: 14px;
-      backdrop-filter: blur(14px);
+    /* 3. Direct Referral + Your Team — clone of .blue-stat-card */
+    .srch-blue-stat-row {
+      display: flex; flex-direction: column; gap: 0; margin-bottom: 14px;
     }
-    .srch-slots-label {
-      font-family: var(--font-mono); font-size: 9px; font-weight: 700;
-      letter-spacing: 1.8px; text-transform: uppercase;
-      color: var(--text-mid); margin-bottom: 10px;
+    .srch-blue-stat-card {
+      border-radius: 0; padding: 16px 20px;
+      display: flex; flex-direction: row;
+      align-items: center; justify-content: space-between;
+      gap: 14px; position: relative; overflow: hidden; min-height: 70px;
     }
-    .srch-slots-badges {
-      display: flex; flex-wrap: wrap; gap: 6px;
+    .srch-blue-stat-card:first-child {
+      background: #e8855c; border: none;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      border-radius: 20px 20px 0 0;
+      box-shadow: 0 4px 20px rgba(220,110,70,0.28), 0 1px 4px rgba(0,0,0,0.15);
     }
-    .srch-slot-badge {
-      font-family: var(--font-mono); font-size: 10px; font-weight: 700;
-      padding: 4px 10px; border-radius: 6px; letter-spacing: 0.5px;
+    .srch-blue-stat-card:last-child {
+      background: #f2c9bc; border: none;
+      border-top: 1px solid rgba(255,255,255,0.30);
+      border-radius: 0 0 20px 20px;
+      box-shadow: 0 6px 22px rgba(220,160,140,0.22), 0 1px 4px rgba(0,0,0,0.10);
     }
-    .srch-slot-badge.owned {
-      background: var(--cyan-dim);
-      border: 1px solid rgba(0,229,255,0.30);
-      color: var(--cyan);
+    .srch-blue-stat-header { display: flex; align-items: center; gap: 10px; }
+    .srch-blue-stat-icon { font-size: 17px; opacity: 0.75; color: rgba(0,0,0,0.45); line-height: 1; }
+    .srch-blue-stat-title {
+      font-family: var(--font-body); font-size: 13px; font-weight: 600;
+      color: rgba(0,0,0,0.55); letter-spacing: 0.2px;
     }
-    .srch-slot-badge.locked {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.07);
-      color: var(--text-lo);
+    .srch-blue-stat-num {
+      font-family: var(--font-head); font-size: 34px; font-weight: 800;
+      color: rgba(0,0,0,0.72); letter-spacing: -1px; line-height: 1; flex-shrink: 0;
+    }
+
+    /* 4. Slots grid — full-width dashboard mirror */
+    .srch-slots-section-label {
+      font-family: var(--font-mono); font-size: 10px; font-weight: 500;
+      color: var(--cyan); letter-spacing: 2px; text-transform: uppercase;
+      margin-bottom: 10px; margin-top: 4px; opacity: 0.8;
+    }
+    /* srch slots grid — purple level bar (mirrors #level-indicator-bar) */
+    #srch-slots-grid {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 5px;
+      padding: 12px 14px;
+      background: #6236d0;
+      border-radius: 10px;
+      width: 100%;
+      margin-bottom: 0;
+      box-shadow: 0 4px 18px rgba(98,54,208,0.38), 0 1px 4px rgba(0,0,0,0.22);
     }
 
     /* Downline section */
@@ -1615,63 +1711,69 @@
     }
 
     .gstat-grid {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
       margin-bottom: 20px;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(80,40,160,0.28), 0 2px 8px rgba(0,0,0,0.30);
     }
 
     .gstat-card {
-      background: var(--glass-bg);
-      border: 1px solid var(--glass-bd);
-      border-radius: var(--radius-lg);
-      backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
-      padding: 20px 16px 18px;
+      padding: 22px 22px 18px;
       position: relative; overflow: hidden;
-      transition: transform 0.2s ease, border-color 0.2s ease;
+      transition: transform 0.2s ease;
     }
     .gstat-card::before {
       content: ''; position: absolute; inset: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 60%);
+      background: linear-gradient(135deg, rgba(255,255,255,0.07) 0%, transparent 60%);
       pointer-events: none;
     }
-    .gstat-card.gold-card {
-      border-color: rgba(212,168,67,0.28);
-      background: linear-gradient(135deg, rgba(212,168,67,0.08) 0%, rgba(8,20,40,0.72) 100%);
-    }
+    /* Blue-Purple premium gradient for Total Active Users card (top) */
     .gstat-card.cyan-card {
-      border-color: rgba(0,229,255,0.22);
-      background: linear-gradient(135deg, rgba(0,229,255,0.07) 0%, rgba(8,20,40,0.72) 100%);
+      background: linear-gradient(135deg, #1a3a8a 0%, #2d1a6e 50%, #3d1060 100%);
+      border: none;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+      border-radius: 0;
+    }
+    /* Blue-Purple premium gradient for Total TON Distributed card (bottom) */
+    .gstat-card.gold-card {
+      background: linear-gradient(135deg, #3d1060 0%, #5a1a8a 50%, #1a2a7a 100%);
+      border: none;
+      border-radius: 0;
     }
 
     .gstat-card-icon {
-      width: 34px; height: 34px; border-radius: 10px;
+      width: 36px; height: 36px; border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
       margin-bottom: 14px;
     }
-    .gold-card .gstat-card-icon { background: rgba(212,168,67,0.18); }
-    .cyan-card .gstat-card-icon { background: rgba(0,229,255,0.14); }
+    .gold-card .gstat-card-icon { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18); }
+    .cyan-card .gstat-card-icon { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18); }
 
     .gstat-label {
-      font-family: var(--font-mono); font-size: 9.5px; font-weight: 500;
-      letter-spacing: 1.8px; text-transform: uppercase;
-      color: var(--text-mid); margin-bottom: 10px; line-height: 1.4;
+      font-family: var(--font-mono); font-size: 9.5px; font-weight: 600;
+      letter-spacing: 2px; text-transform: uppercase;
+      color: rgba(255,255,255,0.65); margin-bottom: 10px; line-height: 1.4;
     }
     .gstat-value {
-      font-family: var(--font-head); font-size: 26px; font-weight: 800;
-      line-height: 1; letter-spacing: -0.5px;
+      font-family: var(--font-head); font-size: 36px; font-weight: 800;
+      line-height: 1; letter-spacing: -1px;
     }
-    .gold-card .gstat-value { color: var(--gold-lt); }
-    .cyan-card .gstat-value { color: var(--cyan); }
+    .gold-card .gstat-value { color: #ffffff; text-shadow: 0 0 24px rgba(180,120,255,0.55); }
+    .cyan-card .gstat-value { color: #ffffff; text-shadow: 0 0 24px rgba(100,160,255,0.55); }
 
     .gstat-unit {
-      font-family: var(--font-mono); font-size: 11px; font-weight: 500;
-      margin-top: 5px;
+      font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+      margin-top: 6px;
     }
-    .gold-card .gstat-unit { color: rgba(212,168,67,0.65); }
-    .cyan-card .gstat-unit { color: rgba(0,229,255,0.55); }
+    .gold-card .gstat-unit { color: rgba(255,255,255,0.55); }
+    .cyan-card .gstat-unit { color: rgba(255,255,255,0.55); }
 
     .gstat-shimmer {
-      display: inline-block; width: 70px; height: 22px; border-radius: 6px;
-      background: linear-gradient(90deg, var(--glass-bd) 25%, rgba(255,255,255,0.08) 50%, var(--glass-bd) 75%);
+      display: inline-block; width: 90px; height: 30px; border-radius: 6px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.08) 25%, rgba(255,255,255,0.18) 50%, rgba(255,255,255,0.08) 75%);
       background-size: 200% 100%;
       animation: gstat-skeleton 1.4s ease infinite;
     }
@@ -1894,7 +1996,8 @@
       width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
       background: rgba(255,255,255,0.06);
       border: 1px solid rgba(255,255,255,0.10);
-      display: flex; align-items: center; justify-content: center;
+      display: none; /* hidden until wallet is connected */
+      align-items: center; justify-content: center;
       cursor: pointer; font-size: 20px; line-height: 1;
       color: var(--text-mid);
       transition: background var(--transition), border-color var(--transition), color var(--transition), transform 0.15s;
@@ -1937,7 +2040,7 @@
       </button>
       <span class="logo-text">CRYPTON</span>
       <div class="logo-id-capsule" id="logo-id-capsule" style="display:none;">
-        <span id="logo-tg-handle"></span><span id="logo-tg-id-sep" style="display:none;"> · </span><span id="logo-tg-id"></span>
+        <span id="logo-tg-handle"></span>
       </div>
     </div>
     <a class="header-tg-btn" href="https://t.me/CRYPTONDecentralizedOfficial" target="_blank" rel="noopener" aria-label="Join Telegram">
@@ -1969,7 +2072,7 @@
         <button class="btn-preview" onclick="enterPreviewMode()">
           <span class="eye-sym" aria-hidden="true"><span class="eye-arc-l">(</span><span class="eye-dot">&#9679;</span><span class="eye-arc-r">)</span></span> Preview Mode
         </button>
-        <p class="btn-preview-hint">Read-only · No wallet needed</p>
+
       </div>
     </div>
 
@@ -1994,8 +2097,9 @@
         <div class="dash-top">
           <div class="dash-avatar-dp" id="dash-avatar"></div>
           <div style="flex:1; min-width:0;">
-            <!-- id: + UID label — primary display in header row -->
-            <div class="dash-name" id="dash-name" style="font-family:var(--font-mono); font-size:11px; font-weight:700; color:rgba(5,13,26,0.55); -webkit-text-fill-color:rgba(5,13,26,0.55); letter-spacing:0.5px; text-transform:uppercase; margin-bottom:2px;">id:</div>
+            <!-- Registration sequence index — fetched from DB -->
+            <div id="dash-reg-index" style="font-family:var(--font-mono); font-size:10px; font-weight:700; color:rgba(5,13,26,0.52); -webkit-text-fill-color:rgba(5,13,26,0.52); letter-spacing:0.8px; text-transform:uppercase; margin-bottom:3px;">ID - #—</div>
+            <!-- UID value -->
             <div class="dash-id" id="dash-uid" style="font-family:var(--font-head); font-size:15px; font-weight:800; color:#050d1a; -webkit-text-fill-color:#050d1a; margin-top:0; letter-spacing:-0.3px;">—</div>
           </div>
           <!-- REF TON ticker — top-right corner of account card -->
@@ -2029,7 +2133,7 @@
       <span id="ref-link-network" style="display:none;"></span>
 
       <!-- ── LEVEL INDICATOR BAR ── -->
-      <div id="level-indicator-bar" style="display:none; flex-direction:row; align-items:center; background:#6236d0; border-radius:0px; padding:10px 14px; margin-top:14px; gap:4px; width:100%;">
+      <div id="level-indicator-bar" style="display:none; flex-direction:row; align-items:center; background:#6236d0; border-radius:10px; padding:12px 14px; margin-top:14px; gap:5px; width:100%; box-shadow:0 4px 18px rgba(98,54,208,0.38),0 1px 4px rgba(0,0,0,0.22);">
         <span class="lvl-label">Slots</span>
         <div class="lvl-cell" id="lvl-1">1</div>
         <div class="lvl-cell" id="lvl-2">2</div>
@@ -2093,6 +2197,79 @@
         </div>
         <div class="hic-belt">
           <span class="hic-belt-text">PASSIVE · MATRIX SPILLOVER</span>
+        </div>
+      </div>
+
+      <!-- ── LEADERBOARD CARD ── -->
+      <div id="lb-entry-card" onclick="openLeaderboardView()" style="
+        cursor:pointer;
+        margin-top:14px;
+        background: linear-gradient(160deg, rgba(107,80,53,0.55) 0%, rgba(90,65,40,0.62) 50%, rgba(74,52,30,0.68) 100%);
+        border: 1px solid rgba(160,120,72,0.45);
+        border-radius: var(--radius-lg);
+        padding: 18px 20px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+        -webkit-tap-highlight-color: transparent;
+        box-shadow: 0 4px 20px rgba(74,52,30,0.32), 0 2px 8px rgba(0,0,0,0.22);
+        position: relative;
+        overflow: hidden;
+        animation: none;
+      "
+      onmouseover="this.style.background='linear-gradient(160deg,rgba(122,92,60,0.68) 0%,rgba(105,78,48,0.75) 50%,rgba(88,62,34,0.82) 100%)';this.style.borderColor='rgba(180,138,84,0.65)';this.style.boxShadow='0 0 24px rgba(107,80,53,0.38),0 4px 14px rgba(0,0,0,0.26)';"
+      onmouseout="this.style.background='linear-gradient(160deg,rgba(107,80,53,0.55) 0%,rgba(90,65,40,0.62) 50%,rgba(74,52,30,0.68) 100%)';this.style.borderColor='rgba(160,120,72,0.45)';this.style.boxShadow='0 4px 20px rgba(74,52,30,0.32),0 2px 8px rgba(0,0,0,0.22)';"
+      onmousedown="this.style.transform='scale(0.97)'"
+      onmouseup="this.style.transform='scale(1)'"
+      ontouchstart="this.style.transform='scale(0.97)'"
+      ontouchend="this.style.transform='scale(1)'">
+        <!-- Left: Trophy icon + title -->
+        <div style="display:flex; align-items:center; gap:14px;">
+          <!-- Realistic SVG Trophy -->
+          <div style="
+            width:46px; height:46px; border-radius:13px; flex-shrink:0;
+            background: rgba(107,80,53,0.50);
+            border: 1px solid rgba(160,120,72,0.42);
+            display:flex; align-items:center; justify-content:center;
+          ">
+            <svg width="26" height="26" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Cup body -->
+              <path d="M20 8 H44 L40 36 C40 40 36 44 32 44 C28 44 24 40 24 36 Z" fill="url(#tgold1)" />
+              <!-- Handles -->
+              <path d="M20 12 C12 12 10 22 16 26 C18 27 20 27 20 27" stroke="url(#tgold2)" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+              <path d="M44 12 C52 12 54 22 48 26 C46 27 44 27 44 27" stroke="url(#tgold2)" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+              <!-- Stem -->
+              <rect x="29" y="44" width="6" height="8" rx="2" fill="url(#tgold1)"/>
+              <!-- Base -->
+              <rect x="22" y="52" width="20" height="5" rx="2.5" fill="url(#tgold2)"/>
+              <!-- Shine streak -->
+              <path d="M26 13 L24 30" stroke="rgba(255,255,255,0.35)" stroke-width="2.5" stroke-linecap="round"/>
+              <!-- Star on cup -->
+              <path d="M32 16 L33.2 20 H37.2 L34 22.4 L35.2 26.4 L32 24 L28.8 26.4 L30 22.4 L26.8 20 H30.8 Z" fill="rgba(255,255,255,0.55)"/>
+              <defs>
+                <linearGradient id="tgold1" x1="20" y1="8" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#f0c96a"/>
+                  <stop offset="50%" stop-color="#d4a843"/>
+                  <stop offset="100%" stop-color="#b8882a"/>
+                </linearGradient>
+                <linearGradient id="tgold2" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#f0c96a"/>
+                  <stop offset="100%" stop-color="#c49632"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <div>
+            <div style="font-family:var(--font-head); font-size:16px; font-weight:800; color:#e8c99a; letter-spacing:-0.3px; line-height:1.2;">Leaderboard</div>
+            <div style="font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:rgba(200,160,100,0.70); margin-top:4px;">TOP EARNERS · CRYPTON</div>
+          </div>
+        </div>
+        <!-- Right: view link -->
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0;">
+          <span style="font-family:var(--font-mono); font-size:10px; font-weight:700; color:#e8c99a; letter-spacing:0.5px; opacity:0.85;">view →</span>
         </div>
       </div>
 
@@ -2205,7 +2382,51 @@
     </section>
   </div>
 
-</div><!-- /app -->
+
+
+<!-- ══════════ VIEW: LEADERBOARD (isolated sub-page) ══════════ -->
+<div class="view" id="view-leaderboard" style="padding-bottom:96px;">
+  <button class="view-back-btn" id="back-leaderboard" onclick="switchView('home')">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Home
+  </button>
+  <section>
+
+    <!-- Hero trophy — large, bare, no box/border/shadow -->
+    <div style="display:flex; flex-direction:column; align-items:center; padding:28px 0 10px;">
+      <div style="margin-bottom:16px; line-height:1; display:flex; align-items:center; justify-content:center;">
+        <svg width="130" height="130" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M18 7 H46 L41 37 C41 42 37 46 32 46 C27 46 23 42 23 37 Z" fill="url(#lbtg1)" />
+          <path d="M18 11 C9 11 7 23 14 28 C16.5 29.5 18 29.5 18 29.5" stroke="url(#lbtg2)" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <path d="M46 11 C55 11 57 23 50 28 C47.5 29.5 46 29.5 46 29.5" stroke="url(#lbtg2)" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <rect x="29" y="46" width="6" height="8" rx="2" fill="url(#lbtg1)"/>
+          <rect x="20" y="54" width="24" height="6" rx="3" fill="url(#lbtg2)"/>
+          <path d="M25 13 L23 32" stroke="rgba(255,255,255,0.30)" stroke-width="3" stroke-linecap="round"/>
+          <path d="M32 15 L33.8 21 H40 L34.8 24.8 L36.6 30.8 L32 27 L27.4 30.8 L29.2 24.8 L24 21 H30.2 Z" fill="rgba(255,255,255,0.55)"/>
+          <defs>
+            <linearGradient id="lbtg1" x1="18" y1="7" x2="46" y2="46" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#f5d070"/>
+              <stop offset="50%" stop-color="#d4a843"/>
+              <stop offset="100%" stop-color="#a87628"/>
+            </linearGradient>
+            <linearGradient id="lbtg2" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#f0c96a"/>
+              <stop offset="100%" stop-color="#c49632"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div style="font-family:var(--font-head); font-size:26px; font-weight:800; letter-spacing:-0.5px; background:linear-gradient(90deg,var(--gold-lt),var(--cyan)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Leaderboard</div>
+      <div style="font-family:var(--font-mono); font-size:11px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:rgba(212,168,67,0.65); margin-top:6px;">View Top 10</div>
+    </div>
+
+    <!-- Top 10 list — injected by JS -->
+    <div id="lb-view-content" style="margin-top:6px;">
+      <div class="lb-loading">Fetching top earners…</div>
+    </div>
+
+  </section>
+</div>
 
 <!-- ══════════ VIEW: SEARCH ══════════ -->
 <div class="view" id="view-search" style="padding-bottom: 96px;">
@@ -2217,10 +2438,9 @@
     <!-- Search components wrapper (hidden when leaderboard is open) -->
     <div id="srch-main-wrap">
 
-    <!-- Top bar: label left, trophy icon right -->
+    <!-- Top bar: label left only -->
     <div class="srch-topbar">
       <p class="section-label" style="display:flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> PUBLIC LOOKUP</p>
-      <button class="btn-trophy" id="btn-open-lb" onclick="openLeaderboard()" aria-label="View Leaderboard" style="display:flex;flex-direction:column;align-items:center;gap:2px;height:auto;padding:6px 10px;width:auto;">🏆<span style="font-family:var(--font-mono);font-size:8px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--gold-lt);margin-top:1px;">Leaderboard</span></button>
     </div>
 
     <!-- Search Input -->
@@ -2251,47 +2471,96 @@
     <!-- Result area — shown after a successful query -->
     <div id="srch-result-area">
 
-      <!-- Profile card -->
-      <div class="srch-profile-card" id="srch-profile-card">
-        <div class="srch-avatar" id="srch-avatar"></div>
-        <div>
-          <div class="srch-name" id="srch-name">—</div>
-          <div class="srch-uid" id="srch-uid-display">UID: —</div>
+      <!-- ── READ-ONLY MODE BANNER (hidden — text removed) ── -->
+      <div id="srch-readonly-banner" style="display:none;"></div>
+
+      <!-- Read-only wrapper — pointer-events disabled on all interactive elements -->
+      <div style="pointer-events:none; user-select:none;">
+
+      <!-- ① YOUR ACCOUNT — gold card (mirrors dashboard #dashboard > .card:first-of-type) -->
+      <div class="srch-account-card">
+        <div class="srch-account-top">
+          <div class="srch-avatar" id="srch-avatar"></div>
+          <div style="flex:1; min-width:0;">
+            <!-- Registration sequence index — matches dashboard dash-reg-index -->
+            <div id="srch-reg-index" style="font-family:var(--font-mono); font-size:10px; font-weight:700; color:rgba(5,13,26,0.52); -webkit-text-fill-color:rgba(5,13,26,0.52); letter-spacing:0.8px; text-transform:uppercase; margin-bottom:3px;">ID - #—</div>
+            <div class="srch-uid" id="srch-uid-display">TG ID: —</div>
+            <div class="srch-name" id="srch-name">—</div>
+          </div>
+          <div class="srch-account-ton-corner">
+            <span class="srch-account-ton-label">total TON ⛁</span>
+            <span class="srch-account-ton-val" id="srch-total-ton">0</span>
+          </div>
+        </div>
+        <div class="srch-account-wallet-row">
+          <div style="flex:1; min-width:0;">
+            <div class="srch-account-wallet-label">REGISTERED USER</div>
+            <div class="srch-account-wallet-val" id="srch-wallet-val">—</div>
+          </div>
         </div>
       </div>
 
-      <!-- Slot status -->
-      <div class="srch-slots-wrap">
-        <div class="srch-slots-label">Slot Status</div>
-        <div class="srch-slots-badges" id="srch-slots-badges"></div>
-      </div>
-
-      <!-- Stats 2×2 grid -->
-      <div class="srch-stats-grid">
-        <div class="srch-stat-card">
-          <div class="srch-stat-label">Working Income</div>
-          <div class="srch-stat-val" id="srch-working-val">0</div>
-          <div class="srch-stat-sub" id="srch-working-sub">TON</div>
-        </div>
-        <div class="srch-stat-card">
-          <div class="srch-stat-label">Non-Working Income</div>
-          <div class="srch-stat-val gold" id="srch-passive-val">0</div>
-          <div class="srch-stat-sub" id="srch-passive-sub">TON</div>
-        </div>
-        <div class="srch-stat-card">
-          <div class="srch-stat-label">Direct Referral</div>
-          <div class="srch-stat-val green" id="srch-direct-val">0</div>
-          <div class="srch-stat-sub">members</div>
-        </div>
-        <div class="srch-stat-card">
-          <div class="srch-stat-label">Your Team</div>
-          <div class="srch-stat-val" id="srch-team-val">0</div>
-          <div class="srch-stat-sub">total</div>
+      <!-- ② SLOTS — purple level bar (mirrors home #level-indicator-bar) -->
+      <div style="margin-top:14px; margin-bottom:14px;">
+        <p style="font-family:var(--font-mono); font-size:10px; font-weight:500; color:var(--cyan); letter-spacing:2px; text-transform:uppercase; margin-bottom:10px; margin-top:4px; opacity:0.8;">MATRIX SLOTS</p>
+        <div id="srch-slots-grid" style="
+          display:flex; flex-direction:row; align-items:center;
+          background:#6236d0; border-radius:10px;
+          padding:12px 14px; gap:5px; width:100%;
+        ">
+          <!-- Injected by renderSrchSlots() -->
         </div>
       </div>
 
-      <!-- Downline team list -->
-      <div class="srch-downline-header">Downline Team</div>
+      <!-- ③ DIRECT REFERRAL + YOUR TEAM (card 3 per spec) -->
+      <div class="srch-blue-stat-row">
+        <div class="srch-blue-stat-card">
+          <div class="srch-blue-stat-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+            <span class="srch-blue-stat-title">Direct Referral</span>
+          </div>
+          <div class="srch-blue-stat-num" id="srch-direct-val">0</div>
+        </div>
+        <div class="srch-blue-stat-card">
+          <div class="srch-blue-stat-header">
+            <svg width="22" height="20" viewBox="0 0 28 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M20 11c2.2 0 3.9-1.8 3.9-4S22.2 3 20 3c-2.2 0-3.9 1.8-3.9 4s1.7 4 3.9 4zm-12 0c2.2 0 3.9-1.8 3.9-4S10.2 3 8 3C5.8 3 4.1 4.8 4.1 7s1.7 4 3.9 4zm0 2c-2.7 0-8 1.3-8 4v2h16v-2c0-2.7-5.3-4-8-4zm12 0c-.3 0-.7 0-1 .1 1.2.9 2 2.1 2 3.9v2h6v-2c0-2.7-5.3-4-7-4z"/></svg>
+            <span class="srch-blue-stat-title">Your Team</span>
+          </div>
+          <div class="srch-blue-stat-num" id="srch-team-val">0</div>
+        </div>
+      </div>
+
+      <!-- ④ WORKING INCOME (card 4a per spec) -->
+      <div class="srch-income-working">
+        <div class="srch-hic-body">
+          <div class="srch-hic-icon">❂</div>
+          <div class="srch-hic-info">
+            <div class="srch-hic-label">WORKING INCOME</div>
+            <div class="srch-hic-val" id="srch-working-val">0.00</div>
+            <div class="srch-hic-ton" id="srch-working-sub">TON</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ④ NON-WORKING INCOME (card 4b per spec) -->
+      <div class="srch-income-nonworking">
+        <div class="srch-hic-body">
+          <div class="srch-hic-icon">♾</div>
+          <div class="srch-hic-info">
+            <div class="srch-hic-label">NON WORKING INCOME</div>
+            <div class="srch-hic-val" id="srch-passive-val">0.00</div>
+            <div class="srch-hic-ton" id="srch-passive-sub">TON</div>
+          </div>
+        </div>
+        <div class="srch-hic-belt">
+          <span class="srch-hic-belt-text">PASSIVE · MATRIX SPILLOVER</span>
+        </div>
+      </div>
+
+      </div><!-- /read-only wrapper -->
+
+      <!-- Downline team list (outside read-only so scrolling still works) -->
+      <div class="srch-downline-header" style="margin-top:14px;">Downline Team</div>
       <div id="srch-downline-inner">
         <div class="ref-list-loading">Loading team…</div>
       </div>
@@ -2341,7 +2610,7 @@
       </div>
       <div>
         <div class="gstat-header-title">Global Stats</div>
-        <div class="gstat-header-sub">LIVE PLATFORM AGGREGATES</div>
+        <div class="gstat-header-sub"></div>
       </div>
     </div>
 
@@ -2378,7 +2647,7 @@
         ">🔍</div>
         <div>
           <div style="font-family:var(--font-head);font-size:15px;font-weight:800;color:var(--cyan);letter-spacing:-0.3px;">View User ༚</div>
-          <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-lo);letter-spacing:1px;margin-top:3px;text-transform:uppercase;">Search by Telegram ID</div>
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-lo);letter-spacing:1px;margin-top:3px;text-transform:uppercase;"></div>
         </div>
       </div>
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.65;flex-shrink:0;"><path d="M9 18l6-6-6-6"/></svg>
@@ -2400,7 +2669,7 @@
       <!-- Total Active Users -->
       <div class="gstat-card cyan-card">
         <div class="gstat-card-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         </div>
         <div class="gstat-label">Total Active<br>Users</div>
         <div class="gstat-value" id="gstat-user-count"><span class="gstat-shimmer"></span></div>
@@ -2410,7 +2679,7 @@
       <!-- Total TON Distributed -->
       <div class="gstat-card gold-card">
         <div class="gstat-card-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold-lt)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
         </div>
         <div class="gstat-label">Total TON<br>Distributed</div>
         <div class="gstat-value" id="gstat-ton-total"><span class="gstat-shimmer"></span></div>
@@ -2432,11 +2701,7 @@
     Back
   </button>
 
-  <!-- Read-only badge strip -->
-  <div class="pv-badge-strip">
-    <span class="pv-badge pv-badge-ro">Read-Only</span>
-    <span class="pv-badge pv-badge-lock">🔒 Wallet Not Connected</span>
-  </div>
+
 
   <section>
 
@@ -2452,13 +2717,12 @@
     <!-- Search wrapper (toggled by trophy btn) -->
     <div id="pv-srch-main-wrap">
 
-      <!-- Topbar: label + trophy -->
+      <!-- Topbar: label only -->
       <div class="srch-topbar">
         <p class="section-label" style="display:flex;align-items:center;gap:6px;margin-bottom:0;">
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           PUBLIC LOOKUP
         </p>
-        <button class="btn-trophy" id="pv-btn-open-lb" onclick="pvOpenLeaderboard()" aria-label="View Leaderboard" style="display:flex;flex-direction:column;align-items:center;gap:2px;height:auto;padding:6px 10px;width:auto;">🏆<span style="font-family:var(--font-mono);font-size:8px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--gold-lt);margin-top:1px;">Leaderboard</span></button>
       </div>
 
       <!-- Search input -->
@@ -2591,7 +2855,7 @@
       </div>
       <div>
         <div class="dir-header-title">All Users</div>
-        <div class="dir-header-sub">GLOBAL MEMBERS DIRECTORY</div>
+        <div class="dir-header-sub"></div>
       </div>
     </div>
 
@@ -2630,7 +2894,7 @@
   </button>
   <button class="fab-menu-item" id="fmi-referral" onclick="switchView('referral')">
     <span class="fab-menu-icon">◈</span>
-    <span>𖤫 network</span>
+    <span>network</span>
   </button>
   <button class="fab-menu-item" id="fmi-search" onclick="switchView('search')">
     <span class="fab-menu-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
@@ -2929,24 +3193,25 @@ function handleWalletConnected(rawAddress) {
   if (heroEl) heroEl.style.display = 'none';
   if (dashEl) dashEl.style.display = 'block';
 
+  // ── Show hamburger menu button now that wallet is connected ──
+  const menuBtn = document.getElementById('header-menu-btn');
+  if (menuBtn) menuBtn.style.display = 'flex';
+
   // ── Show and update level indicator bar ──
   const lvlBar = document.getElementById('level-indicator-bar');
   if (lvlBar) { lvlBar.style.display = 'flex'; updateLevelBar(); }
 
   // ── Safely set dashboard UI elements (they live inside #dashboard) ──
+  // NOTE: dash-name element was removed in design cleanup — removed to prevent DOM Exception.
+  // NOTE: dashAvatarEl and joinDateEl are handled by loginUser() after Firestore loads.
   const walletDisplayEl = document.getElementById('wallet-display');
-  const dashAvatarEl    = document.getElementById('dash-avatar');
-  const dashNameEl      = document.getElementById('dash-name');
   const dashUidEl       = document.getElementById('dash-uid');
-  const joinDateEl      = document.getElementById('join-date');
   const refLinkEl       = document.getElementById('ref-link');
 
   if (walletDisplayEl) walletDisplayEl.textContent = short;
-  // Avatar will be set by _updateDashAvatar() after loginUser loads TG data
-  // dash-name is now a static "id:" label — do not overwrite it
+  // Avatar set by _updateDashAvatar() after loginUser() loads TG photo from Firestore
   if (dashUidEl)       dashUidEl.textContent       = state.tgNumericId || state.userId || '—';
-  if (joinDateEl)      joinDateEl.textContent      =
-    new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  // joinDate filled by loginUser() from Firestore — never overwrite with today's date here
   // Use tgNumericId for referral link so bot can match via start_param
   const refId = state.tgNumericId || state.userId;
   if (refLinkEl)       refLinkEl.textContent       = `https://t.me/CryptonOfficialBot/app?startapp=${refId}`;
@@ -3025,11 +3290,19 @@ function handleWalletDisconnected() {
   const logoIdCapsule = document.getElementById('logo-id-capsule');
   if (logoIdCapsule) logoIdCapsule.style.display = 'none';
 
+  // ── Hide hamburger menu button until wallet reconnects ──
+  const menuBtnDis = document.getElementById('header-menu-btn');
+  if (menuBtnDis) menuBtnDis.style.display = 'none';
+
   // ── Reset dash avatar ──
   const dashAv = document.getElementById('dash-avatar');
   if (dashAv) dashAv.innerHTML = '';
 
   resetStats();
+  // Clear slot fill data so re-connecting shows clean state
+  Object.keys(slotFill).forEach(k => delete slotFill[k]);
+  state.ownedSlots = [];
+  renderSlots();
 }
 
 function resetStats() {
@@ -3062,7 +3335,7 @@ function resetStats() {
 // ──────────────────────────────────────────────────────────────
 // STATS UI — earnings in both TON + USD
 // ──────────────────────────────────────────────────────────────
-function tonToUsd(ton) { return TON_TO_USD ? (ton * TON_TO_USD).toFixed(2) : '—'; }
+function tonToUsd(ton) { return TON_TO_USD ? (ton * TON_TO_USD).toFixed(2) : '0.00'; }
 function fmtTon(ton)   { return ton % 1 === 0 ? ton.toFixed(0) : ton.toFixed(2); }
 
 // ──────────────────────────────────────────────────────────────
@@ -3151,33 +3424,33 @@ function buildMatrixSVG(level, isGold, filled) {
   const isFull   = isOwned && filled >= 6;
 
   // Color palette based on slot state
-  let cStroke, cFill, cText, cLine, cYouStroke, cYouFill, cYouText;
+  let cStroke, cFill, cText, cLine;
 
-  if (isGold) {
+  if (!isOwned) {
+    // LOCKED / NOT YET BOUGHT — clean neutral white
+    cStroke    = 'rgba(255,255,255,0.18)';
+    cFill      = 'rgba(255,255,255,0.04)';
+    cText      = 'rgba(255,255,255,0.35)';
+    cLine      = 'rgba(255,255,255,0.10)';
+  } else if (isGold) {
     cStroke    = '#d4a843';
     cFill      = 'rgba(212,168,67,0.18)';
     cText      = '#f0c96a';
     cLine      = 'rgba(212,168,67,0.55)';
-    cYouStroke = '#b070c8';
-    cYouFill   = 'rgba(180,120,210,0.18)';
-    cYouText   = '#d090e0';
   } else {
-    cStroke    = '#00e5ff';
-    cFill      = 'rgba(0,229,255,0.14)';
-    cText      = '#00e5ff';
-    cLine      = 'rgba(0,229,255,0.50)';
-    cYouStroke = '#b070c8';
-    cYouFill   = 'rgba(180,120,210,0.18)';
-    cYouText   = '#d090e0';
+    cStroke    = '#22c55e';
+    cFill      = 'rgba(34,197,94,0.14)';
+    cText      = '#22c55e';
+    cLine      = 'rgba(34,197,94,0.50)';
   }
 
-  // All nodes use full brightness — status only shown via badges, not node dimming
-  const cStrokeDim = cStroke;
-  const cFillDim   = cFill;
-  const cTextDim   = cText;
+  // YOU node — GREEN when active, neutral when locked
+  const cYouStroke = isOwned ? '#22c55e' : 'rgba(255,255,255,0.20)';
+  const cYouFill   = isOwned ? 'rgba(34,197,94,0.22)' : 'rgba(255,255,255,0.05)';
+  const cYouText   = isOwned ? '#4ade80' : 'rgba(255,255,255,0.30)';
 
   const glowID = `glow-${level}`;
-  const glowColor = isGold ? '#d4a843' : '#00e5ff';
+  const glowColor = isOwned ? (isGold ? '#d4a843' : '#22c55e') : 'rgba(255,255,255,0.15)';
 
   // Node positions — larger circles for clarity
   const YOU= {x:60, y:14, r:13};
@@ -3192,12 +3465,17 @@ function buildMatrixSVG(level, isGold, filled) {
   const n3F   = filled>=3, n5F   = filled>=4;
   const n4F   = filled>=5, n6F   = filled>=6;
 
+  // Dynamic green fill for referral nodes — node 1 = 1st referral, node 2 = 2nd referral
+  const greenStroke = '#22c55e';
+  const greenFill   = 'rgba(34,197,94,0.22)';
+  const greenText   = '#4ade80';
+
   function circ(node, isFilled, label) {
-    const stroke  = cStroke;
-    const bg      = isFilled ? cFill : cFillDim;
-    const numCol  = cText;
+    const stroke  = (isOwned && isFilled) ? greenStroke : cStroke;
+    const bg      = (isOwned && isFilled) ? greenFill   : cFill;
+    const numCol  = (isOwned && isFilled) ? greenText   : cText;
     const sw      = '2.0';
-    const gFilter = `filter="url(#${glowID})"`;
+    const gFilter = (isOwned && isFilled) ? `filter="url(#${glowID})"` : '';
     const fs      = node.r >= 13 ? '9' : '8.5';
     return `
       <circle cx="${node.x}" cy="${node.y}" r="${node.r}"
@@ -3219,7 +3497,7 @@ function buildMatrixSVG(level, isGold, filled) {
 
   const youNode = `
     <circle cx="${YOU.x}" cy="${YOU.y}" r="${YOU.r}"
-      fill="${cYouFill}" stroke="${cYouStroke}" stroke-width="2.0" filter="url(#${glowID})"/>
+      fill="${cYouFill}" stroke="${cYouStroke}" stroke-width="2.2" ${isOwned ? `filter="url(#${glowID})"` : ''}/>
     <text x="${YOU.x}" y="${YOU.y}" font-size="8.5"
       text-anchor="middle" dominant-baseline="central"
       fill="${cYouText}"
@@ -3255,8 +3533,11 @@ function renderSlots() {
 
   SLOTS.forEach(slot => {
     const owned   = state.ownedSlots.includes(slot.level);
-    // SEQUENTIAL LOCK: level N locked unless level N-1 is owned (level 1 always available)
-    const locked  = !owned && slot.level > 1 && !state.ownedSlots.includes(slot.level - 1);
+    // SEQUENTIAL LOCK: ALL unowned slots show as LOCKED until purchased.
+    // Level 1 is buyable (not hard-locked) but visually shows LOCKED badge until bought.
+    // Level N is hard-locked unless Level N-1 is owned.
+    const hardLocked = !owned && (slot.level > 1 && !state.ownedSlots.includes(slot.level - 1));
+    const locked     = !owned; // every unowned slot shows LOCKED status visually
     const filled  = getFilledCount(slot.level);
     const isFull  = owned && filled >= 6;
     const dist    = calculateIncomeDistribution(slot.price);
@@ -3268,18 +3549,18 @@ function renderSlots() {
     else if (isFull)  cardClass += ' full-card' + (slot.gold ? ' premium' : '');
     else if (owned)   cardClass += ' active-card' + (slot.gold ? ' premium' : '');
 
-    // Status badge
+    // Status badge — all unowned slots show LOCKED
     let badge = '', badgeClass = '';
     if (locked)      { badge='LOCKED';  badgeClass='badge-locked'; }
     else if (isFull) { badge='RECYCLE'; badgeClass='badge-full'; }
     else if (owned)  { badge='ACTIVE';  badgeClass='badge-active'; }
-    else             { badge='BUY';     badgeClass='badge-buy'; }
 
-    // Button
+    // Button — Level 1 is clickable (shows BUY flow), higher levels hard-locked
     let btnClass='', btnLabel='ACTIVATE', btnDisabled='';
-    if (isFull)      { btnClass='upgrade'; btnLabel='⬆ UPGRADE'; }
-    else if (owned)  { btnClass='owned';   btnLabel='✓ ACTIVE'; btnDisabled='disabled'; }
-    else if (locked) { btnClass='locked';  btnLabel='LOCKED'; btnDisabled='disabled'; }
+    if (isFull)           { btnClass='upgrade'; btnLabel='⬆ UPGRADE'; }
+    else if (owned)       { btnClass='owned';   btnLabel='✓ ACTIVE'; btnDisabled='disabled'; }
+    else if (hardLocked)  { btnClass='locked';  btnLabel='LOCKED'; btnDisabled='disabled'; }
+    else                  { btnClass='';        btnLabel='BUY NOW'; } // Level 1 & next unlockable
 
     const onclick = isFull ? `showUpgradeModal(${slot.level})` : `buySlot(${slot.level},${slot.price})`;
 
@@ -3488,10 +3769,11 @@ async function buySlot(level, priceTon) {
         card.classList.add(slotDef && slotDef.gold ? 'flash-gold' : 'flash-cyan');
         setTimeout(() => card.classList.remove('flash-gold','flash-cyan'), 800);
       }
-      // update rank ticker
-      if (_tickerSeeded && state.tgUsername) {
-        const idx = _tickerData.findIndex(r => r.tgId === state.tgUsername);
-        if (idx === -1) _tickerData.push({ tgId: state.tgUsername, earnedTon: state.earnedTon||0 });
+      // update rank ticker with numeric UID
+      if (_tickerSeeded && (state.tgNumericId || state.userId)) {
+        const myUid = String(state.tgNumericId || state.userId);
+        const idx = _tickerData.findIndex(r => r.tgId === myUid);
+        if (idx === -1) _tickerData.push({ tgId: myUid, earnedTon: state.earnedTon||0 });
         else            _tickerData[idx].earnedTon = state.earnedTon||0;
         _tickerData.sort((a,b) => b.earnedTon - a.earnedTon);
         renderTicker();
@@ -3611,6 +3893,26 @@ async function loginUser(walletAddress) {
       dashUidFromLogin.textContent = data.tgId || tgIdFromSDK;
     }
 
+    // ── Fetch & display registration sequence index (ID - #N) ─────────────
+    (async () => {
+      try {
+        const regIndexEl = document.getElementById('dash-reg-index');
+        if (!regIndexEl) return;
+        const { collection: col, query: q, orderBy: oBy, getDocs: gDocs } = window.__fs;
+        const allQ   = q(col(db, 'users'), oBy('registeredAt', 'asc'));
+        const allSnap = await gDocs(allQ);
+        let seqNum = null;
+        let pos = 1;
+        allSnap.forEach(d => {
+          if (d.id === tgIdFromSDK) seqNum = pos;
+          pos++;
+        });
+        if (seqNum) regIndexEl.textContent = 'ID - #' + seqNum;
+      } catch(e) {
+        console.warn('[RegIndex] Could not fetch sequence:', e.message);
+      }
+    })();
+
     // ── Restore slotFill from saved data ──────────────────────────────────
     if (data.slotFill && typeof data.slotFill === 'object') {
       Object.assign(slotFill, data.slotFill);
@@ -3672,16 +3974,17 @@ async function loginUser(walletAddress) {
     console.log('[Firebase] Wallet address merged into tgId doc:', tgIdFromSDK, '←', walletAddress);
 
     state.userId = userId;
-    const refLinkEl3 = document.getElementById('ref-link');
-    if (refLinkEl3) refLinkEl3.textContent = `https://t.me/CryptonOfficialBot/app?startapp=${refId2}`;
-    const refLinkNetEl3 = document.getElementById('ref-link-network');
-    if (refLinkNetEl3) refLinkNetEl3.textContent = `https://t.me/CryptonOfficialBot/app?startapp=${refId2}`;
-    const dashUidEl = document.getElementById('dash-uid');
-    if (dashUidEl) dashUidEl.textContent = 'TG ID: ' + (state.tgNumericId || userId);
-    const refLinkEl = document.getElementById('ref-link');
-    if (refLinkEl)  refLinkEl.textContent = `https://t.me/CryptonOfficialBot/app?startapp=${userId}`;
-    const refLinkNetEl2 = document.getElementById('ref-link-network');
-    if (refLinkNetEl2) refLinkNetEl2.textContent = `https://t.me/CryptonOfficialBot/app?startapp=${userId}`;
+
+    // ── Set referral link exactly ONCE — prefer tgNumericId over walletUserId ──
+    // refId2 = tgNumericId || userId (already computed above); this is the canonical value.
+    // Previous code wrote the link twice with different IDs — second write (userId only)
+    // would immediately overwrite the tgNumericId-based link, breaking bot deep-link matching.
+    const _refLinkEl    = document.getElementById('ref-link');
+    const _refLinkNetEl = document.getElementById('ref-link-network');
+    const _dashUidEl    = document.getElementById('dash-uid');
+    if (_refLinkEl)    _refLinkEl.textContent    = `https://t.me/CryptonOfficialBot/app?startapp=${refId2}`;
+    if (_refLinkNetEl) _refLinkNetEl.textContent = `https://t.me/CryptonOfficialBot/app?startapp=${refId2}`;
+    if (_dashUidEl)    _dashUidEl.textContent    = 'TG ID: ' + (state.tgNumericId || userId);
 
     _updateDashAvatar();
     updateStatsUI();
@@ -3854,7 +4157,7 @@ function switchView(name) {
   if (view) view.classList.add('active');
 
   // Show/hide back buttons in non-home views
-  ['matrix','referral','profile','search','stats','preview','users'].forEach(n => {
+  ['matrix','referral','profile','search','stats','preview','users','leaderboard'].forEach(n => {
     const btn = document.getElementById('back-' + n);
     if (btn) btn.style.display = (name === n) ? 'flex' : 'none';
   });
@@ -4030,6 +4333,9 @@ function resetSearchView() {
   document.getElementById('srch-result-area').style.display = 'none';
   document.getElementById('srch-empty-state').style.display = 'block';
   document.getElementById('srch-loading-state').style.display = 'none';
+  // Hide read-only banner
+  const roBanner = document.getElementById('srch-readonly-banner');
+  if (roBanner) roBanner.style.display = 'none';
   // Always close leaderboard panel when search view resets
   const lbPanel   = document.getElementById('srch-lb-panel');
   const mainWrap  = document.getElementById('srch-main-wrap');
@@ -4194,6 +4500,12 @@ function pvResetSearch() {
   if (load) load.style.display = 'none';
 }
 
+// ── Global TON formatter (used by pvDoSearch downline + other places) ──
+function fmtTonLocal(v) {
+  const n = typeof v === 'number' ? v : 0;
+  return n >= 1000 ? (n/1000).toFixed(2) + 'K' : n.toFixed(2);
+}
+
 async function pvDoSearch() {
   const input = document.getElementById('pv-srch-uid-input');
   const uid   = input ? input.value.trim() : '';
@@ -4282,10 +4594,6 @@ async function pvDoSearch() {
     }
 
     // Stats
-    const fmtTonLocal = v => {
-      const n = typeof v === 'number' ? v : 0;
-      return n >= 1000 ? (n/1000).toFixed(2) + 'K' : n.toFixed(2);
-    };
     const working = userData.workingTon || 0;
     const passive = userData.passiveTon || 0;
     const dirRef  = typeof userData.referrals === 'number' ? userData.referrals : 0;
@@ -4424,6 +4732,46 @@ async function pvFetchLeaderboard() {
   }
 }
 
+// ──────────────────────────────────────────────────────────────
+// SEARCH RESULT SLOT BAR — purple level indicator (mirrors home #level-indicator-bar)
+// Active/owned slots highlighted in green, others dimmed.
+// ──────────────────────────────────────────────────────────────
+function renderSrchSlots(ownedSlots, slotFillMap) {
+  const grid = document.getElementById('srch-slots-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  // "Slots" label — matches .lvl-label styling
+  const label = document.createElement('span');
+  label.style.cssText = 'font-family:var(--font-mono);font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-right:8px;white-space:nowrap;flex-shrink:0;';
+  label.textContent = 'Slots';
+  grid.appendChild(label);
+
+  for (let level = 1; level <= 10; level++) {
+    const owned = Array.isArray(ownedSlots) && ownedSlots.includes(level);
+    const cell  = document.createElement('div');
+    cell.style.cssText = [
+      'flex:1',
+      'display:flex',
+      'align-items:center',
+      'justify-content:center',
+      'height:40px',
+      'font-family:var(--font-head)',
+      'font-size:14px',
+      'font-weight:800',
+      'border-radius:6px',
+      'letter-spacing:-0.3px',
+      'pointer-events:none',
+      'cursor:default',
+      owned
+        ? 'background:#22c55e;color:#ffffff;box-shadow:0 0 10px rgba(34,197,94,0.55),0 2px 6px rgba(0,0,0,0.3);'
+        : 'background:rgba(0,0,0,0.18);color:rgba(255,255,255,0.35);'
+    ].join(';');
+    cell.textContent = level;
+    grid.appendChild(cell);
+  }
+}
+
 async function doSearchUser() {
   const input   = document.getElementById('srch-uid-input');
   const uid     = (input ? input.value.trim() : '');
@@ -4438,24 +4786,27 @@ async function doSearchUser() {
 
   try {
     await waitForFirestore();
-    const { doc, getDoc, collection, query, where, getDocs } = window.__fs;
+    const { doc, getDoc, collection, query, where, orderBy, getDocs } = window.__fs;
     const db = window.__db;
 
     // Primary lookup: document keyed by tgId
     let userData = null;
     let docId    = uid;
+    let resolvedDocId = uid; // the Firestore document ID (used for regIndex query)
 
     const snap = await getDoc(doc(db, 'users', uid));
     if (snap.exists()) {
       userData = snap.data();
+      resolvedDocId = uid;
     } else {
       // Fallback: query by tgId field (some docs may use numeric field)
       const q   = query(collection(db, 'users'), where('tgId', '==', uid));
       const res = await getDocs(q);
       if (!res.empty) {
         const first = res.docs[0];
-        userData = first.data();
-        docId    = first.id;
+        userData     = first.data();
+        docId        = first.id;
+        resolvedDocId = first.id;
       }
     }
 
@@ -4478,39 +4829,80 @@ async function doSearchUser() {
     document.getElementById('srch-name').textContent        = displayName;
     document.getElementById('srch-uid-display').textContent = 'TG ID: ' + displayUid;
 
+    // ── Registration sequence index — fetch ordered list, find position ──
+    const regIndexEl = document.getElementById('srch-reg-index');
+    if (regIndexEl) {
+      regIndexEl.textContent = 'ID - #…';
+      // Fire async and update when ready
+      (async () => {
+        try {
+          const allQ    = query(collection(db, 'users'), orderBy('registeredAt', 'asc'));
+          const allSnap = await getDocs(allQ);
+          let seqNum = null, pos = 1;
+          allSnap.forEach(d => { if (d.id === resolvedDocId) seqNum = pos; pos++; });
+          regIndexEl.textContent = seqNum ? 'ID - #' + seqNum : 'ID - #—';
+        } catch(_) { regIndexEl.textContent = 'ID - #—'; }
+      })();
+    }
+
+    // Wallet / registered label
+    const walletValEl = document.getElementById('srch-wallet-val');
+    if (walletValEl) {
+      const addr = userData.walletAddress || null;
+      walletValEl.textContent = addr
+        ? (addr.length > 20 ? addr.slice(0,8) + '…' + addr.slice(-6) : addr)
+        : displayName + ' · #' + String(displayUid).slice(-4);
+    }
+
     const avatarEl = document.getElementById('srch-avatar');
     const silSVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width:26px;height:26px;fill:#8aa5c0;"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>`;
     if (photoUrl) {
-      avatarEl.innerHTML = `<img src="${photoUrl}" alt="avatar" onerror="this.parentNode.innerHTML='${silSVG.replace(/"/g,"'")}'" />`;
+      avatarEl.innerHTML = `<img src="${photoUrl}" alt="avatar" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.parentNode.innerHTML='${silSVG.replace(/"/g,"'")}'" />`;
     } else {
       avatarEl.innerHTML = silSVG;
     }
 
-    // ── Slots badges ─────────────────────────────────────────
-    const ownedSlots = userData.ownedSlots || [];
-    const badgesEl   = document.getElementById('srch-slots-badges');
-    let badgesHtml   = '';
-    for (let i = 1; i <= 10; i++) {
-      const owned = ownedSlots.includes(i);
-      badgesHtml += `<span class="srch-slot-badge ${owned ? 'owned' : 'locked'}">L${i}</span>`;
-    }
-    badgesEl.innerHTML = badgesHtml;
-
-    // ── Income stats ─────────────────────────────────────────
-    const workingTon = userData.workingTon || 0;
-    const passiveTon = userData.passiveTon || 0;
+    // ── ① YOUR ACCOUNT card — income totals ─────────────────
+    const workingTon = typeof userData.workingTon === 'number' ? userData.workingTon : 0;
+    const passiveTon = typeof userData.passiveTon === 'number' ? userData.passiveTon : 0;
+    // earnedTon stored by bot; fallback to sum of working+passive if absent
+    const totalTon   = (typeof userData.earnedTon === 'number' && userData.earnedTon > 0)
+      ? userData.earnedTon
+      : (workingTon + passiveTon);
     const fmtT = v => (v % 1 === 0 ? v.toFixed(0) : v.toFixed(2));
 
-    document.getElementById('srch-working-val').textContent = fmtT(workingTon);
-    document.getElementById('srch-working-sub').textContent =
-      TON_TO_USD ? (workingTon * TON_TO_USD).toFixed(2) + ' USD' : 'TON';
-    document.getElementById('srch-passive-val').textContent = fmtT(passiveTon);
-    document.getElementById('srch-passive-sub').textContent =
-      TON_TO_USD ? (passiveTon * TON_TO_USD).toFixed(2) + ' USD' : 'TON';
+    document.getElementById('srch-total-ton').textContent = fmtT(totalTon);
+
+    // ── ② SLOTS indicator grid ────────────────────────────────
+    const ownedSlots  = Array.isArray(userData.ownedSlots) ? userData.ownedSlots : [];
+    const slotFillMap = (userData.slotFill && typeof userData.slotFill === 'object')
+      ? userData.slotFill : {};
+    renderSrchSlots(ownedSlots, slotFillMap);
+
+    // ── ③ DIRECT REFERRAL + YOUR TEAM cards ──────────────────
     document.getElementById('srch-direct-val').textContent = userData.referrals || 0;
     document.getElementById('srch-team-val').textContent   = userData.teamSize  || 0;
 
-    // ── Downline list ─────────────────────────────────────────
+    // ── ④ WORKING INCOME card ─────────────────────────────────
+    // srch-hic-ton shows "X TON" label — matches home-income-card design.
+    // USD equivalent shown as secondary sub-label only when live rate is available.
+    document.getElementById('srch-working-val').textContent = fmtT(workingTon);
+    document.getElementById('srch-working-sub').textContent = TON_TO_USD
+      ? fmtT(workingTon) + ' TON  ≈ $' + (workingTon * TON_TO_USD).toFixed(2)
+      : fmtT(workingTon) + ' TON';
+
+    // ── ④ NON-WORKING INCOME card ─────────────────────────────
+    document.getElementById('srch-passive-val').textContent = fmtT(passiveTon);
+    document.getElementById('srch-passive-sub').textContent = TON_TO_USD
+      ? fmtT(passiveTon) + ' TON  ≈ $' + (passiveTon * TON_TO_USD).toFixed(2)
+      : fmtT(passiveTon) + ' TON';
+
+    // ── Strict frozen browse-only state ──────────────────────
+    // All interactive elements inside the result area are disabled via
+    // pointer-events:none on the read-only wrapper div in HTML.
+    // Banner hidden (content removed) — no action needed here.
+
+    // ── Reveal result area & load downline ───────────────────
     document.getElementById('srch-result-area').style.display = 'block';
     await renderSearchDownline(String(displayUid));
 
@@ -4594,10 +4986,9 @@ async function fetchTickerDataFromFirestore() {
     const users = [];
     snap.forEach(d => {
       const data = d.data();
-      const handle = (data.tgHandle || data.walletAddress)
-        ? (data.tgHandle || ('0x…' + (data.walletAddress || '').slice(-4)))
-        : 'Anonymous';
-      users.push({ tgId: handle, earnedTon: data.earnedTon || 0 });
+      // Show numeric Telegram UID in the rank ticker (not username/handle)
+      const uid = data.tgId || data.userId || d.id || 'Unknown';
+      users.push({ tgId: String(uid), earnedTon: data.earnedTon || 0 });
     });
     if (users.length > 0) {
       _tickerData   = users;
@@ -4651,10 +5042,12 @@ function renderTicker() {
 }
 
 function _injectLiveUserIntoTicker() {
-  if (state.connected && state.tgUsername) {
+  // Key live user entry on numeric UID — matches what fetchTickerDataFromFirestore now stores
+  if (state.connected && (state.tgNumericId || state.userId)) {
+    const myUid = String(state.tgNumericId || state.userId);
     const myTon = state.earnedTon || 0;
-    const idx   = _tickerData.findIndex(r => r.tgId === state.tgUsername);
-    if (idx === -1) _tickerData.push({ tgId: state.tgUsername, earnedTon: myTon });
+    const idx   = _tickerData.findIndex(r => r.tgId === myUid);
+    if (idx === -1) _tickerData.push({ tgId: myUid, earnedTon: myTon });
     else            _tickerData[idx].earnedTon = myTon;
     _tickerData.sort((a,b) => b.earnedTon - a.earnedTon);
   }
@@ -4797,15 +5190,11 @@ function refreshLeaderboardUsd() {}
 function _updateHeaderCapsule() {
   const logoIdCapsule = document.getElementById('logo-id-capsule');
   if (!logoIdCapsule) return;
-  const handleEl = document.getElementById('logo-tg-handle');
-  const sepEl    = document.getElementById('logo-tg-id-sep');
-  const idEl     = document.getElementById('logo-tg-id');
-  const username = state.tgUsername  || null;
-  const tgId     = state.tgNumericId || state.userId || null;
-  if (username || tgId) {
-    if (handleEl) handleEl.textContent = username || '';
-    if (sepEl)    sepEl.style.display  = (username && tgId) ? 'inline' : 'none';
-    if (idEl)     idEl.textContent     = tgId || '';
+  const handleEl  = document.getElementById('logo-tg-handle');
+  // Show only the Telegram First Name — no UID in this capsule
+  const firstName = state.tgFirstName || null;
+  if (firstName) {
+    if (handleEl) handleEl.textContent = firstName;
     logoIdCapsule.style.display = 'inline-flex';
   }
 }
@@ -4920,11 +5309,13 @@ async function loadUserDirectory() {
 
       return `
         <div class="dir-row">
-          <span class="dir-seq">${seq}</span>
           <div class="dir-avatar">${avatarHtml}</div>
           <div class="dir-info">
             <div class="dir-name">${firstName}</div>
-            <div class="dir-uid">ID · ${tgId}</div>
+            <div class="dir-uid">@${tgId}</div>
+          </div>
+          <div style="flex-shrink:0; text-align:right;">
+            <div style="font-family:var(--font-mono); font-size:9px; font-weight:700; color:var(--text-lo); letter-spacing:0.5px;">ID - #${seq}</div>
           </div>
         </div>`;
     });
@@ -4954,6 +5345,100 @@ function escHtml(s) {
     .replace(/"/g,'&quot;');
 }
 function escAttr(s) { return escHtml(s); }
+
+// ──────────────────────────────────────────────────────────────
+// LEADERBOARD VIEW — opens isolated sub-page from home card
+// ──────────────────────────────────────────────────────────────
+let _lbViewLoaded = false;
+
+function openLeaderboardView() {
+  switchView('leaderboard');
+  if (!_lbViewLoaded) {
+    _lbViewLoaded = true;
+    loadLeaderboardView();
+  }
+}
+
+async function loadLeaderboardView() {
+  const contentEl = document.getElementById('lb-view-content');
+  if (!contentEl) return;
+
+  contentEl.innerHTML = '<div class="lb-loading">Fetching top earners…</div>';
+
+  try {
+    const db = window.__db;
+    const fs = window.__fs;
+    if (!db || !fs) throw new Error('Firestore not ready');
+
+    const q = fs.query(
+      fs.collection(db, 'users'),
+      fs.orderBy('earnedTon', 'desc'),
+      fs.limit(10)
+    );
+
+    const snap = await fs.getDocs(q);
+    const users = [];
+    snap.forEach(doc => users.push({ id: doc.id, ...doc.data() }));
+
+    if (users.length === 0) {
+      contentEl.innerHTML = '<div class="dir-empty">No data available yet.</div>';
+      return;
+    }
+
+    const medalColors = ['#f0c96a','#d4d4d4','#cd7f32'];
+    const medalEmoji  = ['🥇','🥈','🥉'];
+
+    const rows = users.map((u, idx) => {
+      const rank      = idx + 1;
+      const firstName = escHtml(u.firstName || u.first_name || u.name || 'Unknown');
+      const tgId      = escHtml(String(u.tgId || u.userId || u.telegram_id || u.id || '—'));
+      const photoUrl  = u.photoUrl || u.photo_url || u.tgPhotoUrl || '';
+      const earned    = typeof u.earnedTon === 'number' ? u.earnedTon.toFixed(2) : '0.00';
+
+      const avatarHtml = photoUrl
+        ? `<img src="${escAttr(photoUrl)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:11px;" onerror="this.parentElement.innerHTML=silhouetteSvg()">`
+        : silhouetteSvg();
+
+      const rankColor = medalColors[idx] || 'var(--text-lo)';
+      const medal     = rank <= 3 ? `<span style="font-size:15px;line-height:1;">${medalEmoji[idx]}</span>` : `<span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:${rankColor};">${rank}</span>`;
+
+      return `
+        <div style="
+          display:flex; align-items:center; gap:12px;
+          background:var(--glass-bg);
+          border:1px solid ${rank<=3 ? `rgba(212,168,67,${0.28-idx*0.07})` : 'var(--glass-bd)'};
+          border-radius:var(--radius-md);
+          padding:13px 16px;
+          backdrop-filter:blur(14px);
+          -webkit-backdrop-filter:blur(14px);
+          margin-bottom:9px;
+          transition:border-color 0.2s;
+        ">
+          <div style="min-width:24px;text-align:center;flex-shrink:0;">${medal}</div>
+          <div style="
+            width:42px; height:42px; border-radius:12px; flex-shrink:0;
+            overflow:hidden; background:rgba(255,255,255,0.06);
+            border:1.5px solid rgba(255,255,255,0.09);
+            display:flex; align-items:center; justify-content:center;
+          ">${avatarHtml}</div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--text-hi);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${firstName}</div>
+            <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-mid);margin-top:2px;letter-spacing:0.3px;">ID · ${tgId}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-family:var(--font-head);font-size:14px;font-weight:800;color:var(--gold-lt);letter-spacing:-0.3px;">${earned}</div>
+            <div style="font-family:var(--font-mono);font-size:9px;color:rgba(212,168,67,0.55);letter-spacing:1px;text-transform:uppercase;margin-top:2px;">TON</div>
+          </div>
+        </div>`;
+    });
+
+    contentEl.innerHTML = rows.join('');
+
+  } catch (err) {
+    console.error('[LeaderboardView] fetch error:', err);
+    contentEl.innerHTML = `<div class="dir-empty">⚠ Could not load leaderboard.<br><span style="font-size:10px;opacity:0.6;">${escHtml(err.message)}</span></div>`;
+  }
+}
 </script>
 
 <script>
