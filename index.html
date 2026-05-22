@@ -2211,8 +2211,8 @@
           <div style="flex:1; min-width:0;">
             <!-- Registration sequence index — fetched from DB -->
             <div id="dash-reg-index" style="font-family:var(--font-mono); font-size:10px; font-weight:700; color:rgba(5,13,26,0.52); -webkit-text-fill-color:rgba(5,13,26,0.52); letter-spacing:0.8px; text-transform:uppercase; margin-bottom:3px;">ID - #—</div>
-            <!-- UID value -->
-            <div class="dash-id" id="dash-uid" style="font-family:var(--font-head); font-size:15px; font-weight:800; color:#050d1a; -webkit-text-fill-color:#050d1a; margin-top:0; letter-spacing:-0.3px;">—</div>
+            <!-- UID value — styled to match srch-uid-display: small, clean mono -->
+            <div class="dash-id" id="dash-uid" style="font-family:var(--font-mono); font-size:11px; font-weight:600; color:rgba(5,13,26,0.70); -webkit-text-fill-color:rgba(5,13,26,0.70); margin-top:3px; letter-spacing:0;">—</div>
           </div>
           <!-- REF TON ticker — top-right corner of account card -->
           <div style="display:flex; flex-direction:column; align-items:flex-end; flex-shrink:0; gap:2px;">
@@ -4011,12 +4011,12 @@ async function loginUser(walletAddress) {
     }
 
     // ── Fetch & display registration sequence index (ID - #N) ─────────────
-    (async () => {
-      try {
-        const regIndexEl = document.getElementById('dash-reg-index');
-        if (!regIndexEl) return;
+    // Awaited inline so the number is injected before updateStatsUI/renderSlots
+    try {
+      const regIndexEl = document.getElementById('dash-reg-index');
+      if (regIndexEl) {
         const { collection: col, query: q, orderBy: oBy, getDocs: gDocs } = window.__fs;
-        const allQ   = q(col(db, 'users'), oBy('registeredAt', 'asc'));
+        const allQ    = q(col(db, 'users'), oBy('registeredAt', 'asc'));
         const allSnap = await gDocs(allQ);
         let seqNum = null;
         let pos = 1;
@@ -4024,11 +4024,14 @@ async function loginUser(walletAddress) {
           if (d.id === tgIdFromSDK) seqNum = pos;
           pos++;
         });
-        if (seqNum) regIndexEl.textContent = 'ID - #' + seqNum;
-      } catch(e) {
-        console.warn('[RegIndex] Could not fetch sequence:', e.message);
+        if (seqNum !== null) {
+          regIndexEl.textContent = 'ID - #' + seqNum;
+        }
+        console.log('[RegIndex] Sequential number resolved:', seqNum, 'for tgId:', tgIdFromSDK);
       }
-    })();
+    } catch(e) {
+      console.warn('[RegIndex] Could not fetch sequence:', e.message);
+    }
 
     // ── Restore slotFill from saved data ──────────────────────────────────
     if (data.slotFill && typeof data.slotFill === 'object') {
@@ -5541,7 +5544,8 @@ async function loadUserDirectory() {
       return;
     }
 
-    // Build row HTML — each row shows: avatar, real TG name, UID, TON balance, seq ID
+    // Build row HTML — mirrors the Leaderboard card layout exactly:
+    // seq badge | avatar DP | TG name + UID | TON balance
     const rows = users.map((u, idx) => {
       const seq       = idx + 1;
       // Use tgName as primary (set by bot), then fallback chain
@@ -5549,35 +5553,60 @@ async function loadUserDirectory() {
       const tgId      = escHtml(String(u.tgId || u.userId || u.telegram_id || u.id || '—'));
       // Avatar: tgPhotoUrl is the canonical field written by the bot/SDK
       const photoUrl  = u.tgPhotoUrl || u.photoUrl || u.photo_url || '';
-      // TON balance — sum workingTon+passiveTon, fallback to earnedTon
+      // TON balance — earnedTon primary, fallback to sum of workingTon+passiveTon
       const tonVal    = typeof u.earnedTon === 'number' && u.earnedTon > 0
         ? u.earnedTon
         : ((typeof u.workingTon === 'number' ? u.workingTon : 0) + (typeof u.passiveTon === 'number' ? u.passiveTon : 0));
       const tonDisplay = tonVal > 0
-        ? (tonVal >= 1000 ? (tonVal/1000).toFixed(2)+'K' : tonVal.toFixed(2)) + ' TON'
-        : '0 TON';
+        ? (tonVal >= 1000 ? (tonVal/1000).toFixed(2)+'K' : tonVal.toFixed(2))
+        : '0.00';
 
-      // Avatar: uses same 56×56 gold-card silhouette styling
+      // Avatar: reliable onerror fallback (same pattern as leaderboard)
       const silSvgDir = `<svg viewBox="0 0 42 42" width="42" height="42" xmlns="http://www.w3.org/2000/svg"><rect width="42" height="42" rx="10" fill="rgba(255,255,255,0.06)"/><circle cx="21" cy="16" r="7.5" fill="#8aa5c0"/><path d="M4 40 Q4 28 21 28 Q38 28 38 40" fill="#8aa5c0"/></svg>`;
       const avatarHtml = photoUrl
-        ? `<img src="${escAttr(photoUrl)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:10px;" onerror="this.parentElement.innerHTML='${silSvgDir.replace(/'/g,'"').replace(/"/g,"'")}';">`
+        ? `<img src="${escAttr(photoUrl)}" alt="" loading="lazy"
+               style="width:100%;height:100%;object-fit:cover;display:block;border-radius:10px;"
+               onerror="(function(el){el.style.display='none';var p=el.parentElement;if(p){p.innerHTML='<svg viewBox=\\'0 0 42 42\\' width=\\'42\\' height=\\'42\\' xmlns=\\'http://www.w3.org/2000/svg\\'><rect width=\\'42\\' height=\\'42\\' rx=\\'10\\' fill=\\'rgba(255,255,255,0.06)\\'/><circle cx=\\'21\\' cy=\\'16\\' r=\\'7.5\\' fill=\\'#8aa5c0\\'/><path d=\\'M4 40 Q4 28 21 28 Q38 28 38 40\\' fill=\\'#8aa5c0\\'/></svg>';};})(this);">`
         : silSvgDir;
 
+      // Medal colors for top 3 (mirrors leaderboard)
+      const medalColors = ['#f0c96a','#d4d4d4','#cd7f32'];
+      const rankColor   = medalColors[idx] || 'var(--text-lo)';
+      const seqDisplay  = idx < 3
+        ? `<span style="font-size:15px;line-height:1;">${['🥇','🥈','🥉'][idx]}</span>`
+        : `<span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:${rankColor};">#${seq}</span>`;
+
       return `
-        <div class="dir-row">
-          <div class="dir-seq">#${seq}</div>
-          <div class="dir-avatar">${avatarHtml}</div>
-          <div class="dir-info">
-            <div class="dir-name">${firstName}</div>
-            <div class="dir-uid">UID: ${tgId}</div>
+        <div style="
+          display:flex; align-items:center; gap:12px;
+          background:var(--glass-bg);
+          border:1px solid ${idx < 3 ? `rgba(212,168,67,${0.28-idx*0.07})` : 'var(--glass-bd)'};
+          border-radius:var(--radius-md);
+          padding:13px 16px;
+          backdrop-filter:blur(14px);
+          -webkit-backdrop-filter:blur(14px);
+          margin-bottom:9px;
+          transition:border-color 0.2s;
+        ">
+          <div style="min-width:24px;text-align:center;flex-shrink:0;">${seqDisplay}</div>
+          <div style="
+            width:42px; height:42px; border-radius:12px; flex-shrink:0;
+            overflow:hidden; background:rgba(255,255,255,0.06);
+            border:1.5px solid rgba(255,255,255,0.09);
+            display:flex; align-items:center; justify-content:center;
+          ">${avatarHtml}</div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--text-hi);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${firstName}</div>
+            <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-mid);margin-top:2px;letter-spacing:0.3px;">ID · ${tgId}</div>
           </div>
-          <div style="flex-shrink:0; text-align:right;">
-            <div style="font-family:var(--font-head); font-size:13px; font-weight:800; color:var(--cyan); letter-spacing:-0.3px;">${tonDisplay}</div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-family:var(--font-head);font-size:14px;font-weight:800;color:var(--cyan);letter-spacing:-0.3px;">${tonDisplay}</div>
+            <div style="font-family:var(--font-mono);font-size:9px;color:rgba(0,229,255,0.55);letter-spacing:1px;text-transform:uppercase;margin-top:2px;">TON</div>
           </div>
         </div>`;
     });
 
-    listEl.innerHTML = `<div class="dir-list">${rows.join('')}</div>`;
+    listEl.innerHTML = `<div>${rows.join('')}</div>`;
 
   } catch (err) {
     console.error('[UserDirectory] fetch error:', err);
@@ -5654,11 +5683,14 @@ async function loadLeaderboardView() {
       const photoUrl  = u.tgPhotoUrl || u.photoUrl || u.photo_url || '';
       const earned    = typeof u.earnedTon === 'number' ? u.earnedTon.toFixed(2) : '0.00';
 
-      // Silhouette matching gold card avatar silhouette design
-      const silLbSvg = `<svg viewBox="0 0 42 42" width="42" height="42" xmlns="http://www.w3.org/2000/svg"><rect width="42" height="42" rx="10" fill="rgba(255,255,255,0.06)"/><circle cx="21" cy="16" r="7.5" fill="#8aa5c0"/><path d="M4 40 Q4 28 21 28 Q38 28 38 40" fill="#8aa5c0"/></svg>`;
+      // Avatar — using reliable onerror fallback via a named function approach
+      const avatarId   = `lb-av-${rank}`;
       const avatarHtml = photoUrl
-        ? `<img src="${escAttr(photoUrl)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:11px;" onerror="this.parentElement.innerHTML='${silLbSvg.replace(/'/g,'"').replace(/"/g,"'")}';">`
-        : silLbSvg;
+        ? `<img src="${escAttr(photoUrl)}" alt="" loading="lazy"
+               id="${avatarId}"
+               style="width:100%;height:100%;object-fit:cover;display:block;border-radius:11px;"
+               onerror="(function(el){el.style.display='none';var p=el.parentElement;if(p){p.innerHTML='<svg viewBox=\\'0 0 42 42\\' width=\\'42\\' height=\\'42\\' xmlns=\\'http://www.w3.org/2000/svg\\'><rect width=\\'42\\' height=\\'42\\' rx=\\'10\\' fill=\\'rgba(255,255,255,0.06)\\'/><circle cx=\\'21\\' cy=\\'16\\' r=\\'7.5\\' fill=\\'#8aa5c0\\'/><path d=\\'M4 40 Q4 28 21 28 Q38 28 38 40\\' fill=\\'#8aa5c0\\'/></svg>';};})(this);">`
+        : `<svg viewBox="0 0 42 42" width="42" height="42" xmlns="http://www.w3.org/2000/svg"><rect width="42" height="42" rx="10" fill="rgba(255,255,255,0.06)"/><circle cx="21" cy="16" r="7.5" fill="#8aa5c0"/><path d="M4 40 Q4 28 21 28 Q38 28 38 40" fill="#8aa5c0"/></svg>`;
 
       const rankColor = medalColors[idx] || 'var(--text-lo)';
       const medal     = rank <= 3 ? `<span style="font-size:15px;line-height:1;">${medalEmoji[idx]}</span>` : `<span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:${rankColor};">${rank}</span>`;
