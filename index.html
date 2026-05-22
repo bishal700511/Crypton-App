@@ -23,6 +23,10 @@
              addDoc, deleteDoc, serverTimestamp,
              Timestamp }                                  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+    // ⚠️ SECURITY NOTE: Firebase client config is safe to expose in frontend code,
+    // BUT you MUST set Firestore Security Rules to restrict reads/writes.
+    // Without rules, anyone can read/write your entire database!
+    // Minimum rule: require auth or validate by tgId field.
     const firebaseConfig = {
       apiKey:            "AIzaSyBgUDDlOJR_xgPwQq7e89ISWRbGEo2CoNk",
       authDomain:        "crypton-app-871b1.firebaseapp.com",
@@ -45,6 +49,26 @@
   </script>
 
   <style>
+    /* ─── SPLASH SCREEN ────────────────────────────────────────── */
+    #splash-screen {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--navy);
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity 0.72s ease, transform 0.72s ease;
+    }
+    #splash-screen.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .splash-logo {
+      width: 160px; height: auto;
+      animation: splash-pulse 1.5s ease-in-out infinite alternate;
+    }
+    @keyframes splash-pulse {
+      from { opacity: 0.7; transform: scale(0.97); }
+      to   { opacity: 1;   transform: scale(1.03); }
+    }
+
     /* ─── RESET & ROOT ──────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -176,6 +200,20 @@
       overflow:hidden;
     }
     .card + .card { margin-top:14px; }
+
+    /* ─── HEADER TG BUTTON ──────────────────────────────────── */
+    .header-tg-btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; border-radius: 10px;
+      background: rgba(0, 136, 204, 0.18);
+      border: 1px solid rgba(0, 136, 204, 0.30);
+      color: #29a8e0;
+      text-decoration: none; flex-shrink: 0;
+      transition: background var(--transition), border-color var(--transition), transform 0.15s;
+    }
+    .header-tg-btn svg { width: 18px; height: 18px; fill: currentColor; }
+    .header-tg-btn:hover  { background: rgba(0,136,204,0.30); border-color: rgba(0,136,204,0.55); transform: scale(1.05); }
+    .header-tg-btn:active { transform: scale(0.93); }
 
     /* ─── DASHBOARD ─────────────────────────────────────────── */
     #dashboard { display:none; }
@@ -524,35 +562,55 @@
     .ref-stat-num { font-family:var(--font-head); font-size:22px; font-weight:700; color:var(--cyan); }
     .ref-stat-lbl { font-size:10px; color:var(--text-mid); font-family:var(--font-mono); margin-top:2px; letter-spacing:0.3px; }
 
-    /* ── Blue Stat Cards (Direct Referral / Your Team) ── */
-    .blue-stat-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
+    /* ── Network Stat Cards (Direct Referral / Your Team) — full-width stacked ── */
+    .blue-stat-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin-bottom: 14px;
+    }
     .blue-stat-card {
-      border-radius:18px;
-      background: linear-gradient(135deg, #5bbcf8 0%, #3a8fe8 50%, #5ab0f5 100%);
-      padding: 16px 18px 18px;
-      display: flex; flex-direction: column; gap: 10px;
-      box-shadow: 0 4px 18px rgba(60,140,240,0.30), 0 1px 4px rgba(0,0,0,0.18);
-      min-height: 100px;
+      border-radius: 0;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
       position: relative;
       overflow: hidden;
+      min-height: 70px;
     }
-    .blue-stat-card::before {
-      content:''; position:absolute; inset:0;
-      background: radial-gradient(ellipse 80% 60% at 20% 20%, rgba(255,255,255,0.18) 0%, transparent 70%);
-      border-radius:18px; pointer-events:none;
+    /* Direct Referral card — darker salmon/orange from Image 1, top-rounded */
+    .blue-stat-card:first-child {
+      background: #e8855c;
+      border: none;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      border-radius: 20px 20px 0 0;
+      box-shadow: 0 4px 20px rgba(220,110,70,0.28), 0 1px 4px rgba(0,0,0,0.15);
     }
+    /* Your Team card — lighter blush/peach from Image 2, bottom-rounded */
+    .blue-stat-card:last-child {
+      background: #f2c9bc;
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.30);
+      border-radius: 0 0 20px 20px;
+      box-shadow: 0 6px 22px rgba(220,160,140,0.22), 0 1px 4px rgba(0,0,0,0.10);
+    }
+    .blue-stat-card::before { content: none; }
     .blue-stat-header {
-      display:flex; align-items:center; gap:8px;
+      display:flex; align-items:center; gap:10px;
     }
-    .blue-stat-icon { font-size:17px; opacity:0.92; color:#fff; line-height:1; }
+    .blue-stat-icon { font-size:17px; opacity:0.75; color:rgba(0,0,0,0.45); line-height:1; }
     .blue-stat-title {
-      font-family: var(--font-body); font-size:13px; font-weight:500;
-      color: rgba(255,255,255,0.92); letter-spacing:0.2px;
+      font-family: var(--font-body); font-size:13px; font-weight:600;
+      color: rgba(0,0,0,0.55); letter-spacing:0.2px;
     }
     .blue-stat-num {
-      font-family: var(--font-head); font-size:32px; font-weight:800;
-      color: #ffffff; letter-spacing:-1px; line-height:1;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      font-family: var(--font-head); font-size:34px; font-weight:800;
+      color: rgba(0,0,0,0.72); letter-spacing:-1px; line-height:1;
+      text-shadow: none;
+      flex-shrink: 0;
     }
 
     .ref-link-label { font-size:12px; color:var(--text-mid); margin-bottom:8px; font-family:var(--font-mono); }
@@ -604,29 +662,30 @@
 
     /* ─── HORIZONTAL BOTTOM SHEET PANEL ─────────────────────── */
     /*
-     * The panel is a full-width horizontal strip anchored to the
-     * bottom viewport edge. It starts fully off-screen below
-     * (translateY(100%)) and slides UP into view on .open.
-     * position:fixed keeps it locked during scroll — never moves.
+     * Anchored to the BOTTOM floor of the viewport with position:fixed.
+     * Starts fully off-screen below (translateY(100%)).
+     * On .open it slides UP into view (translateY(0)).
+     * Never opens from the top — top/right/left anchors are unset.
      */
     .fab-menu {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      width: 100%;
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      top: auto !important;
+      width: 100% !important;
       z-index: 399;
       pointer-events: none;
 
-      transform: translateY(100%);
-      transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+      transform: translateY(100%) !important;
+      transition: transform 0.30s cubic-bezier(0.4,0,0.2,1);
 
       background: rgb(18, 47, 72);
       backdrop-filter: blur(28px);
       -webkit-backdrop-filter: blur(28px);
       border-top: 1px solid rgba(255,255,255,0.06);
-      box-shadow: 0 -2px 20px rgba(0,0,0,0.50);
-      border-radius: 14px 14px 0 0;
+      box-shadow: 0 -4px 28px rgba(0,0,0,0.55);
+      border-radius: 18px 18px 0 0;
 
       display: flex;
       flex-direction: row;
@@ -634,7 +693,7 @@
       justify-content: space-around;
       gap: 0;
       overflow: hidden;
-      padding: 6px 6px 18px;             /* slim top, home-bar safe bottom */
+      padding: 6px 6px 20px;
     }
 
     /* drag handle */
@@ -651,7 +710,7 @@
     }
 
     .fab-menu.open {
-      transform: translateY(0);
+      transform: translateY(0) !important;
       pointer-events: auto;
     }
 
@@ -982,9 +1041,12 @@
       background: rgba(0,0,0,0.18);
       border-radius: 4px;
       letter-spacing: -0.3px;
-      transition: background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+      transition: background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease, transform 0.15s ease;
       position: relative;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
+    .lvl-cell:active { transform: scale(0.90); }
     .lvl-cell.active {
       background: #22c55e;
       color: #ffffff;
@@ -1717,6 +1779,132 @@
     .btn-view-user .eye-sym .eye-arc-l,
     .btn-view-user .eye-sym .eye-arc-r { font-size: 1.15em; }
     .btn-view-user .eye-sym .eye-dot   { font-size: 0.50em; }
+    /* ─── USER DIRECTORY VIEW ───────────────────────────────── */
+    #view-users { padding-bottom: 96px; }
+
+    .dir-header-row {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 22px;
+    }
+    .dir-header-icon {
+      width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
+      background: linear-gradient(135deg, rgba(0,229,255,0.20) 0%, rgba(0,229,255,0.08) 100%);
+      border: 1px solid rgba(0,229,255,0.30);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .dir-header-title {
+      font-family: var(--font-head); font-size: 18px; font-weight: 800;
+      background: linear-gradient(90deg, var(--cyan), #80f4ff);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .dir-header-sub {
+      font-family: var(--font-mono); font-size: 10px; color: var(--text-lo);
+      letter-spacing: 1px; margin-top: 2px;
+    }
+
+    /* Directory user rows */
+    .dir-list { display: flex; flex-direction: column; gap: 9px; }
+
+    .dir-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-bd);
+      border-radius: var(--radius-md);
+      padding: 11px 14px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+    .dir-row:hover { border-color: rgba(0,229,255,0.26); background: rgba(0,229,255,0.04); }
+
+    /* Sequence index badge */
+    .dir-seq {
+      font-family: var(--font-mono);
+      font-size: 10px; font-weight: 700;
+      color: var(--text-lo);
+      letter-spacing: 0.3px;
+      min-width: 22px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .dir-row:nth-child(1) .dir-seq { color: var(--gold-lt); }
+    .dir-row:nth-child(2) .dir-seq { color: #d4d4d4; }
+    .dir-row:nth-child(3) .dir-seq { color: #cd7f32; }
+
+    /* Avatar */
+    .dir-avatar {
+      width: 42px; height: 42px; border-radius: 12px;
+      flex-shrink: 0; overflow: hidden;
+      background: rgba(255,255,255,0.06);
+      border: 1.5px solid rgba(255,255,255,0.09);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .dir-avatar img {
+      width: 100%; height: 100%;
+      object-fit: cover; display: block; border-radius: 10px;
+    }
+
+    /* Name + UID */
+    .dir-info { flex: 1; min-width: 0; }
+    .dir-name {
+      font-family: var(--font-body);
+      font-size: 13px; font-weight: 600;
+      color: var(--text-hi);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .dir-uid {
+      font-family: var(--font-mono);
+      font-size: 10px; color: var(--text-mid);
+      margin-top: 2px; letter-spacing: 0.3px;
+    }
+
+    /* Loading / empty */
+    .dir-loading {
+      text-align: center; padding: 36px 20px;
+      font-family: var(--font-mono); font-size: 12px;
+      color: var(--text-mid); letter-spacing: 0.5px;
+    }
+    .dir-loading::before {
+      content: ''; display: block; width: 26px; height: 26px; margin: 0 auto 14px;
+      border-radius: 50%; border: 2px solid var(--glass-bd);
+      border-top-color: var(--cyan); animation: spin-fetch 0.9s linear infinite;
+    }
+    .dir-empty {
+      text-align: center; padding: 36px 20px;
+      font-family: var(--font-mono); font-size: 12px;
+      color: var(--text-lo); letter-spacing: 0.5px;
+      background: var(--glass-bg); border: 1px solid var(--glass-bd);
+      border-radius: var(--radius-md);
+    }
+    .dir-count-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 4px 16px;
+      font-family: var(--font-mono); font-size: 10px; color: var(--text-lo);
+      letter-spacing: 1px;
+    }
+    .dir-count-num {
+      color: var(--cyan); font-weight: 700; font-size: 12px;
+    }
+
+    /* ─── HEADER HAMBURGER BUTTON (replaces floating FAB) ───── */
+    .header-hamburger-btn {
+      width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 20px; line-height: 1;
+      color: var(--text-mid);
+      transition: background var(--transition), border-color var(--transition), color var(--transition), transform 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .header-hamburger-btn:hover  { background: rgba(0,229,255,0.10); border-color: rgba(0,229,255,0.35); color: var(--cyan); }
+    .header-hamburger-btn:active { transform: scale(0.90); }
+    /* Hide the old floating FAB button — menu is now in the header */
+    .fab { display: none !important; }
+
   </style>
 </head>
 <body>
@@ -1744,7 +1932,10 @@
   <!-- ── HEADER ── -->
   <header class="header">
     <div class="logo">
-      <span class="logo-text">💠 CRYPTON</span>
+      <button class="header-hamburger-btn" id="header-menu-btn" onclick="toggleFabMenu()" aria-label="Open menu">
+        <span id="header-menu-icon">☰</span>
+      </button>
+      <span class="logo-text">CRYPTON</span>
       <div class="logo-id-capsule" id="logo-id-capsule" style="display:none;">
         <span id="logo-tg-handle"></span><span id="logo-tg-id-sep" style="display:none;"> · </span><span id="logo-tg-id"></span>
       </div>
@@ -1803,7 +1994,9 @@
         <div class="dash-top">
           <div class="dash-avatar-dp" id="dash-avatar"></div>
           <div style="flex:1; min-width:0;">
-            <div class="dash-id" id="dash-uid" style="font-size:14px; font-weight:800; margin-top:0;">UID: —</div>
+            <!-- id: + UID label — primary display in header row -->
+            <div class="dash-name" id="dash-name" style="font-family:var(--font-mono); font-size:11px; font-weight:700; color:rgba(5,13,26,0.55); -webkit-text-fill-color:rgba(5,13,26,0.55); letter-spacing:0.5px; text-transform:uppercase; margin-bottom:2px;">id:</div>
+            <div class="dash-id" id="dash-uid" style="font-family:var(--font-head); font-size:15px; font-weight:800; color:#050d1a; -webkit-text-fill-color:#050d1a; margin-top:0; letter-spacing:-0.3px;">—</div>
           </div>
           <!-- REF TON ticker — top-right corner of account card -->
           <div style="display:flex; flex-direction:column; align-items:flex-end; flex-shrink:0; gap:2px;">
@@ -1820,6 +2013,9 @@
           <button class="btn-copy" id="btn-copy-ref" onclick="copyReferralGold()">COPY</button>
         </div>
       </div>
+      <!-- Hidden wallet display anchor for JS reference -->
+      <span id="wallet-display" style="display:none;"></span>
+
       <!-- Hidden stat anchors so updateStatsUI() never throws -->
       <span id="stat-earned"  style="display:none"></span>
       <span id="stat-earned-ton" style="display:none"></span>
@@ -1828,6 +2024,9 @@
       <span id="stat-team"   style="display:none"></span>
       <span id="working-income-val" style="display:none"></span>
       <span id="passive-income-val" style="display:none"></span>
+
+      <!-- Hidden ref-link-network anchor for network view referral link sync -->
+      <span id="ref-link-network" style="display:none;"></span>
 
       <!-- ── LEVEL INDICATOR BAR ── -->
       <div id="level-indicator-bar" style="display:none; flex-direction:row; align-items:center; background:#6236d0; border-radius:0px; padding:10px 14px; margin-top:14px; gap:4px; width:100%;">
@@ -2021,7 +2220,7 @@
     <!-- Top bar: label left, trophy icon right -->
     <div class="srch-topbar">
       <p class="section-label" style="display:flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> PUBLIC LOOKUP</p>
-      <button class="btn-trophy" id="btn-open-lb" onclick="openLeaderboard()" aria-label="View Leaderboard">🏆</button>
+      <button class="btn-trophy" id="btn-open-lb" onclick="openLeaderboard()" aria-label="View Leaderboard" style="display:flex;flex-direction:column;align-items:center;gap:2px;height:auto;padding:6px 10px;width:auto;">🏆<span style="font-family:var(--font-mono);font-size:8px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--gold-lt);margin-top:1px;">Leaderboard</span></button>
     </div>
 
     <!-- Search Input -->
@@ -2109,7 +2308,7 @@
           <div class="lb-icon-wrap">🏆</div>
           <div>
             <div class="lb-title">Leaderboard</div>
-            <div class="lb-subtitle">TOP 10 · BY TOTAL EARNINGS</div>
+            <div class="lb-subtitle">TOP 10 Crypton network 🇮🇳</div>
           </div>
         </div>
         <button class="btn-lb-back" onclick="closeLeaderboard()">
@@ -2122,8 +2321,6 @@
       <div id="lb-content">
         <div class="lb-loading">Fetching top earners…</div>
       </div>
-
-      <div class="lb-footer-note">Live data from Crypton network · Top 10 by earnedTon</div>
 
     </div><!-- /srch-lb-panel -->
   </section>
@@ -2146,13 +2343,45 @@
         <div class="gstat-header-title">Global Stats</div>
         <div class="gstat-header-sub">LIVE PLATFORM AGGREGATES</div>
       </div>
-      <!-- View User button — top-right of Global Stats panel -->
-      <button class="btn-view-user" onclick="switchView('search')" aria-label="View User">
-        View User
-        <span class="eye-sym" aria-hidden="true">
-          <span class="eye-arc-l">(</span><span class="eye-dot">&#9679;</span><span class="eye-arc-r">)</span>
-        </span>
-      </button>
+    </div>
+
+    <!-- View User standalone card — positioned above aggregated numbers -->
+    <div onclick="openUserDirectory()" style="
+      cursor:pointer;
+      background: linear-gradient(135deg, rgba(0,229,255,0.10) 0%, rgba(0,229,255,0.04) 100%);
+      border: 1px solid rgba(0,229,255,0.30);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 2px 16px rgba(0,229,255,0.08);
+    "
+    onmouseover="this.style.background='linear-gradient(135deg,rgba(0,229,255,0.17) 0%,rgba(0,229,255,0.07) 100%)';this.style.borderColor='rgba(0,229,255,0.55)';this.style.boxShadow='0 0 18px rgba(0,229,255,0.18)';"
+    onmouseout="this.style.background='linear-gradient(135deg,rgba(0,229,255,0.10) 0%,rgba(0,229,255,0.04) 100%)';this.style.borderColor='rgba(0,229,255,0.30)';this.style.boxShadow='0 2px 16px rgba(0,229,255,0.08)';"
+    onmousedown="this.style.transform='scale(0.97)'"
+    onmouseup="this.style.transform='scale(1)'"
+    ontouchstart="this.style.transform='scale(0.97)'"
+    ontouchend="this.style.transform='scale(1)'">
+      <div style="display:flex;align-items:center;gap:13px;">
+        <div style="
+          width:42px; height:42px; border-radius:12px; flex-shrink:0;
+          background: rgba(0,229,255,0.14);
+          border: 1px solid rgba(0,229,255,0.28);
+          display:flex; align-items:center; justify-content:center;
+          font-size:19px;
+        ">🔍</div>
+        <div>
+          <div style="font-family:var(--font-head);font-size:15px;font-weight:800;color:var(--cyan);letter-spacing:-0.3px;">View User ༚</div>
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-lo);letter-spacing:1px;margin-top:3px;text-transform:uppercase;">Search by Telegram ID</div>
+        </div>
+      </div>
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.65;flex-shrink:0;"><path d="M9 18l6-6-6-6"/></svg>
     </div>
 
     <!-- Refresh row -->
@@ -2190,9 +2419,6 @@
 
     </div><!-- /gstat-grid -->
 
-    <div class="gstat-note">
-      Data aggregated live from Firestore · Auto-refreshes on tab open
-    </div>
 
   </section>
 </div><!-- /view-stats -->
@@ -2232,7 +2458,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           PUBLIC LOOKUP
         </p>
-        <button class="btn-trophy" id="pv-btn-open-lb" onclick="pvOpenLeaderboard()" aria-label="View Leaderboard">🏆</button>
+        <button class="btn-trophy" id="pv-btn-open-lb" onclick="pvOpenLeaderboard()" aria-label="View Leaderboard" style="display:flex;flex-direction:column;align-items:center;gap:2px;height:auto;padding:6px 10px;width:auto;">🏆<span style="font-family:var(--font-mono);font-size:8px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--gold-lt);margin-top:1px;">Leaderboard</span></button>
       </div>
 
       <!-- Search input -->
@@ -2319,7 +2545,7 @@
           <div class="lb-icon-wrap">🏆</div>
           <div>
             <div class="lb-title">Leaderboard</div>
-            <div class="lb-subtitle">TOP 10 · BY TOTAL EARNINGS</div>
+            <div class="lb-subtitle">TOP 10 Crypton network 🇮🇳</div>
           </div>
         </div>
         <button class="btn-lb-back" onclick="pvCloseLeaderboard()">
@@ -2331,7 +2557,6 @@
       <div id="pv-lb-content">
         <div class="lb-loading">Fetching top earners…</div>
       </div>
-      <div class="lb-footer-note">Live data from Crypton network · Top 10 by earnedTon</div>
 
     </div><!-- /pv-lb-panel -->
 
@@ -2350,6 +2575,39 @@
 
   </section>
 </div><!-- /view-preview -->
+
+<!-- ══════════ VIEW: USER DIRECTORY ══════════ -->
+<div class="view" id="view-users" style="padding-bottom:96px;">
+  <button class="view-back-btn" id="back-users" onclick="switchView('stats')" style="display:flex;">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Global Stats
+  </button>
+  <section>
+
+    <!-- Header row -->
+    <div class="dir-header-row">
+      <div class="dir-header-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <div>
+        <div class="dir-header-title">All Users</div>
+        <div class="dir-header-sub">GLOBAL MEMBERS DIRECTORY</div>
+      </div>
+    </div>
+
+    <!-- Count bar -->
+    <div class="dir-count-bar">
+      <span>Total registered</span>
+      <span class="dir-count-num" id="dir-total-count">—</span>
+    </div>
+
+    <!-- Directory list — rendered by JS -->
+    <div class="dir-list" id="dir-list-inner">
+      <div class="dir-loading" id="dir-loading-state">Loading members…</div>
+    </div>
+
+  </section>
+</div>
 
 <!-- ── UPGRADE MODAL (single, no duplicate) ── --><div class="modal-overlay" id="upgrade-modal" onclick="closeUpgradeModal(event)">
   <div class="modal-sheet">
@@ -2372,7 +2630,7 @@
   </button>
   <button class="fab-menu-item" id="fmi-referral" onclick="switchView('referral')">
     <span class="fab-menu-icon">◈</span>
-    <span>☣</span>
+    <span>𖤫 network</span>
   </button>
   <button class="fab-menu-item" id="fmi-search" onclick="switchView('search')">
     <span class="fab-menu-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
@@ -2387,7 +2645,7 @@
 
 <!-- ── FAB TRIGGER ── -->
 <button class="fab" id="fab-btn" onclick="toggleFabMenu()" aria-label="Open menu">
-  <span style="font-size:20px; line-height:1; color:var(--text-mid); transition:color 0.2s;" id="fab-icon">◩</span>
+  <span style="font-size:20px; line-height:1; color:var(--text-mid); transition:color 0.2s;" id="fab-icon">☰</span>
 </button>
 
 
@@ -2627,6 +2885,9 @@ function getStoredRef() {
 // ──────────────────────────────────────────────────────────────
 (function initTonConnect() {
   try {
+    // ⚠️ TODO: Replace manifestUrl with your own hosted tonconnect-manifest.json
+    // Example: 'https://yourdomain.com/tonconnect-manifest.json'
+    // The manifest must contain your app's name, icon URL, and allowed domains.
     state.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
       manifestUrl: 'https://raw.githubusercontent.com/ton-connect/demo-dapp/master/public/tonconnect-manifest.json',
       buttonRootId: null,
@@ -2682,14 +2943,15 @@ function handleWalletConnected(rawAddress) {
 
   if (walletDisplayEl) walletDisplayEl.textContent = short;
   // Avatar will be set by _updateDashAvatar() after loginUser loads TG data
-  // Show TG name/handle if available, else wallet short
-  if (dashNameEl)      dashNameEl.textContent      = state.tgFirstName || state.tgUsername || short;
-  if (dashUidEl)       dashUidEl.textContent       = 'TG ID: ' + (state.tgNumericId || state.userId);
+  // dash-name is now a static "id:" label — do not overwrite it
+  if (dashUidEl)       dashUidEl.textContent       = state.tgNumericId || state.userId || '—';
   if (joinDateEl)      joinDateEl.textContent      =
     new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-  if (refLinkEl)       refLinkEl.textContent       = `https://t.me/CryptonOfficialBot/app?startapp=${state.userId}`;
+  // Use tgNumericId for referral link so bot can match via start_param
+  const refId = state.tgNumericId || state.userId;
+  if (refLinkEl)       refLinkEl.textContent       = `https://t.me/CryptonOfficialBot/app?startapp=${refId}`;
   const refLinkNetEl = document.getElementById('ref-link-network');
-  if (refLinkNetEl)    refLinkNetEl.textContent    = `https://t.me/CryptonOfficialBot/app?startapp=${state.userId}`;
+  if (refLinkNetEl)    refLinkNetEl.textContent    = `https://t.me/CryptonOfficialBot/app?startapp=${refId}`;
 
   // ── Unlock Matrix Gate in view-matrix with smooth reveal animation ──
   const gate    = document.getElementById('matrix-wallet-gate');
@@ -2807,15 +3069,32 @@ function fmtTon(ton)   { return ton % 1 === 0 ? ton.toFixed(0) : ton.toFixed(2);
 // LEVEL INDICATOR BAR — update cells based on ownedSlots
 // ──────────────────────────────────────────────────────────────
 function updateLevelBar() {
-  const owned = state.ownedSlots.length;
   for (let i = 1; i <= 10; i++) {
     const cell = document.getElementById('lvl-' + i);
     if (!cell) continue;
-    if (i <= owned) {
+    const owned = state.ownedSlots.includes(i);
+    if (owned) {
       cell.classList.add('active');
     } else {
       cell.classList.remove('active');
     }
+    // Re-attach click handler each time (safe — replaces previous onclick)
+    cell.onclick = (function(level) {
+      return function() {
+        // Navigate to matrix view, then scroll to that slot card
+        switchView('matrix');
+        requestAnimationFrame(function() {
+          const card = document.querySelector('[data-level="' + level + '"]');
+          if (card) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Brief highlight pulse so user knows which slot was targeted
+            card.style.transition = 'box-shadow 0.2s';
+            card.style.boxShadow = '0 0 0 2px rgba(0,229,255,0.70)';
+            setTimeout(function() { card.style.boxShadow = ''; }, 900);
+          }
+        });
+      };
+    })(i);
   }
 }
 
@@ -3094,7 +3373,9 @@ function doUpgrade() {
 }
 
 // ──────────────────────────────────────────────────────────────
-// DEMO: Tap active slot to simulate fill (remove in production)
+// DEMO ONLY: Tap active slot to simulate fill
+// ⚠️ REMOVE THIS FUNCTION IN PRODUCTION — fill must come from real
+// on-chain events / Firestore webhook updates from your bot.
 // ──────────────────────────────────────────────────────────────
 function simulateFill(level) {
   if (!state.ownedSlots.includes(level)) return;
@@ -3128,7 +3409,13 @@ async function buySlot(level, priceTon) {
   // │  └─ 50% (halfNanoTon) → Matrix Smart Contract           │
   // └─────────────────────────────────────────────────────────┘
   // ── Contract address — replace with your deployed contract ──
-  const CONTRACT_ADDRESS = 'EQD__YOUR_CRYPTON_CONTRACT_ADDRESS_HERE'; // TODO: replace with real address
+  // ⚠️ CRITICAL: Replace this with your deployed TON smart contract address before going live!
+  const CONTRACT_ADDRESS = 'EQD__YOUR_CRYPTON_CONTRACT_ADDRESS_HERE';
+  if (CONTRACT_ADDRESS.includes('YOUR_CRYPTON')) {
+    console.error('[CRITICAL] CONTRACT_ADDRESS is a placeholder! Replace before production.');
+    showToast('⚠️ Contract not configured. Contact admin.');
+    return;
+  }
 
   // ── Referrer wallet for direct (50%) payment ──
   // Prefer on-chain referrer wallet; fall back to contract for now
@@ -3181,9 +3468,9 @@ async function buySlot(level, priceTon) {
     if (result) {
       state.ownedSlots.push(level);
       slotFill[level]   = 0;
-      state.workingTon  = (state.workingTon || 0) + dist.working;
-      state.passiveTon  = (state.passiveTon || 0) + dist.passive;
-      state.earnedTon   = state.workingTon + state.passiveTon;
+      state.workingTon  = parseFloat(((state.workingTon || 0) + dist.working).toFixed(6));
+      state.passiveTon  = parseFloat(((state.passiveTon || 0) + dist.passive).toFixed(6));
+      state.earnedTon   = parseFloat((state.workingTon + state.passiveTon).toFixed(6));
       updateStatsUI();
       renderSlots();
       saveUserData({
@@ -3318,9 +3605,11 @@ async function loginUser(walletAddress) {
         : `<span class="fetch-na">Not shared</span>`;
     }
 
-    // ── Update dashboard name with bot-supplied tgName ────────────────────
-    const dashNameEl = document.getElementById('dash-name');
-    if (dashNameEl && data.tgName) dashNameEl.textContent = data.tgName;
+    // ── Update dashboard UID display (dash-name is static "id:" label) ────
+    const dashUidFromLogin = document.getElementById('dash-uid');
+    if (dashUidFromLogin && (data.tgId || tgIdFromSDK)) {
+      dashUidFromLogin.textContent = data.tgId || tgIdFromSDK;
+    }
 
     // ── Restore slotFill from saved data ──────────────────────────────────
     if (data.slotFill && typeof data.slotFill === 'object') {
@@ -3370,6 +3659,7 @@ async function loginUser(walletAddress) {
     // This is the bridge moment: the bot document gains the wallet address.
     // updateDoc is used (not setDoc) so no existing bot fields are overwritten.
     const userId = 'USR' + walletAddress.slice(-8).toUpperCase();
+    const refId2 = state.tgNumericId || userId;
     const mergeFields = { walletAddress, userId };
     // Also refresh any tg fields the SDK may have fresher data for
     if (tgPayload.tgHandle) mergeFields.tgHandle = tgPayload.tgHandle;
@@ -3381,8 +3671,11 @@ async function loginUser(walletAddress) {
     );
     console.log('[Firebase] Wallet address merged into tgId doc:', tgIdFromSDK, '←', walletAddress);
 
-    // ── Push userId into state (used by referral links, tx payloads, etc.) ─
     state.userId = userId;
+    const refLinkEl3 = document.getElementById('ref-link');
+    if (refLinkEl3) refLinkEl3.textContent = `https://t.me/CryptonOfficialBot/app?startapp=${refId2}`;
+    const refLinkNetEl3 = document.getElementById('ref-link-network');
+    if (refLinkNetEl3) refLinkNetEl3.textContent = `https://t.me/CryptonOfficialBot/app?startapp=${refId2}`;
     const dashUidEl = document.getElementById('dash-uid');
     if (dashUidEl) dashUidEl.textContent = 'TG ID: ' + (state.tgNumericId || userId);
     const refLinkEl = document.getElementById('ref-link');
@@ -3526,20 +3819,28 @@ let _fabOpen = false;
 
 function toggleFabMenu() {
   _fabOpen = !_fabOpen;
-  document.getElementById('fab-btn').classList.toggle('open', _fabOpen);
+  // Support both the legacy fab-btn and the new header hamburger btn
+  const legacyFab = document.getElementById('fab-btn');
+  if (legacyFab) legacyFab.classList.toggle('open', _fabOpen);
   document.getElementById('fab-menu').classList.toggle('open', _fabOpen);
 }
 
 function closeFabMenu() {
   if (!_fabOpen) return;
   _fabOpen = false;
-  document.getElementById('fab-btn').classList.remove('open');
+  const legacyFab = document.getElementById('fab-btn');
+  if (legacyFab) legacyFab.classList.remove('open');
   document.getElementById('fab-menu').classList.remove('open');
 }
 
-// Close on outside tap (clicks outside both the trigger button and the drawer)
+// Close on outside tap — excludes both the legacy .fab and the header hamburger
 document.addEventListener('click', (e) => {
-  if (_fabOpen && !e.target.closest('.fab-menu') && !e.target.closest('.fab')) closeFabMenu();
+  if (_fabOpen
+      && !e.target.closest('.fab-menu')
+      && !e.target.closest('.fab')
+      && !e.target.closest('.header-hamburger-btn')) {
+    closeFabMenu();
+  }
 });
 
 // ──────────────────────────────────────────────────────────────
@@ -3553,7 +3854,7 @@ function switchView(name) {
   if (view) view.classList.add('active');
 
   // Show/hide back buttons in non-home views
-  ['matrix','referral','profile','search','stats','preview'].forEach(n => {
+  ['matrix','referral','profile','search','stats','preview','users'].forEach(n => {
     const btn = document.getElementById('back-' + n);
     if (btn) btn.style.display = (name === n) ? 'flex' : 'none';
   });
@@ -3597,9 +3898,10 @@ function copyReferral() {
 
 // Copy referral from the gold card button — always reads fresh link from state
 function copyReferralGold() {
-  // Prefer live state.userId link, fall back to DOM element
-  const link = state.userId
-    ? `https://t.me/CryptonOfficialBot/app?startapp=${state.userId}`
+  // Use tgNumericId for consistency with bot's start_param matching
+  const refId = state.tgNumericId || state.userId;
+  const link = refId
+    ? `https://t.me/CryptonOfficialBot/app?startapp=${refId}`
     : (document.getElementById('ref-link') ? document.getElementById('ref-link').textContent : '');
   if (!link || link.startsWith('Connect')) { showToast('Connect wallet first'); return; }
   // Update the display element to keep in sync
@@ -3655,7 +3957,9 @@ async function fetchGlobalStats() {
     const { collection, getDocs } = window.__fs;
     const db = window.__db;
 
-    // Fetch ALL user documents — count + sum earnedTon in one pass
+    // ⚠️ SCALABILITY WARNING: This fetches ALL user documents.
+    // For production with 1000+ users, use Firestore aggregation queries
+    // or maintain a 'stats/global' counter document via Cloud Functions.
     const usersSnap = await getDocs(collection(db, 'users'));
 
     let totalUsers   = 0;
@@ -4548,6 +4852,108 @@ function _updateDashAvatar() {
 // INIT — render slots (pre-connection demo view)
 // ──────────────────────────────────────────────────────────────
 renderSlots();
+</script>
+
+<script>
+// ──────────────────────────────────────────────────────────────
+// USER DIRECTORY — Global members list, chronological order
+// ──────────────────────────────────────────────────────────────
+
+let _dirLoaded = false; // cache flag — only fetch once per session
+
+/**
+ * Open the dedicated User Directory sub-page.
+ * Called by the "View User ༚" card on the Global Stats view.
+ * NEVER injects into the Search view; always navigates to view-users.
+ */
+function openUserDirectory() {
+  switchView('users');
+  if (!_dirLoaded) {
+    _dirLoaded = true;
+    loadUserDirectory();
+  }
+}
+
+async function loadUserDirectory() {
+  const listEl    = document.getElementById('dir-list-inner');
+  const countEl   = document.getElementById('dir-total-count');
+  const loadingEl = document.getElementById('dir-loading-state');
+
+  if (!listEl) return;
+
+  // Show spinner
+  listEl.innerHTML = '<div class="dir-loading" id="dir-loading-state">Loading members…</div>';
+  if (countEl) countEl.textContent = '—';
+
+  try {
+    const db = window.__db;
+    const fs = window.__fs;
+    if (!db || !fs) throw new Error('Firestore not ready');
+
+    // Query all users ordered by registration timestamp (ascending = chronological)
+    const q = fs.query(
+      fs.collection(db, 'users'),
+      fs.orderBy('registeredAt', 'asc')
+    );
+
+    const snap = await fs.getDocs(q);
+    const users = [];
+    snap.forEach(doc => users.push({ id: doc.id, ...doc.data() }));
+
+    if (countEl) countEl.textContent = users.length;
+
+    if (users.length === 0) {
+      listEl.innerHTML = '<div class="dir-empty">No registered users found.</div>';
+      return;
+    }
+
+    // Build row HTML
+    const rows = users.map((u, idx) => {
+      const seq       = idx + 1;
+      const firstName = escHtml(u.firstName || u.first_name || u.name || 'Unknown');
+      const tgId      = escHtml(String(u.tgId || u.userId || u.telegram_id || u.id || '—'));
+      const photoUrl  = u.photoUrl || u.photo_url || u.tgPhotoUrl || '';
+
+      const avatarHtml = photoUrl
+        ? `<img src="${escAttr(photoUrl)}" alt="" loading="lazy" onerror="this.parentElement.innerHTML=silhouetteSvg()">`
+        : silhouetteSvg();
+
+      return `
+        <div class="dir-row">
+          <span class="dir-seq">${seq}</span>
+          <div class="dir-avatar">${avatarHtml}</div>
+          <div class="dir-info">
+            <div class="dir-name">${firstName}</div>
+            <div class="dir-uid">ID · ${tgId}</div>
+          </div>
+        </div>`;
+    });
+
+    listEl.innerHTML = `<div class="dir-list">${rows.join('')}</div>`;
+
+  } catch (err) {
+    console.error('[UserDirectory] fetch error:', err);
+    listEl.innerHTML = `<div class="dir-empty">⚠ Could not load directory.<br><span style="font-size:10px;opacity:0.6;">${escHtml(err.message)}</span></div>`;
+  }
+}
+
+/** Inline SVG silhouette fallback (no external resource needed) */
+function silhouetteSvg() {
+  return `<svg viewBox="0 0 42 42" width="42" height="42" xmlns="http://www.w3.org/2000/svg">
+    <rect width="42" height="42" rx="10" fill="rgba(255,255,255,0.06)"/>
+    <circle cx="21" cy="16" r="7.5" fill="#8aa5c0"/>
+    <path d="M4 40 Q4 28 21 28 Q38 28 38 40" fill="#8aa5c0"/>
+  </svg>`;
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+function escAttr(s) { return escHtml(s); }
 </script>
 
 <script>
