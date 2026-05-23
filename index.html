@@ -218,12 +218,12 @@
     /* ─── DASHBOARD ─────────────────────────────────────────── */
     #dashboard { display:none; }
 
-    /* ── Premium solid-gold account card ── */
+    /* ── Premium blue account card ── */
     #dashboard > .card:first-of-type {
-      background: linear-gradient(135deg, #e5c060 0%, #c49632 50%, #d8b24f 100%);
+      background: linear-gradient(135deg, #6fa8c8 0%, #2196c4 60%, #1a7fb0 100%);
       border: none;
       border-radius: 24px;
-      box-shadow: 0 8px 32px rgba(180,140,40,0.35), 0 2px 8px rgba(0,0,0,0.30);
+      box-shadow: 0 8px 32px rgba(33,150,196,0.40), 0 2px 8px rgba(0,0,0,0.30);
     }
 
     .dash-top {
@@ -235,19 +235,19 @@
 
     .dash-name {
       font-family:var(--font-head); font-size:18px; font-weight:800;
-      color: #050d1a !important;
-      -webkit-text-fill-color: #050d1a !important;
+      color: #ffffff !important;
+      -webkit-text-fill-color: #ffffff !important;
     }
     .dash-id {
       font-family:var(--font-mono); font-size:11px;
-      color: rgba(5,13,26,0.70) !important;
+      color: rgba(255,255,255,0.70) !important;
       opacity:1; margin-top:2px; font-weight:600;
     }
 
     /* ── Wallet row — rich dark-mustard belt ── */
     .wallet-row {
       padding:14px 18px; display:flex; align-items:center; justify-content:space-between;
-      background: #c47a00;
+      background: #1267a0;
       border-top: 1px solid rgba(0,0,0,0.15);
     }
     .wallet-label {
@@ -280,11 +280,11 @@
       padding:10px 14px 24px;
     }
 
-    /* ── Slot card — clean white-glass base, all 10 slots fully visible ── */
+    /* ── Slot card — turquoise/mint base matching reference ── */
     .slot-card {
       position:relative;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
+      background: #3ecfb8;
+      border: 1px solid rgba(255,255,255,0.20);
       border-radius: var(--radius-md);
       display:flex; flex-direction:column; align-items:center;
       text-align:center;
@@ -293,15 +293,15 @@
       padding:12px 6px 8px;
     }
 
-    /* ── Locked: clean neutral white-glass default ── */
+    /* ── Locked: slightly darker turquoise ── */
     .slot-card.locked-card {
       opacity:1;
       cursor:pointer;
-      background: rgba(255,255,255,0.03);
-      border-color: rgba(255,255,255,0.07);
+      background: #35bca6;
+      border-color: rgba(255,255,255,0.15);
       filter:none;
     }
-    .slot-card.locked-card:hover { transform:translateY(-2px); border-color: rgba(255,255,255,0.14); }
+    .slot-card.locked-card:hover { transform:translateY(-2px); border-color: rgba(255,255,255,0.30); }
 
     /* ── ACTIVE: primary "You" container turns GREEN ── */
     .slot-card.active-card {
@@ -340,11 +340,11 @@
       letter-spacing:1.5px; text-transform:uppercase;
     }
     /* All non-locked level labels — same brightness */
-    .slot-header-lvl { color:rgba(255,255,255,0.25); }
-    .active-card   .slot-header-lvl { color:rgba(34,197,94,0.80); }
+    .slot-header-lvl { color:rgba(0,60,50,0.70); }
+    .active-card   .slot-header-lvl { color:rgba(0,60,50,0.90); }
     .active-card.premium .slot-header-lvl { color:rgba(240,201,106,0.80); }
     .full-card     .slot-header-lvl { color:rgba(240,201,106,0.90); }
-    .locked-card   .slot-header-lvl { color:rgba(255,255,255,0.25); }
+    .locked-card   .slot-header-lvl { color:rgba(0,60,50,0.70); }
 
     /* Status badge — show text for active state */
     .slot-status-badge {
@@ -367,10 +367,10 @@
     .slot-price-wrap { display:flex; align-items:baseline; gap:4px; }
     .slot-price {
       font-family:var(--font-head); font-size:17px; font-weight:800;
-      color:rgba(255,255,255,0.40); line-height:1; letter-spacing:-0.5px;
+      color:rgba(0,60,50,0.75); line-height:1; letter-spacing:-0.5px;
     }
     .slot-price-unit {
-      font-size:9px; font-weight:500; color:rgba(255,255,255,0.28);
+      font-size:9px; font-weight:500; color:rgba(0,60,50,0.55);
       font-family:var(--font-mono);
     }
     .slot-usd { display:none; }
@@ -403,7 +403,7 @@
     .full-card .fill-bar-fill           { background:rgba(212,168,67,0.60); width:100% !important; }
     .fill-count {
       font-family:var(--font-mono); font-size:7.5px;
-      color:rgba(58,84,112,0.50); text-align:center; margin-top:3px;
+      color:rgba(0,60,50,0.50); text-align:center; margin-top:3px;
     }
     .active-card .fill-count { color:rgba(0,229,255,0.38); }
 
@@ -1019,7 +1019,7 @@
     #level-indicator-bar {
       display: none; /* shown by JS after wallet connect */
       width: 100%;
-      background: #6236d0;
+      background: #3ecfb8;
       border-radius: 10px;
       padding: 12px 14px;
       flex-direction: row;
@@ -1028,7 +1028,7 @@
       gap: 5px;
       margin-top: 14px;
       margin-bottom: 0;
-      box-shadow: 0 4px 18px rgba(98,54,208,0.38), 0 1px 4px rgba(0,0,0,0.22);
+      box-shadow: 0 4px 18px rgba(62,207,184,0.38), 0 1px 4px rgba(0,0,0,0.22);
     }
     .lvl-cell {
       flex: 1;
@@ -1039,7 +1039,7 @@
       font-family: var(--font-head);
       font-size: 14px;
       font-weight: 800;
-      color: rgba(255,255,255,0.35);
+      color: rgba(0,60,50,0.60);
       background: rgba(0,0,0,0.20);
       border-radius: 6px;
       letter-spacing: -0.3px;
@@ -1412,11 +1412,11 @@
       align-items: center;
       gap: 5px;
       padding: 12px 14px;
-      background: #6236d0;
+      background: #3ecfb8;
       border-radius: 10px;
       width: 100%;
       margin-bottom: 0;
-      box-shadow: 0 4px 18px rgba(98,54,208,0.38), 0 1px 4px rgba(0,0,0,0.22);
+      box-shadow: 0 4px 18px rgba(62,207,184,0.38), 0 1px 4px rgba(0,0,0,0.22);
     }
 
     /* Downline section */
@@ -2036,7 +2036,7 @@
 
     /* ─── PREVIEW MODE — SLOT BADGE STRIP ───────────────────── */
     .srch-slots-wrap {
-      background: #6236d0;
+      background: #3ecfb8;
       border-radius: var(--radius-md);
       padding: 12px 14px;
       margin-bottom: 14px;
@@ -2077,7 +2077,7 @@
     }
     .srch-slot-badge.locked {
       background: rgba(0,0,0,0.20);
-      color: rgba(255,255,255,0.35);
+      color: rgba(0,60,50,0.60);
     }
 
     /* ─── PREVIEW MODE — STATS GRID ─────────────────────────── */
@@ -2245,7 +2245,7 @@
       <span id="ref-link-network" style="display:none;"></span>
 
       <!-- ── LEVEL INDICATOR BAR ── -->
-      <div id="level-indicator-bar" style="display:none; flex-direction:row; align-items:center; background:#6236d0; border-radius:10px; padding:12px 14px; margin-top:14px; gap:5px; width:100%; box-shadow:0 4px 18px rgba(98,54,208,0.38),0 1px 4px rgba(0,0,0,0.22);">
+      <div id="level-indicator-bar" style="display:none; flex-direction:row; align-items:center; background:#3ecfb8; border-radius:10px; padding:12px 14px; margin-top:14px; gap:5px; width:100%; box-shadow:0 4px 18px rgba(62,207,184,0.38),0 1px 4px rgba(0,0,0,0.22);">
         <span class="lvl-label">Slots</span>
         <div class="lvl-cell" id="lvl-1">1</div>
         <div class="lvl-cell" id="lvl-2">2</div>
@@ -2617,7 +2617,7 @@
         <p style="font-family:var(--font-mono); font-size:10px; font-weight:500; color:var(--cyan); letter-spacing:2px; text-transform:uppercase; margin-bottom:10px; margin-top:4px; opacity:0.8;">MATRIX SLOTS</p>
         <div id="srch-slots-grid" style="
           display:flex; flex-direction:row; align-items:center;
-          background:#6236d0; border-radius:10px;
+          background:#3ecfb8; border-radius:10px;
           padding:12px 14px; gap:5px; width:100%;
         ">
           <!-- Injected by renderSrchSlots() -->
@@ -4015,21 +4015,35 @@ async function loginUser(walletAddress) {
     try {
       const regIndexEl = document.getElementById('dash-reg-index');
       if (regIndexEl) {
-        const { collection: col, query: q, orderBy: oBy, getDocs: gDocs } = window.__fs;
-        const allQ    = q(col(db, 'users'), oBy('registeredAt', 'asc'));
-        const allSnap = await gDocs(allQ);
-        let seqNum = null;
-        let pos = 1;
-        allSnap.forEach(d => {
-          if (d.id === tgIdFromSDK) seqNum = pos;
-          pos++;
-        });
-        if (seqNum !== null) {
-          regIndexEl.textContent = 'ID - #' + seqNum;
+        // Check if regNum is directly stored on the user doc (fastest)
+        if (data.regNum) {
+          regIndexEl.textContent = 'ID - #' + data.regNum;
+        } else {
+          // Compute position by ordering all users by registeredAt
+          const { collection: col, query: q, orderBy: oBy, getDocs: gDocs } = window.__fs;
+          const allQ    = q(col(db, 'users'), oBy('registeredAt', 'asc'));
+          const allSnap = await gDocs(allQ);
+          let seqNum = null;
+          let pos = 1;
+          allSnap.forEach(d => {
+            if (d.id === tgIdFromSDK) seqNum = pos;
+            pos++;
+          });
+          if (seqNum !== null) {
+            regIndexEl.textContent = 'ID - #' + seqNum;
+          } else {
+            // Fallback: show tgId so it is never blank
+            const fallbackId = data.tgId || tgIdFromSDK;
+            if (fallbackId) regIndexEl.textContent = 'ID - #' + fallbackId;
+          }
+          console.log('[RegIndex] Sequential number resolved:', seqNum, 'for tgId:', tgIdFromSDK);
         }
-        console.log('[RegIndex] Sequential number resolved:', seqNum, 'for tgId:', tgIdFromSDK);
       }
     } catch(e) {
+      // On error, show tgId so the field is never blank
+      const regIndexEl = document.getElementById('dash-reg-index');
+      const fallbackId = (data && data.tgId) || tgIdFromSDK;
+      if (regIndexEl && fallbackId) regIndexEl.textContent = 'ID - #' + fallbackId;
       console.warn('[RegIndex] Could not fetch sequence:', e.message);
     }
 
@@ -4778,7 +4792,7 @@ async function pvDoSearch() {
       <!-- ② SLOTS — purple level bar -->
       <div style="margin-top:14px; margin-bottom:14px;">
         <p style="font-family:var(--font-mono);font-size:10px;font-weight:500;color:var(--cyan);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;margin-top:4px;opacity:0.8;">MATRIX SLOTS</p>
-        <div style="display:flex;flex-direction:row;align-items:center;background:#6236d0;border-radius:10px;padding:12px 14px;gap:5px;width:100%;box-shadow:0 4px 18px rgba(98,54,208,0.38),0 1px 4px rgba(0,0,0,0.22);">
+        <div style="display:flex;flex-direction:row;align-items:center;background:#3ecfb8;border-radius:10px;padding:12px 14px;gap:5px;width:100%;box-shadow:0 4px 18px rgba(62,207,184,0.38),0 1px 4px rgba(0,0,0,0.22);">
           ${slotCells}
         </div>
       </div>
