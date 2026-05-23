@@ -4011,40 +4011,50 @@ async function loginUser(walletAddress) {
     }
 
     // ── Fetch & display registration sequence index (ID - #N) ─────────────
-    // Awaited inline so the number is injected before updateStatsUI/renderSlots
+    // First registered user = #1, second = #2, and so on (ordered by registeredAt asc)
     try {
       const regIndexEl = document.getElementById('dash-reg-index');
       if (regIndexEl) {
-        // Check if regNum is directly stored on the user doc (fastest)
-        if (data.regNum) {
-          regIndexEl.textContent = 'ID - #' + data.regNum;
-        } else {
-          // Compute position by ordering all users by registeredAt
-          const { collection: col, query: q, orderBy: oBy, getDocs: gDocs } = window.__fs;
-          const allQ    = q(col(db, 'users'), oBy('registeredAt', 'asc'));
-          const allSnap = await gDocs(allQ);
-          let seqNum = null;
+        regIndexEl.textContent = 'ID - #…'; // loading state
+        const { collection: col, query: q, orderBy: oBy, getDocs: gDocs } = window.__fs;
+
+        // Try registeredAt first, fallback to createdAt if that field doesn't exist
+        let allSnap = null;
+        try {
+          const allQ = q(col(db, 'users'), oBy('registeredAt', 'asc'));
+          allSnap = await gDocs(allQ);
+        } catch(_) {
+          try {
+            const allQ2 = q(col(db, 'users'), oBy('createdAt', 'asc'));
+            allSnap = await gDocs(allQ2);
+          } catch(__) { allSnap = null; }
+        }
+
+        let seqNum = null;
+        if (allSnap && !allSnap.empty) {
           let pos = 1;
           allSnap.forEach(d => {
-            if (d.id === tgIdFromSDK) seqNum = pos;
+            // String comparison to avoid Number vs String type mismatch
+            if (String(d.id) === String(tgIdFromSDK)) seqNum = pos;
             pos++;
           });
-          if (seqNum !== null) {
-            regIndexEl.textContent = 'ID - #' + seqNum;
-          } else {
-            // Fallback: show tgId so it is never blank
-            const fallbackId = data.tgId || tgIdFromSDK;
-            if (fallbackId) regIndexEl.textContent = 'ID - #' + fallbackId;
-          }
-          console.log('[RegIndex] Sequential number resolved:', seqNum, 'for tgId:', tgIdFromSDK);
+        }
+
+        if (seqNum !== null) {
+          regIndexEl.textContent = 'ID - #' + seqNum;
+          console.log('[RegIndex] Position resolved: #' + seqNum + ' for tgId:', tgIdFromSDK);
+        } else {
+          // User doc found but not in ordered list — show tgId as fallback
+          const fallbackId = data.tgId || tgIdFromSDK;
+          regIndexEl.textContent = 'ID - #' + (fallbackId || '—');
+          console.warn('[RegIndex] Could not find position, showing tgId:', fallbackId);
         }
       }
     } catch(e) {
-      // On error, show tgId so the field is never blank
       const regIndexEl = document.getElementById('dash-reg-index');
       const fallbackId = (data && data.tgId) || tgIdFromSDK;
-      if (regIndexEl && fallbackId) regIndexEl.textContent = 'ID - #' + fallbackId;
-      console.warn('[RegIndex] Could not fetch sequence:', e.message);
+      if (regIndexEl) regIndexEl.textContent = 'ID - #' + (fallbackId || '—');
+      console.warn('[RegIndex] Error:', e.message);
     }
 
     // ── Restore slotFill from saved data ──────────────────────────────────
