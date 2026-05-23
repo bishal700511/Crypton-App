@@ -218,12 +218,12 @@
     /* ─── DASHBOARD ─────────────────────────────────────────── */
     #dashboard { display:none; }
 
-    /* ── Premium blue account card ── */
+    /* ── Premium solid-gold account card ── */
     #dashboard > .card:first-of-type {
-      background: linear-gradient(135deg, #6fa8c8 0%, #2196c4 60%, #1a7fb0 100%);
+      background: linear-gradient(135deg, #e5c060 0%, #c49632 50%, #d8b24f 100%);
       border: none;
       border-radius: 24px;
-      box-shadow: 0 8px 32px rgba(33,150,196,0.40), 0 2px 8px rgba(0,0,0,0.30);
+      box-shadow: 0 8px 32px rgba(180,140,40,0.35), 0 2px 8px rgba(0,0,0,0.30);
     }
 
     .dash-top {
@@ -235,19 +235,19 @@
 
     .dash-name {
       font-family:var(--font-head); font-size:18px; font-weight:800;
-      color: #ffffff !important;
-      -webkit-text-fill-color: #ffffff !important;
+      color: #050d1a !important;
+      -webkit-text-fill-color: #050d1a !important;
     }
     .dash-id {
       font-family:var(--font-mono); font-size:11px;
-      color: rgba(255,255,255,0.70) !important;
+      color: rgba(5,13,26,0.70) !important;
       opacity:1; margin-top:2px; font-weight:600;
     }
 
     /* ── Wallet row — rich dark-mustard belt ── */
     .wallet-row {
       padding:14px 18px; display:flex; align-items:center; justify-content:space-between;
-      background: #1267a0;
+      background: #c47a00;
       border-top: 1px solid rgba(0,0,0,0.15);
     }
     .wallet-label {
@@ -280,11 +280,11 @@
       padding:10px 14px 24px;
     }
 
-    /* ── Slot card — turquoise/mint base matching reference ── */
+    /* ── Slot card — clean white-glass base, all 10 slots fully visible ── */
     .slot-card {
       position:relative;
-      background: #3ecfb8;
-      border: 1px solid rgba(255,255,255,0.20);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
       border-radius: var(--radius-md);
       display:flex; flex-direction:column; align-items:center;
       text-align:center;
@@ -293,15 +293,15 @@
       padding:12px 6px 8px;
     }
 
-    /* ── Locked: slightly darker turquoise ── */
+    /* ── Locked: clean neutral white-glass default ── */
     .slot-card.locked-card {
       opacity:1;
       cursor:pointer;
-      background: #35bca6;
-      border-color: rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.03);
+      border-color: rgba(255,255,255,0.07);
       filter:none;
     }
-    .slot-card.locked-card:hover { transform:translateY(-2px); border-color: rgba(255,255,255,0.30); }
+    .slot-card.locked-card:hover { transform:translateY(-2px); border-color: rgba(255,255,255,0.14); }
 
     /* ── ACTIVE: primary "You" container turns GREEN ── */
     .slot-card.active-card {
@@ -340,11 +340,11 @@
       letter-spacing:1.5px; text-transform:uppercase;
     }
     /* All non-locked level labels — same brightness */
-    .slot-header-lvl { color:rgba(0,60,50,0.70); }
-    .active-card   .slot-header-lvl { color:rgba(0,60,50,0.90); }
+    .slot-header-lvl { color:rgba(255,255,255,0.25); }
+    .active-card   .slot-header-lvl { color:rgba(34,197,94,0.80); }
     .active-card.premium .slot-header-lvl { color:rgba(240,201,106,0.80); }
     .full-card     .slot-header-lvl { color:rgba(240,201,106,0.90); }
-    .locked-card   .slot-header-lvl { color:rgba(0,60,50,0.70); }
+    .locked-card   .slot-header-lvl { color:rgba(255,255,255,0.25); }
 
     /* Status badge — show text for active state */
     .slot-status-badge {
@@ -367,10 +367,10 @@
     .slot-price-wrap { display:flex; align-items:baseline; gap:4px; }
     .slot-price {
       font-family:var(--font-head); font-size:17px; font-weight:800;
-      color:rgba(0,60,50,0.75); line-height:1; letter-spacing:-0.5px;
+      color:rgba(255,255,255,0.40); line-height:1; letter-spacing:-0.5px;
     }
     .slot-price-unit {
-      font-size:9px; font-weight:500; color:rgba(0,60,50,0.55);
+      font-size:9px; font-weight:500; color:rgba(255,255,255,0.28);
       font-family:var(--font-mono);
     }
     .slot-usd { display:none; }
@@ -403,7 +403,7 @@
     .full-card .fill-bar-fill           { background:rgba(212,168,67,0.60); width:100% !important; }
     .fill-count {
       font-family:var(--font-mono); font-size:7.5px;
-      color:rgba(0,60,50,0.50); text-align:center; margin-top:3px;
+      color:rgba(58,84,112,0.50); text-align:center; margin-top:3px;
     }
     .active-card .fill-count { color:rgba(0,229,255,0.38); }
 
@@ -1019,7 +1019,7 @@
     #level-indicator-bar {
       display: none; /* shown by JS after wallet connect */
       width: 100%;
-      background: #3ecfb8;
+      background: #6236d0;
       border-radius: 10px;
       padding: 12px 14px;
       flex-direction: row;
@@ -1028,7 +1028,7 @@
       gap: 5px;
       margin-top: 14px;
       margin-bottom: 0;
-      box-shadow: 0 4px 18px rgba(62,207,184,0.38), 0 1px 4px rgba(0,0,0,0.22);
+      box-shadow: 0 4px 18px rgba(98,54,208,0.38), 0 1px 4px rgba(0,0,0,0.22);
     }
     .lvl-cell {
       flex: 1;
@@ -1039,7 +1039,7 @@
       font-family: var(--font-head);
       font-size: 14px;
       font-weight: 800;
-      color: rgba(0,60,50,0.60);
+      color: rgba(255,255,255,0.35);
       background: rgba(0,0,0,0.20);
       border-radius: 6px;
       letter-spacing: -0.3px;
@@ -1412,11 +1412,11 @@
       align-items: center;
       gap: 5px;
       padding: 12px 14px;
-      background: #3ecfb8;
+      background: #6236d0;
       border-radius: 10px;
       width: 100%;
       margin-bottom: 0;
-      box-shadow: 0 4px 18px rgba(62,207,184,0.38), 0 1px 4px rgba(0,0,0,0.22);
+      box-shadow: 0 4px 18px rgba(98,54,208,0.38), 0 1px 4px rgba(0,0,0,0.22);
     }
 
     /* Downline section */
@@ -2036,7 +2036,7 @@
 
     /* ─── PREVIEW MODE — SLOT BADGE STRIP ───────────────────── */
     .srch-slots-wrap {
-      background: #3ecfb8;
+      background: #6236d0;
       border-radius: var(--radius-md);
       padding: 12px 14px;
       margin-bottom: 14px;
@@ -2077,7 +2077,7 @@
     }
     .srch-slot-badge.locked {
       background: rgba(0,0,0,0.20);
-      color: rgba(0,60,50,0.60);
+      color: rgba(255,255,255,0.35);
     }
 
     /* ─── PREVIEW MODE — STATS GRID ─────────────────────────── */
@@ -2245,7 +2245,7 @@
       <span id="ref-link-network" style="display:none;"></span>
 
       <!-- ── LEVEL INDICATOR BAR ── -->
-      <div id="level-indicator-bar" style="display:none; flex-direction:row; align-items:center; background:#3ecfb8; border-radius:10px; padding:12px 14px; margin-top:14px; gap:5px; width:100%; box-shadow:0 4px 18px rgba(62,207,184,0.38),0 1px 4px rgba(0,0,0,0.22);">
+      <div id="level-indicator-bar" style="display:none; flex-direction:row; align-items:center; background:#6236d0; border-radius:10px; padding:12px 14px; margin-top:14px; gap:5px; width:100%; box-shadow:0 4px 18px rgba(98,54,208,0.38),0 1px 4px rgba(0,0,0,0.22);">
         <span class="lvl-label">Slots</span>
         <div class="lvl-cell" id="lvl-1">1</div>
         <div class="lvl-cell" id="lvl-2">2</div>
@@ -2617,7 +2617,7 @@
         <p style="font-family:var(--font-mono); font-size:10px; font-weight:500; color:var(--cyan); letter-spacing:2px; text-transform:uppercase; margin-bottom:10px; margin-top:4px; opacity:0.8;">MATRIX SLOTS</p>
         <div id="srch-slots-grid" style="
           display:flex; flex-direction:row; align-items:center;
-          background:#3ecfb8; border-radius:10px;
+          background:#6236d0; border-radius:10px;
           padding:12px 14px; gap:5px; width:100%;
         ">
           <!-- Injected by renderSrchSlots() -->
@@ -3372,8 +3372,7 @@ function handleWalletConnected(rawAddress) {
 
   // ── Update dashboard avatar with TG photo ──
   _updateDashAvatar();
-  // ── Header capsule: show ID ──
-  _updateHeaderCapsule();
+  // _updateHeaderCapsule is called inside loginUser after Firestore loads
 }
 
 function handleWalletDisconnected() {
@@ -3771,15 +3770,17 @@ function doUpgrade() {
 }
 
 // ──────────────────────────────────────────────────────────────
-// DEMO ONLY: Tap active slot to simulate fill
-// ⚠️ REMOVE THIS FUNCTION IN PRODUCTION — fill must come from real
-// on-chain events / Firestore webhook updates from your bot.
+// TAP ACTIVE SLOT — navigates to Matrix view for that slot.
+// Fill data comes ONLY from Firestore (written by the bot via webhook).
 // ──────────────────────────────────────────────────────────────
 function simulateFill(level) {
-  if (!state.ownedSlots.includes(level)) return;
-  slotFill[level] = Math.min((slotFill[level] ?? 0) + 1, 6);
-  renderSlots();
-  if (slotFill[level] >= 6) setTimeout(() => showUpgradeModal(level), 300);
+  // Only navigate — do NOT mutate slotFill locally.
+  // Real fill is tracked in Firestore by the Python bot.
+  switchView('matrix');
+  requestAnimationFrame(function() {
+    const card = document.querySelector('[data-level="' + level + '"]');
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -3816,8 +3817,22 @@ async function buySlot(level, priceTon) {
   }
 
   // ── Referrer wallet for direct (50%) payment ──
-  // Prefer on-chain referrer wallet; fall back to contract for now
-  const referrerWallet = state._referrerWallet || CONTRACT_ADDRESS;
+  // Load referrer's actual wallet address from Firestore
+  let referrerWallet = CONTRACT_ADDRESS; // default to contract if no referrer
+  try {
+    const _refId = getStoredRef() || null;
+    if (_refId && !state._referrerWallet) {
+      await waitForFirestore();
+      const { doc: _d, getDoc: _g } = window.__fs;
+      const _rSnap = await _g(_d(window.__db, 'users', _refId));
+      if (_rSnap.exists() && _rSnap.data().walletAddress) {
+        state._referrerWallet = _rSnap.data().walletAddress;
+      }
+    }
+    referrerWallet = state._referrerWallet || CONTRACT_ADDRESS;
+  } catch(_re) {
+    console.warn('[BuySlot] Could not load referrer wallet, using contract:', _re.message);
+  }
 
   try {
     // Use integer arithmetic to avoid floating-point rounding errors
@@ -3865,18 +3880,24 @@ async function buySlot(level, priceTon) {
 
     if (result) {
       state.ownedSlots.push(level);
-      slotFill[level]   = 0;
+      // FIX: Do NOT mutate slotFill locally — bot tracks real matrix fills via Firestore.
+      // slotFill[level] starts at 0 until bot writes real data after on-chain confirmation.
+      if (slotFill[level] === undefined) slotFill[level] = 0;
       state.workingTon  = parseFloat(((state.workingTon || 0) + dist.working).toFixed(6));
       state.passiveTon  = parseFloat(((state.passiveTon || 0) + dist.passive).toFixed(6));
       state.earnedTon   = parseFloat((state.workingTon + state.passiveTon).toFixed(6));
       updateStatsUI();
       renderSlots();
-      saveUserData({
+      // FIX: Save earnedTon, ownedSlots, slotFill AND tgPhotoUrl to Firestore
+      // tgPhotoUrl is saved so it persists if bot doesn't re-send it on next login
+      const savePayload = {
         ownedSlots: state.ownedSlots,
         earnedTon:  state.earnedTon,
         workingTon: state.workingTon,
         passiveTon: state.passiveTon,
-      });
+      };
+      if (state.tgPhotoUrl) savePayload.tgPhotoUrl = state.tgPhotoUrl;
+      saveUserData(savePayload);
       showToast(`Level ${level} activated! 🎉`);
       // ── Celebration burst ──
       const card = document.querySelector(`[data-level="${level}"]`);
@@ -3978,10 +3999,12 @@ async function loginUser(walletAddress) {
 
     // ── Hydrate Telegram profile fields from Firestore into UI ───────────
     // These were saved by the bot — they are the source of truth for name/email.
-    if (data.tgName  && !state.tgFirstName) state.tgFirstName = data.tgName;
-    if (data.tgEmail && !state.tgEmail)     state.tgEmail     = data.tgEmail;
-    if (data.tgHandle && !state.tgUsername) state.tgUsername  = data.tgHandle;
-    if (data.tgId    && !state.tgNumericId) state.tgNumericId = data.tgId;
+    if (data.tgName     && !state.tgFirstName) state.tgFirstName = data.tgName;
+    if (data.tgEmail    && !state.tgEmail)     state.tgEmail     = data.tgEmail;
+    if (data.tgHandle   && !state.tgUsername)  state.tgUsername  = data.tgHandle;
+    if (data.tgId       && !state.tgNumericId) state.tgNumericId = data.tgId;
+    // FIX: Load tgPhotoUrl from Firestore (written by bot) so avatar renders correctly
+    if (data.tgPhotoUrl && !state.tgPhotoUrl)  state.tgPhotoUrl  = data.tgPhotoUrl;
 
     // ── Update profile UI elements with bot-supplied data ─────────────────
     const userEl  = document.getElementById('tg-user');
@@ -4011,64 +4034,64 @@ async function loginUser(walletAddress) {
     }
 
     // ── Fetch & display registration sequence index (ID - #N) ─────────────
-    // First registered user = #1, second = #2, and so on (ordered by registeredAt asc)
+    // Awaited inline so the number is injected before updateStatsUI/renderSlots
     try {
       const regIndexEl = document.getElementById('dash-reg-index');
       if (regIndexEl) {
-        regIndexEl.textContent = 'ID - #…'; // loading state
+        // FIX: Bot may write 'registeredAt' or 'joinedAt' — try registeredAt first
         const { collection: col, query: q, orderBy: oBy, getDocs: gDocs } = window.__fs;
-
-        // Try registeredAt first, fallback to createdAt if that field doesn't exist
         let allSnap = null;
         try {
           const allQ = q(col(db, 'users'), oBy('registeredAt', 'asc'));
           allSnap = await gDocs(allQ);
-        } catch(_) {
-          try {
-            const allQ2 = q(col(db, 'users'), oBy('createdAt', 'asc'));
+          // Check if any docs have registeredAt; if not, try joinedAt
+          if (allSnap.empty) {
+            const allQ2 = q(col(db, 'users'), oBy('joinedAt', 'asc'));
             allSnap = await gDocs(allQ2);
-          } catch(__) { allSnap = null; }
+          }
+        } catch(e2) {
+          // If index missing, fetch without order and sort client-side
+          allSnap = await gDocs(col(db, 'users'));
         }
-
         let seqNum = null;
-        if (allSnap && !allSnap.empty) {
-          let pos = 1;
-          allSnap.forEach(d => {
-            // String comparison to avoid Number vs String type mismatch
-            if (String(d.id) === String(tgIdFromSDK)) seqNum = pos;
-            pos++;
-          });
-        }
-
+        let pos = 1;
+        allSnap.forEach(d => {
+          if (d.id === tgIdFromSDK) seqNum = pos;
+          pos++;
+        });
         if (seqNum !== null) {
           regIndexEl.textContent = 'ID - #' + seqNum;
-          console.log('[RegIndex] Position resolved: #' + seqNum + ' for tgId:', tgIdFromSDK);
-        } else {
-          // User doc found but not in ordered list — show tgId as fallback
-          const fallbackId = data.tgId || tgIdFromSDK;
-          regIndexEl.textContent = 'ID - #' + (fallbackId || '—');
-          console.warn('[RegIndex] Could not find position, showing tgId:', fallbackId);
         }
+        console.log('[RegIndex] Sequential number resolved:', seqNum, 'for tgId:', tgIdFromSDK);
       }
     } catch(e) {
-      const regIndexEl = document.getElementById('dash-reg-index');
-      const fallbackId = (data && data.tgId) || tgIdFromSDK;
-      if (regIndexEl) regIndexEl.textContent = 'ID - #' + (fallbackId || '—');
-      console.warn('[RegIndex] Error:', e.message);
+      console.warn('[RegIndex] Could not fetch sequence:', e.message);
     }
 
     // ── Restore slotFill from saved data ──────────────────────────────────
+    // slotFill is written by saveUserData() after slot purchases.
+    // Bot does NOT write this field — only the app does via on-chain confirmation.
     if (data.slotFill && typeof data.slotFill === 'object') {
       Object.assign(slotFill, data.slotFill);
     }
+    // FIX: Convert any stringified numeric keys to numbers for consistency
+    Object.keys(slotFill).forEach(k => {
+      const num = parseInt(k, 10);
+      if (!isNaN(num) && typeof slotFill[k] === 'number') {
+        slotFill[num] = slotFill[k];
+        if (k !== String(num)) delete slotFill[k];
+      }
+    });
 
     // ── Update join date display ──────────────────────────────────────────
-    if (data.joinedAt) {
+    // Bot may write 'registeredAt' or 'joinedAt' — handle both
+    const joinedAtVal = data.joinedAt || data.registeredAt || null;
+    if (joinedAtVal) {
       const jEl = document.getElementById('join-date');
       if (jEl) {
-        const joinMs = data.joinedAt?.toMillis
-          ? data.joinedAt.toMillis()
-          : (data.joinedAt?.seconds ? data.joinedAt.seconds * 1000 : new Date(data.joinedAt).getTime());
+        const joinMs = joinedAtVal?.toMillis
+          ? joinedAtVal.toMillis()
+          : (joinedAtVal?.seconds ? joinedAtVal.seconds * 1000 : new Date(joinedAtVal).getTime());
         jEl.textContent = new Date(joinMs)
           .toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
       }
@@ -4130,7 +4153,9 @@ async function loginUser(walletAddress) {
     if (_refLinkNetEl) _refLinkNetEl.textContent = `https://t.me/CryptonOfficialBot/app?startapp=${refId2}`;
     if (_dashUidEl)    _dashUidEl.textContent    = 'TG ID: ' + (state.tgNumericId || userId);
 
+    // FIX: Update avatar AFTER tgPhotoUrl is hydrated from Firestore
     _updateDashAvatar();
+    _updateHeaderCapsule();
     updateStatsUI();
     renderSlots();
 
@@ -4209,11 +4234,22 @@ async function renderReferralList() {
     const { collection, query, where, getDocs } = window.__fs;
     const db = window.__db;
 
-    // Query: users collection where referredBy == myId
-    const q    = query(collection(db, 'users'), where('referredBy', '==', myId));
-    const snap = await getDocs(q);
+  // Query: users collection where referredBy == myId
+  // Bot writes referredBy as String(chat_id) — same as doc key
+  const q    = query(collection(db, 'users'), where('referredBy', '==', myId));
+  const snap = await getDocs(q);
 
-    if (snap.empty) {
+    // FIX: If no results, try with state.userId as fallback
+    let allRefDocs = snap.docs ? [...snap.docs] : [];
+    if (allRefDocs.length === 0 && state.userId && state.userId !== myId) {
+      try {
+        const q2    = query(collection(db, 'users'), where('referredBy', '==', state.userId));
+        const snap2 = await getDocs(q2);
+        if (snap2 && snap2.docs) allRefDocs = [...snap2.docs];
+      } catch(_fe) {}
+    }
+
+    if (allRefDocs.length === 0) {
       inner.innerHTML = '<div class="ref-list-empty">No referrals yet.<br>Share your link to invite friends!</div>';
       return;
     }
@@ -4224,9 +4260,9 @@ async function renderReferralList() {
     </svg>`;
 
     let html = '';
-    snap.forEach(docSnap => {
+    allRefDocs.forEach(docSnap => { // FIX: use allRefDocs array
       const d        = docSnap.data();
-      const name     = d.tgName || d.tgHandle || 'Unknown';
+      const name     = d.tgName || (d.tgHandle ? d.tgHandle.replace(/^@/, '') : null) || 'Unknown'; // FIX: normalize handle
       const handle   = d.tgHandle ? '@' + d.tgHandle.replace(/^@/, '') : '';
       const uid      = d.tgId    || docSnap.id;
       const photoUrl = d.tgPhotoUrl || null;
@@ -4240,6 +4276,14 @@ async function renderReferralList() {
         ? `<img src="${photoUrl}" alt="avatar" onerror="this.parentNode.innerHTML='${silhouetteSVG.replace(/"/g,"'")}'"/>`
         : silhouetteSVG;
 
+      // TON balance for this downline member
+      const memberTon = typeof d.earnedTon === 'number' && d.earnedTon > 0
+        ? d.earnedTon
+        : ((typeof d.workingTon === 'number' ? d.workingTon : 0) + (typeof d.passiveTon === 'number' ? d.passiveTon : 0));
+      const tonDisplay = memberTon >= 1000
+        ? (memberTon / 1000).toFixed(2) + 'K TON'
+        : memberTon.toFixed(2) + ' TON';
+
       html += `
       <div class="ref-list-row">
         <div class="ref-list-avatar">${avatarInner}</div>
@@ -4247,12 +4291,15 @@ async function renderReferralList() {
           <div class="ref-list-name">${displayName}</div>
           <div class="ref-list-uid">${uidLine}</div>
         </div>
-        <span class="ref-list-badge">DIRECT</span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
+          <span class="ref-list-badge">DOWNLINE</span>
+          <span style="font-family:var(--font-mono);font-size:10px;font-weight:700;color:var(--cyan);">${tonDisplay}</span>
+        </div>
       </div>`;
     });
 
     inner.innerHTML = html;
-    console.log('[Firebase] Referral list rendered:', snap.size, 'users');
+    console.log('[Firebase] Referral list rendered:', allRefDocs.length, 'users');
   } catch(e) {
     inner.innerHTML = '<div class="ref-list-empty">Could not load referrals.</div>';
     console.error('[Firebase] renderReferralList error:', e);
@@ -4313,8 +4360,8 @@ function switchView(name) {
   });
 
   if (name === 'referral') getReferralStats();
-  if (name === 'search') resetSearchView();
-  if (name === 'stats') fetchGlobalStats();
+  if (name === 'search')   resetSearchView();
+  if (name === 'stats')    fetchGlobalStats();
 
   // When returning to home, restore correct hero/dashboard visibility
   if (name === 'home') {
@@ -4433,8 +4480,9 @@ async function fetchGlobalStats() {
       const working = typeof d.workingTon === 'number' ? d.workingTon : 0;
       const passive = typeof d.passiveTon === 'number' ? d.passiveTon : 0;
       const earned  = typeof d.earnedTon  === 'number' ? d.earnedTon  : 0;
-      // Use workingTon+passiveTon if available, else earnedTon to avoid double-count
-      totalTon += (working + passive > 0) ? (working + passive) : earned;
+      // FIX: Use max of earnedTon vs (workingTon+passiveTon) to avoid under-counting
+      const userTon = Math.max(earned, working + passive);
+      totalTon += userTon;
     });
 
     // Format user count — compact for large numbers
@@ -4574,8 +4622,9 @@ async function fetchLeaderboard() {
 
       // Name: prefer tgName → tgHandle → truncated UID
       const rawName  = d.tgName || d.tgHandle || null;
+      // FIX: Normalize tgHandle — remove @ if bot writes it with @, add only for display
       const safeName = rawName
-        ? rawName.replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0, 22)
+        ? rawName.replace(/^@/, '').replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0, 22)
         : ('User…' + String(d.tgId || docSnap.id).slice(-4));
 
       // UID display
@@ -4583,7 +4632,11 @@ async function fetchLeaderboard() {
       const safeUid  = String(uid).replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
       // TON balance
-      const ton      = typeof d.earnedTon === 'number' ? d.earnedTon.toFixed(2) : '0.00';
+      const working = typeof d.workingTon === 'number' ? d.workingTon : 0;
+      const passive = typeof d.passiveTon === 'number' ? d.passiveTon : 0;
+      const ton      = typeof d.earnedTon === 'number'
+        ? d.earnedTon.toFixed(2)
+        : (working + passive > 0 ? (working + passive).toFixed(2) : '0.00');
 
       // Avatar
       const photoUrl = d.tgPhotoUrl || null;
@@ -4802,7 +4855,7 @@ async function pvDoSearch() {
       <!-- ② SLOTS — purple level bar -->
       <div style="margin-top:14px; margin-bottom:14px;">
         <p style="font-family:var(--font-mono);font-size:10px;font-weight:500;color:var(--cyan);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;margin-top:4px;opacity:0.8;">MATRIX SLOTS</p>
-        <div style="display:flex;flex-direction:row;align-items:center;background:#3ecfb8;border-radius:10px;padding:12px 14px;gap:5px;width:100%;box-shadow:0 4px 18px rgba(62,207,184,0.38),0 1px 4px rgba(0,0,0,0.22);">
+        <div style="display:flex;flex-direction:row;align-items:center;background:#6236d0;border-radius:10px;padding:12px 14px;gap:5px;width:100%;box-shadow:0 4px 18px rgba(98,54,208,0.38),0 1px 4px rgba(0,0,0,0.22);">
           ${slotCells}
         </div>
       </div>
@@ -5214,7 +5267,7 @@ async function renderSearchDownline(targetUid) {
     let html = '';
     snap.forEach(docSnap => {
       const d        = docSnap.data();
-      const name     = d.tgName || d.tgHandle || 'Unknown';
+      const name     = d.tgName || (d.tgHandle ? d.tgHandle.replace(/^@/, '') : null) || 'Unknown'; // FIX: normalize handle
       const handle   = d.tgHandle ? '@' + d.tgHandle.replace(/^@/, '') : '';
       const uid      = d.tgId    || docSnap.id;
       const photoUrl = d.tgPhotoUrl || null;
@@ -5551,15 +5604,24 @@ async function loadUserDirectory() {
     const fs = window.__fs;
     if (!db || !fs) throw new Error('Firestore not ready');
 
-    // Query all users ordered by registration timestamp (ascending = chronological)
-    const q = fs.query(
-      fs.collection(db, 'users'),
-      fs.orderBy('registeredAt', 'asc')
-    );
-
-    const snap = await fs.getDocs(q);
+    // Fetch all users — no server-side orderBy to avoid composite index requirement.
+    // Sort client-side by registeredAt ascending (chronological registration order).
+    const snap = await fs.getDocs(fs.collection(db, 'users'));
     const users = [];
     snap.forEach(doc => users.push({ id: doc.id, ...doc.data() }));
+
+    // Sort by registeredAt OR joinedAt ascending (Firestore Timestamp or ISO string or epoch)
+    users.sort((a, b) => {
+      const getTs = (u) => {
+        const ts = u.registeredAt || u.joinedAt;
+        if (!ts) return 0;
+        if (ts?.seconds) return ts.seconds;
+        if (ts?.toMillis) return ts.toMillis() / 1000;
+        if (typeof ts === 'number') return ts;
+        return new Date(ts).getTime() / 1000;
+      };
+      return getTs(a) - getTs(b);
+    });
 
     if (countEl) countEl.textContent = users.length;
 
@@ -5575,8 +5637,8 @@ async function loadUserDirectory() {
       // Use tgName as primary (set by bot), then fallback chain
       const firstName = escHtml(u.tgName || u.tgHandle || u.firstName || u.first_name || u.name || 'Unknown');
       const tgId      = escHtml(String(u.tgId || u.userId || u.telegram_id || u.id || '—'));
-      // Avatar: tgPhotoUrl is the canonical field written by the bot/SDK
-      const photoUrl  = u.tgPhotoUrl || u.photoUrl || u.photo_url || '';
+      // Avatar: tgPhotoUrl is the canonical field written by the python bot
+      const photoUrl  = u.tgPhotoUrl || '';
       // TON balance — earnedTon primary, fallback to sum of workingTon+passiveTon
       const tonVal    = typeof u.earnedTon === 'number' && u.earnedTon > 0
         ? u.earnedTon
@@ -5703,8 +5765,8 @@ async function loadLeaderboardView() {
       // Use tgName as primary (written by bot), then fallback chain
       const firstName = escHtml(u.tgName || u.tgHandle || u.firstName || u.first_name || u.name || 'Unknown');
       const tgId      = escHtml(String(u.tgId || u.userId || u.telegram_id || u.id || '—'));
-      // tgPhotoUrl is the canonical avatar field written by the bot/SDK
-      const photoUrl  = u.tgPhotoUrl || u.photoUrl || u.photo_url || '';
+      // tgPhotoUrl is the canonical avatar field written by the python bot
+      const photoUrl  = u.tgPhotoUrl || '';
       const earned    = typeof u.earnedTon === 'number' ? u.earnedTon.toFixed(2) : '0.00';
 
       // Avatar — using reliable onerror fallback via a named function approach
