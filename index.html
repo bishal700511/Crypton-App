@@ -4212,19 +4212,35 @@ async function getReferralStats() {
 // ──────────────────────────────────────────────────────────────
 // MY REFERRALS LIST — fetch users where referredBy == myId
 // ──────────────────────────────────────────────────────────────
+// FIX: myId MUST be the Telegram numeric ID (tgId) — NOT state.userId (USR…)
+// Bot writes referredBy as String(chat_id), e.g. "8501412057".
+// Resolution order:
+//   1. Telegram WebApp SDK (most reliable inside Mini App)
+//   2. state.tgNumericId  (loaded from Firestore by loginUser)
+//   3. state.userId only as absolute last resort — but state.userId is
+//      "USRxxxxxxxx" (wallet-derived), which will NEVER match referredBy.
+//      So we only fall through to it if nothing else is available,
+//      and we also run a Firestore tgId-field query to be safe.
 async function renderReferralList() {
   const inner   = document.getElementById('ref-list-inner');
   const loading = document.getElementById('ref-list-loading');
   if (!inner) return;
 
-  // Determine current user's ID (tgId used as doc key in Firestore)
-  const myId = String(
-    window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || state.userId || ''
-  );
-  if (!myId) {
-    if (loading) loading.textContent = 'View ◔';
+  // ── Step 1: Resolve the canonical Telegram numeric ID ──────────────────────
+  // Priority: SDK → state.tgNumericId → data.tgId from Firestore
+  // We deliberately EXCLUDE state.userId here — it is "USRxxxx", not a tgId.
+  const sdkId    = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+  const myTgId   = String(sdkId || state.tgNumericId || '').trim();
+
+  if (!myTgId || myTgId === 'null' || myTgId === 'undefined') {
+    // Guard: no tgId available yet — happens if loginUser hasn't finished.
+    if (loading) loading.textContent = '';
+    inner.innerHTML = '<div class="ref-list-empty">Open via Telegram bot to load referrals.</div>';
+    console.warn('[Referral] Cannot render list — tgId not resolved yet.');
     return;
   }
+
+  console.log('[Referral] Querying referredBy ==', myTgId);
 
   // Show loading state
   inner.innerHTML = '<div class="ref-list-loading">Loading referrals…</div>';
@@ -4234,74 +4250,95 @@ async function renderReferralList() {
     const { collection, query, where, getDocs } = window.__fs;
     const db = window.__db;
 
-  // Query: users collection where referredBy == myId
-  // Bot writes referredBy as String(chat_id) — same as doc key
-  const q    = query(collection(db, 'users'), where('referredBy', '==', myId));
-  const snap = await getDocs(q);
-
-    // FIX: If no results, try with state.userId as fallback
+    // ── Step 2: Primary query — referredBy field == myTgId ─────────────────
+    // This is the canonical path. Bot writes referredBy = str(chat_id).
+    const q    = query(collection(db, 'users'), where('referredBy', '==', myTgId));
+    const snap = await getDocs(q);
     let allRefDocs = snap.docs ? [...snap.docs] : [];
-    if (allRefDocs.length === 0 && state.userId && state.userId !== myId) {
+
+    console.log('[Referral] Primary query result count:', allRefDocs.length);
+
+    // ── Step 3: No results? Safety net — query by tgId field on doc ────────
+    // Covers edge case where Firestore doc ID differs from tgId field value.
+    if (allRefDocs.length === 0 && state.tgNumericId && state.tgNumericId !== myTgId) {
       try {
-        const q2    = query(collection(db, 'users'), where('referredBy', '==', state.userId));
-        const snap2 = await getDocs(q2);
-        if (snap2 && snap2.docs) allRefDocs = [...snap2.docs];
-      } catch(_fe) {}
+        const qFallback    = query(collection(db, 'users'), where('referredBy', '==', String(state.tgNumericId)));
+        const snapFallback = await getDocs(qFallback);
+        if (snapFallback?.docs?.length > 0) {
+          allRefDocs = [...snapFallback.docs];
+          console.log('[Referral] Fallback query found:', allRefDocs.length, 'users');
+        }
+      } catch(_fe) {
+        console.warn('[Referral] Fallback query error:', _fe);
+      }
     }
 
+    // ── Step 4: Empty state ─────────────────────────────────────────────────
     if (allRefDocs.length === 0) {
       inner.innerHTML = '<div class="ref-list-empty">No referrals yet.<br>Share your link to invite friends!</div>';
       return;
     }
 
-    // Build rows
+    // ── Step 5: Build referral rows ─────────────────────────────────────────
     const silhouetteSVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
     </svg>`;
 
     let html = '';
-    allRefDocs.forEach(docSnap => { // FIX: use allRefDocs array
-      const d        = docSnap.data();
-      const name     = d.tgName || (d.tgHandle ? d.tgHandle.replace(/^@/, '') : null) || 'Unknown'; // FIX: normalize handle
-      const handle   = d.tgHandle ? '@' + d.tgHandle.replace(/^@/, '') : '';
-      const uid      = d.tgId    || docSnap.id;
+    allRefDocs.forEach(docSnap => {
+      const d = docSnap.data();
+
+      // ── Name: prefer tgName, then strip @ from handle, then fallback ──
+      const rawName  = d.tgName  || '';
+      const rawHandle = d.tgHandle ? d.tgHandle.replace(/^@+/, '') : '';
+      const name     = rawName.trim() || rawHandle || 'Unknown User';
+
+      // ── Telegram ID: prefer tgId field, then doc ID ──
+      const tgId     = String(d.tgId || docSnap.id || '—');
+
+      // ── Handle display: always show with @ prefix ──
+      const handle   = rawHandle ? '@' + rawHandle : '';
+
+      // ── Avatar ──
       const photoUrl = d.tgPhotoUrl || null;
-
-      const displayName = name !== 'Unknown' ? name : (handle || 'User');
-      const uidLine     = handle
-        ? `${handle} · UID: ${uid}`
-        : `UID: ${uid}`;
-
       const avatarInner = photoUrl
-        ? `<img src="${photoUrl}" alt="avatar" onerror="this.parentNode.innerHTML='${silhouetteSVG.replace(/"/g,"'")}'"/>`
+        ? `<img src="${photoUrl}" alt="avatar" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.parentNode.innerHTML='${silhouetteSVG.replace(/"/g,"'")}'"/>`
         : silhouetteSVG;
 
-      // TON balance for this downline member
-      const memberTon = typeof d.earnedTon === 'number' && d.earnedTon > 0
-        ? d.earnedTon
-        : ((typeof d.workingTon === 'number' ? d.workingTon : 0) + (typeof d.passiveTon === 'number' ? d.passiveTon : 0));
-      const tonDisplay = memberTon >= 1000
-        ? (memberTon / 1000).toFixed(2) + 'K TON'
-        : memberTon.toFixed(2) + ' TON';
+      // ── Earned TON: earnedTon first, then sum of working + passive ──
+      const earnedRaw = typeof d.earnedTon === 'number' ? d.earnedTon
+        : ((typeof d.workingTon === 'number' ? d.workingTon : 0)
+         + (typeof d.passiveTon === 'number' ? d.passiveTon : 0));
+      const tonDisplay = earnedRaw >= 1000
+        ? (earnedRaw / 1000).toFixed(2) + 'K TON'
+        : earnedRaw.toFixed(3) + ' TON';
+
+      // ── Slots count ──
+      const slotCount = Array.isArray(d.ownedSlots) ? d.ownedSlots.length : 0;
 
       html += `
       <div class="ref-list-row">
         <div class="ref-list-avatar">${avatarInner}</div>
         <div class="ref-list-info">
-          <div class="ref-list-name">${displayName}</div>
-          <div class="ref-list-uid">${uidLine}</div>
+          <div class="ref-list-name">${name}</div>
+          <div class="ref-list-uid" style="display:flex;flex-direction:column;gap:2px;">
+            <span style="font-size:11px;color:var(--cyan);font-family:var(--font-mono);">TG ID: ${tgId}</span>
+            ${handle ? `<span style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">${handle}</span>` : ''}
+            <span style="font-size:10px;color:var(--text-muted);">Slots: ${slotCount}</span>
+          </div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;">
           <span class="ref-list-badge">DOWNLINE</span>
-          <span style="font-family:var(--font-mono);font-size:10px;font-weight:700;color:var(--cyan);">${tonDisplay}</span>
+          <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--accent);">${tonDisplay}</span>
         </div>
       </div>`;
     });
 
     inner.innerHTML = html;
-    console.log('[Firebase] Referral list rendered:', allRefDocs.length, 'users');
+    console.log('[Firebase] Referral list rendered:', allRefDocs.length, 'downline users for tgId:', myTgId);
+
   } catch(e) {
-    inner.innerHTML = '<div class="ref-list-empty">Could not load referrals.</div>';
+    inner.innerHTML = '<div class="ref-list-empty">Could not load referrals. Try again.</div>';
     console.error('[Firebase] renderReferralList error:', e);
   }
 }
