@@ -3216,6 +3216,34 @@ function getStoredRef() {
 })();
 
 // ──────────────────────────────────────────────────────────────
+// BUG #1 FIX: PHOTO SYNC FOR NON-WALLET USERS
+// ──────────────────────────────────────────────────────────────
+// loginUser() only runs on wallet connect. Users who registered via the bot
+// but never connected a wallet would never have tgPhotoUrl written to Firestore.
+// This lightweight function fires at app open: if SDK gave us tgId + photo_url,
+// we do a single blind updateDoc so Leaderboard / User Directory always show
+// real avatars — no extra read, no new collection, bot.py untouched.
+async function syncPhotoIfLoggedIn() {
+  const tgId     = state.tgNumericId;
+  const photoUrl = state.tgPhotoUrl;
+  if (!tgId || !photoUrl) return;
+  try {
+    await waitForFirestore();
+    const { doc, updateDoc } = window.__fs;
+    const db = window.__db;
+    if (!db || !doc || !updateDoc) return;
+    const userDocRef = doc(db, 'users', String(tgId));
+    await updateDoc(userDocRef, { tgPhotoUrl: photoUrl });
+    console.log('[PhotoSync] tgPhotoUrl synced for tgId:', tgId);
+  } catch(e) {
+    // Silent — doc may not exist yet (unregistered user opening link directly).
+    console.log('[PhotoSync] Skipped:', e.message);
+  }
+}
+// Delay ensures Firestore module is fully loaded before the write attempt.
+setTimeout(syncPhotoIfLoggedIn, 3500);
+
+// ──────────────────────────────────────────────────────────────
 // TON CONNECT INIT
 // ──────────────────────────────────────────────────────────────
 (function initTonConnect() {
@@ -3820,7 +3848,8 @@ async function buySlot(level, priceTon) {
   // Load referrer's actual wallet address from Firestore
   let referrerWallet = CONTRACT_ADDRESS; // default to contract if no referrer
   try {
-    const _refId = getStoredRef() || null;
+    // FIX 3: Use cachedReferredBy as fallback so payments never fail if sessionStorage is cleared
+    const _refId = getStoredRef() || state.cachedReferredBy || null;
     if (_refId && !state._referrerWallet) {
       await waitForFirestore();
       const { doc: _d, getDoc: _g } = window.__fs;
@@ -3879,27 +3908,29 @@ async function buySlot(level, priceTon) {
     const result = await state.tonConnectUI.sendTransaction(tx);
 
     if (result) {
+      // ── Point 4: Pass tx hash/BOC to backend for on-chain verification ──────
+      // The backend (bot.py /verify-tx) will verify via TON Center API and then
+      // write ownedSlots, earnedTon, and slotFill to Firestore authoritatively.
+      // The frontend optimistically updates its local state for instant UX,
+      // but canonical truth comes from the backend write.
+
+      const boc           = result.boc || '';
+      const tgDocId       = String(
+        window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || ''
+      );
+      const amountNano    = totalNano.toString();
+
+      // ── Optimistic local update (immediate UI feedback) ────────────────────
       state.ownedSlots.push(level);
-      // FIX: Do NOT mutate slotFill locally — bot tracks real matrix fills via Firestore.
-      // slotFill[level] starts at 0 until bot writes real data after on-chain confirmation.
       if (slotFill[level] === undefined) slotFill[level] = 0;
       state.workingTon  = parseFloat(((state.workingTon || 0) + dist.working).toFixed(6));
       state.passiveTon  = parseFloat(((state.passiveTon || 0) + dist.passive).toFixed(6));
       state.earnedTon   = parseFloat((state.workingTon + state.passiveTon).toFixed(6));
       updateStatsUI();
       renderSlots();
-      // FIX: Save earnedTon, ownedSlots, slotFill AND tgPhotoUrl to Firestore
-      // tgPhotoUrl is saved so it persists if bot doesn't re-send it on next login
-      const savePayload = {
-        ownedSlots: state.ownedSlots,
-        earnedTon:  state.earnedTon,
-        workingTon: state.workingTon,
-        passiveTon: state.passiveTon,
-      };
-      if (state.tgPhotoUrl) savePayload.tgPhotoUrl = state.tgPhotoUrl;
-      saveUserData(savePayload);
       showToast(`Level ${level} activated! 🎉`);
-      // ── Celebration burst ──
+
+      // ── Celebration burst ──────────────────────────────────────────────────
       const card = document.querySelector(`[data-level="${level}"]`);
       const slotDef = SLOTS.find(s => s.level === level);
       if (window.burstParticles) burstParticles(card, slotDef && slotDef.gold);
@@ -3907,7 +3938,6 @@ async function buySlot(level, priceTon) {
         card.classList.add(slotDef && slotDef.gold ? 'flash-gold' : 'flash-cyan');
         setTimeout(() => card.classList.remove('flash-gold','flash-cyan'), 800);
       }
-      // update rank ticker with numeric UID
       if (_tickerSeeded && (state.tgNumericId || state.userId)) {
         const myUid = String(state.tgNumericId || state.userId);
         const idx = _tickerData.findIndex(r => r.tgId === myUid);
@@ -3915,6 +3945,81 @@ async function buySlot(level, priceTon) {
         else            _tickerData[idx].earnedTon = state.earnedTon||0;
         _tickerData.sort((a,b) => b.earnedTon - a.earnedTon);
         renderTicker();
+      }
+
+      // ── Backend verification (async, with retry) ───────────────────────────
+      // The backend will verify on-chain and authoritatively write Firestore.
+      // We retry up to 5 times (every 6 s) to handle TON propagation delay.
+      if (tgDocId && boc) {
+        const BACKEND_URL = 'https://crypton-bot.onrender.com'; // ← update to your Render URL
+        const verifyPayload = {
+          tgId:          tgDocId,
+          boc:           boc,
+          walletAddress: state.walletAddress || '',
+          level:         level,
+          amountNano:    amountNano,
+        };
+
+        (async function pollVerify(retries, delay) {
+          for (let i = 0; i < retries; i++) {
+            try {
+              if (i > 0) await new Promise(r => setTimeout(r, delay));
+              const vResp = await fetch(`${BACKEND_URL}/verify-tx`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify(verifyPayload),
+              });
+              const vData = await vResp.json().catch(() => ({}));
+              if (vResp.ok && vData.ok) {
+                // ── Backend confirmed — sync authoritative values back to state ──
+                if (Array.isArray(vData.ownedSlots)) {
+                  state.ownedSlots = vData.ownedSlots.map(Number);
+                }
+                if (typeof vData.earnedTon === 'number') {
+                  state.earnedTon = vData.earnedTon;
+                }
+                if (vData.slotFill && typeof vData.slotFill === 'object') {
+                  Object.keys(vData.slotFill).forEach(k => {
+                    slotFill[parseInt(k, 10)] = vData.slotFill[k];
+                  });
+                }
+                updateStatsUI();
+                renderSlots();
+                console.log('[BuySlot] Backend verification ✓', vData);
+                return; // done
+              }
+              if (vData.retry === false) {
+                // Hard failure — no point retrying
+                console.warn('[BuySlot] Backend hard rejection:', vData.message);
+                return;
+              }
+              console.log(`[BuySlot] verify-tx pending (attempt ${i+1}/${retries}):`, vData.message);
+            } catch (fetchErr) {
+              console.warn(`[BuySlot] verify-tx fetch error (attempt ${i+1}):`, fetchErr.message);
+            }
+          }
+          // ── All retries exhausted — fall back to direct Firestore write ─────
+          // This is a last-resort safety net if the backend is unreachable.
+          console.warn('[BuySlot] Backend unreachable after retries — falling back to direct Firestore write');
+          const savePayload = {
+            ownedSlots: state.ownedSlots,
+            earnedTon:  state.earnedTon,
+            workingTon: state.workingTon,
+            passiveTon: state.passiveTon,
+          };
+          if (state.tgPhotoUrl) savePayload.tgPhotoUrl = state.tgPhotoUrl;
+          saveUserData(savePayload);
+        })(5, 6000); // 5 retries, 6 s apart
+      } else {
+        // No tgDocId or BOC — fall back to direct Firestore write immediately
+        const savePayload = {
+          ownedSlots: state.ownedSlots,
+          earnedTon:  state.earnedTon,
+          workingTon: state.workingTon,
+          passiveTon: state.passiveTon,
+        };
+        if (state.tgPhotoUrl) savePayload.tgPhotoUrl = state.tgPhotoUrl;
+        saveUserData(savePayload);
       }
     }
   } catch(e) {
@@ -3969,7 +4074,8 @@ async function loginUser(walletAddress) {
 
   const tgPayload  = typeof window.buildTelegramPayload === 'function'
     ? window.buildTelegramPayload() : {};
-  const referredBy = tgPayload.referredBy || null;
+  // FIX 2: Fetch referredBy from DB (data loaded below) as fallback if sessionStorage cleared
+  // This is resolved after snap.exists() check using data.referredBy — see below.
 
   try {
     const snap = await getDoc(userDocRef);
@@ -3990,7 +4096,13 @@ async function loginUser(walletAddress) {
     const data = snap.data();
     console.log('[Firebase] User document loaded (keyed by tgId):', data);
 
-    state.ownedSlots = data.ownedSlots  || [];
+    // FIX 2: Prevent session loss if sessionStorage clears — fetch referredBy from DB as fallback
+    const referredBy = tgPayload.referredBy || data.referredBy || null;
+    // FIX 2: Cache referredBy in global runtime state so buySlot() always has it
+    state.cachedReferredBy = referredBy;
+
+    // FIX 4: Map ownedSlots to actual integers so level checks don't fail on stringified values
+    state.ownedSlots = Array.isArray(data.ownedSlots) ? data.ownedSlots.map(Number) : [];
     state.earnedTon  = data.earnedTon   || 0;
     state.workingTon = data.workingTon  || 0;
     state.passiveTon = data.passiveTon  || 0;
@@ -4097,14 +4209,17 @@ async function loginUser(walletAddress) {
       }
     }
 
-    // ── Handle referral: only process if this is the wallet's first link ──
-    const isFirstWalletLink = !data.walletAddress || data.walletAddress === '';
+    // ── Handle referral: only process if this is the wallet's first link AND not already counted ──
+    // FIX 1: Use referralCounted flag to prevent duplicate increments across sessions
+    const isFirstWalletLink = (!data.walletAddress || data.walletAddress === '') && !data.referralCounted;
     if (isFirstWalletLink && referredBy) {
       try {
         const refDocRef = doc(db, 'users', referredBy);
         const refSnap   = await getDoc(refDocRef);
         if (refSnap.exists()) {
           await updateDoc(refDocRef, { referrals: increment(1), teamSize: increment(1) });
+          // FIX 1: Simultaneously mark the current user so this block never runs twice
+          await updateDoc(userDocRef, { referralCounted: true, walletAddress, userId: 'USR' + walletAddress.slice(-8).toUpperCase() });
           console.log('[Firebase] Referrer updated:', referredBy);
         } else {
           // referredBy may be a tgId string — query by tgId field as fallback
@@ -4113,6 +4228,8 @@ async function loginUser(walletAddress) {
             const qSnap = await getDocs(q);
             if (!qSnap.empty) {
               await updateDoc(qSnap.docs[0].ref, { referrals: increment(1), teamSize: increment(1) });
+              // FIX 1: Mark referralCounted even when resolved via tgId fallback query
+              await updateDoc(userDocRef, { referralCounted: true, walletAddress, userId: 'USR' + walletAddress.slice(-8).toUpperCase() });
               console.log('[Firebase] Referrer (by tgId field) updated:', referredBy);
             }
           }
@@ -4127,6 +4244,9 @@ async function loginUser(walletAddress) {
     // ── Merge wallet address + userId into the single Telegram-keyed doc ──
     // This is the bridge moment: the bot document gains the wallet address.
     // updateDoc is used (not setDoc) so no existing bot fields are overwritten.
+    // NOTE: This block runs EVERY session (not gated by isFirstWalletLink) so that
+    // tgPhotoUrl and other SDK-fresh fields are always kept up-to-date in Firestore.
+    // This is what makes the Leaderboard and User Directory always show real avatars.
     const userId = 'USR' + walletAddress.slice(-8).toUpperCase();
     const refId2 = state.tgNumericId || userId;
     const mergeFields = { walletAddress, userId };
@@ -4135,10 +4255,17 @@ async function loginUser(walletAddress) {
     if (tgPayload.tgName)   mergeFields.tgName   = tgPayload.tgName;
     if (tgPayload.tgEmail)  mergeFields.tgEmail  = tgPayload.tgEmail;
     if (tgPayload.tgId)     mergeFields.tgId     = tgPayload.tgId;
+    // BUG #1 FIX: Sync live Telegram photo URL to Firestore every session.
+    // state.tgPhotoUrl is populated by initTelegram() from the SDK immediately on app open.
+    // Writing it here (on every loginUser call, not just first wallet link) ensures:
+    //   (a) Returning users with new profile photos get their photo updated.
+    //   (b) Other users see the real avatar on Leaderboard and User Directory.
+    //   (c) No extra Firestore read is needed — it piggybacks on this existing write.
+    if (state.tgPhotoUrl) mergeFields.tgPhotoUrl = state.tgPhotoUrl;
     await updateDoc(userDocRef, mergeFields).catch(err =>
       console.error('[Firebase] Failed to merge wallet into user doc:', err)
     );
-    console.log('[Firebase] Wallet address merged into tgId doc:', tgIdFromSDK, '←', walletAddress);
+    console.log('[Firebase] Wallet address + tgPhotoUrl merged into tgId doc:', tgIdFromSDK, '←', walletAddress, '| photo:', state.tgPhotoUrl ? 'set' : 'not available');
 
     state.userId = userId;
 
