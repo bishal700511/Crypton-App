@@ -3951,7 +3951,7 @@ async function buySlot(level, priceTon) {
       // The backend will verify on-chain and authoritatively write Firestore.
       // We retry up to 5 times (every 6 s) to handle TON propagation delay.
       if (tgDocId && boc) {
-        const BACKEND_URL = 'https://crypton-bot.onrender.com'; // ← update to your Render URL
+        const BACKEND_URL = 'https://crypton-telegram-bot.onrender.com';
         const verifyPayload = {
           tgId:          tgDocId,
           boc:           boc,
