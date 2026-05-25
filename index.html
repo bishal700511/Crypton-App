@@ -2917,6 +2917,54 @@
         </div>
       </div>
 
+      <!-- ── LEADERBOARD ENTRY CARD (search section — same as home dashboard) ── -->
+      <div onclick="openLeaderboard()" style="
+        cursor:pointer;
+        margin-top:14px;
+        background: linear-gradient(160deg, rgba(107,80,53,0.55) 0%, rgba(90,65,40,0.62) 50%, rgba(74,52,30,0.68) 100%);
+        border: 1px solid rgba(160,120,72,0.45);
+        border-radius: var(--radius-lg);
+        padding: 18px 20px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+        -webkit-tap-highlight-color: transparent;
+        box-shadow: 0 4px 20px rgba(74,52,30,0.32), 0 2px 8px rgba(0,0,0,0.22);
+        position: relative; overflow: hidden;
+      "
+      onmouseover="this.style.background='linear-gradient(160deg,rgba(122,92,60,0.68) 0%,rgba(105,78,48,0.75) 50%,rgba(88,62,34,0.82) 100%)';this.style.borderColor='rgba(180,138,84,0.65)'"
+      onmouseout="this.style.background='linear-gradient(160deg,rgba(107,80,53,0.55) 0%,rgba(90,65,40,0.62) 50%,rgba(74,52,30,0.68) 100%)';this.style.borderColor='rgba(160,120,72,0.45)'"
+      onmousedown="this.style.transform='scale(0.97)'"
+      onmouseup="this.style.transform='scale(1)'"
+      ontouchstart="this.style.transform='scale(0.97)'"
+      ontouchend="this.style.transform='scale(1)'">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div style="width:46px;height:46px;border-radius:13px;flex-shrink:0;background:rgba(107,80,53,0.50);border:1px solid rgba(160,120,72,0.42);display:flex;align-items:center;justify-content:center;">
+            <svg width="26" height="26" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 8 H44 L40 36 C40 40 36 44 32 44 C28 44 24 40 24 36 Z" fill="url(#srchtg1)" />
+              <path d="M20 12 C12 12 10 22 16 26 C18 27 20 27 20 27" stroke="url(#srchtg2)" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+              <path d="M44 12 C52 12 54 22 48 26 C46 27 44 27 44 27" stroke="url(#srchtg2)" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+              <rect x="29" y="44" width="6" height="8" rx="2" fill="url(#srchtg1)"/>
+              <rect x="22" y="52" width="20" height="5" rx="2.5" fill="url(#srchtg2)"/>
+              <path d="M26 13 L24 30" stroke="rgba(255,255,255,0.35)" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M32 16 L33.2 20 H37.2 L34 22.4 L35.2 26.4 L32 24 L28.8 26.4 L30 22.4 L26.8 20 H30.8 Z" fill="rgba(255,255,255,0.55)"/>
+              <defs>
+                <linearGradient id="srchtg1" x1="20" y1="8" x2="44" y2="44" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#f5d070"/><stop offset="50%" stop-color="#d4a843"/><stop offset="100%" stop-color="#a87628"/></linearGradient>
+                <linearGradient id="srchtg2" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#f0c96a"/><stop offset="100%" stop-color="#c49632"/></linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <div>
+            <div style="font-family:var(--font-head);font-size:15px;font-weight:800;color:var(--gold-lt);letter-spacing:-0.3px;">Leaderboard</div>
+            <div style="font-family:var(--font-mono);font-size:10px;color:rgba(212,168,67,0.60);letter-spacing:1.5px;text-transform:uppercase;margin-top:3px;">Top 10 · Global Network</div>
+          </div>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,67,0.65)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+
     </div><!-- /srch-result-area -->
     </div><!-- /srch-main-wrap -->
 
@@ -5430,11 +5478,108 @@ async function pvDoSearch() {
 
       </div><!-- /read-only wrapper -->
 
-      <!-- Downline team -->
-      <div class="srch-downline-header" style="margin-top:14px;">Downline Team</div>
-      <div id="pv-srch-downline-inner-new">
-        <div class="ref-list-loading">Loading team…</div>
+      <!-- ⑤ AIRDROP BONUS POOL CARD — live timer, read-only -->
+      <div class="airdrop-pool-card" style="pointer-events:none; user-select:none;">
+        <div class="airdrop-pool-top">
+          <div style="padding-top:2px;">
+            <div class="airdrop-pool-title">Airdrop Bonus Pool<br>– Very soon</div>
+          </div>
+          <svg width="100" height="90" viewBox="0 0 100 90" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;margin-top:-4px;margin-right:-4px;filter:drop-shadow(0 6px 18px rgba(0,0,0,0.40));">
+            <rect x="18" y="28" width="64" height="52" rx="8" fill="#d0d8e8"/>
+            <path d="M18 28 L50 14 L82 28 L82 36 L50 22 L18 36 Z" fill="#e8eef8"/>
+            <path d="M82 28 L82 80 L74 88 L74 36 Z" fill="#b0bcd0"/>
+            <path d="M18 80 L82 80 L74 88 L10 88 Z" fill="#a0aec0"/>
+            <path d="M18 28 L18 80 L10 88 L10 36 Z" fill="#b8c4d8"/>
+            <rect x="28" y="38" width="44" height="32" rx="4" fill="#1a2a4a"/>
+            <rect x="30" y="40" width="40" height="28" rx="3" fill="#0d1e3a"/>
+            <rect x="30" y="40" width="40" height="8" rx="3" fill="rgba(100,160,255,0.15)"/>
+            <circle cx="24" cy="34" r="2" fill="#90a0b8"/>
+            <circle cx="76" cy="34" r="2" fill="#90a0b8"/>
+            <circle cx="24" cy="74" r="2" fill="#90a0b8"/>
+            <circle cx="76" cy="74" r="2" fill="#90a0b8"/>
+            <g transform="translate(50,18)">
+              <ellipse cx="0" cy="-11" rx="5" ry="11" fill="#2196f3" transform="rotate(0)" opacity="0.95"/>
+              <ellipse cx="0" cy="-11" rx="5" ry="11" fill="#2196f3" transform="rotate(120)" opacity="0.95"/>
+              <ellipse cx="0" cy="-11" rx="5" ry="11" fill="#2196f3" transform="rotate(240)" opacity="0.95"/>
+              <circle cx="0" cy="0" r="4" fill="#1565c0"/>
+              <circle cx="0" cy="0" r="2" fill="#42a5f5"/>
+            </g>
+          </svg>
+        </div>
+        <div class="airdrop-pool-belt">
+          <span class="airdrop-belt-label">Eligible:</span>
+          <span class="airdrop-level-badge">Level 4</span>
+          <span class="airdrop-level-badge gold">Level 8</span>
+          <span class="airdrop-level-badge gold">Level 10</span>
+        </div>
+        <div class="airdrop-pool-timer">
+          <div class="airdrop-timer-unit">
+            <div class="airdrop-timer-num" id="pv-airdrop-days">00</div>
+            <div class="airdrop-timer-label">days</div>
+          </div>
+          <div class="airdrop-timer-unit">
+            <div class="airdrop-timer-num" id="pv-airdrop-hours">00</div>
+            <div class="airdrop-timer-label">hours</div>
+          </div>
+          <div class="airdrop-timer-unit">
+            <div class="airdrop-timer-num" id="pv-airdrop-minutes">00</div>
+            <div class="airdrop-timer-label">minutes</div>
+          </div>
+          <div class="airdrop-timer-unit">
+            <div class="airdrop-timer-num" id="pv-airdrop-seconds">00</div>
+            <div class="airdrop-timer-label">seconds</div>
+          </div>
+        </div>
       </div>
+
+      <!-- ⑥ LEADERBOARD ENTRY CARD — same as home dashboard -->
+      <div onclick="pvOpenLeaderboard()" style="
+        cursor:pointer;
+        margin-top:14px;
+        background: linear-gradient(160deg, rgba(107,80,53,0.55) 0%, rgba(90,65,40,0.62) 50%, rgba(74,52,30,0.68) 100%);
+        border: 1px solid rgba(160,120,72,0.45);
+        border-radius: var(--radius-lg);
+        padding: 18px 20px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+        -webkit-tap-highlight-color: transparent;
+        box-shadow: 0 4px 20px rgba(74,52,30,0.32), 0 2px 8px rgba(0,0,0,0.22);
+        position: relative; overflow: hidden;
+      "
+      onmouseover="this.style.background='linear-gradient(160deg,rgba(122,92,60,0.68) 0%,rgba(105,78,48,0.75) 50%,rgba(88,62,34,0.82) 100%)';this.style.borderColor='rgba(180,138,84,0.65)'"
+      onmouseout="this.style.background='linear-gradient(160deg,rgba(107,80,53,0.55) 0%,rgba(90,65,40,0.62) 50%,rgba(74,52,30,0.68) 100%)';this.style.borderColor='rgba(160,120,72,0.45)'"
+      onmousedown="this.style.transform='scale(0.97)'"
+      onmouseup="this.style.transform='scale(1)'"
+      ontouchstart="this.style.transform='scale(0.97)'"
+      ontouchend="this.style.transform='scale(1)'">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div style="width:46px;height:46px;border-radius:13px;flex-shrink:0;background:rgba(107,80,53,0.50);border:1px solid rgba(160,120,72,0.42);display:flex;align-items:center;justify-content:center;">
+            <svg width="26" height="26" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 8 H44 L40 36 C40 40 36 44 32 44 C28 44 24 40 24 36 Z" fill="url(#pvtg1)" />
+              <path d="M20 12 C12 12 10 22 16 26 C18 27 20 27 20 27" stroke="url(#pvtg2)" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+              <path d="M44 12 C52 12 54 22 48 26 C46 27 44 27 44 27" stroke="url(#pvtg2)" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+              <rect x="29" y="44" width="6" height="8" rx="2" fill="url(#pvtg1)"/>
+              <rect x="22" y="52" width="20" height="5" rx="2.5" fill="url(#pvtg2)"/>
+              <path d="M26 13 L24 30" stroke="rgba(255,255,255,0.35)" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M32 16 L33.2 20 H37.2 L34 22.4 L35.2 26.4 L32 24 L28.8 26.4 L30 22.4 L26.8 20 H30.8 Z" fill="rgba(255,255,255,0.55)"/>
+              <defs>
+                <linearGradient id="pvtg1" x1="20" y1="8" x2="44" y2="44" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#f5d070"/><stop offset="50%" stop-color="#d4a843"/><stop offset="100%" stop-color="#a87628"/></linearGradient>
+                <linearGradient id="pvtg2" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#f0c96a"/><stop offset="100%" stop-color="#c49632"/></linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <div>
+            <div style="font-family:var(--font-head);font-size:15px;font-weight:800;color:var(--gold-lt);letter-spacing:-0.3px;">Leaderboard</div>
+            <div style="font-family:var(--font-mono);font-size:10px;color:rgba(212,168,67,0.60);letter-spacing:1.5px;text-transform:uppercase;margin-top:3px;">Top 10 · Global Network</div>
+          </div>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,67,0.65)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+
     `;
 
     resEl.style.display = 'block';
@@ -5456,43 +5601,6 @@ async function pvDoSearch() {
     })();
 
     // Async: load downline team
-    const downlineEl = document.getElementById('pv-srch-downline-inner-new');
-    if (downlineEl) {
-      try {
-        const { collection: col, query: qry, where: whr, getDocs: gds } = window.__fs;
-        const tq    = qry(col(db, 'users'), whr('referredBy', '==', String(displayUid)));
-        const tSnap = await gds(tq);
-        if (tSnap.empty) {
-          downlineEl.innerHTML = '<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-lo);padding:14px 0;text-align:center;">No downline members yet.</div>';
-        } else {
-          const silDown = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>`;
-          let downHtml = '';
-          tSnap.docs.forEach(dSnap => {
-            const d     = dSnap.data();
-            const nm    = (d.tgName || d.tgHandle || 'Unknown').substring(0,20);
-            const uid2  = d.tgId || dSnap.id;
-            const tonD  = fmtTonLocal(d.earnedTon || 0);
-            const ph    = d.tgPhotoUrl || null;
-            const avHtml = ph
-              ? `<img src="${ph}" alt="avatar" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:11px;" onerror="this.parentNode.innerHTML='${silDown.replace(/'/g,'"').replace(/"/g,"'")}'"/>`
-              : silDown;
-            downHtml += `
-            <div class="ref-list-row">
-              <div class="ref-list-avatar">${avHtml}</div>
-              <div class="ref-list-info">
-                <div class="ref-list-name">${nm.replace(/</g,'&lt;')}</div>
-                <div class="ref-list-uid">UID: ${String(uid2).replace(/</g,'&lt;')}</div>
-              </div>
-              <span class="ref-list-badge">${tonD} TON</span>
-            </div>`;
-          });
-          downlineEl.innerHTML = downHtml;
-        }
-      } catch (_) {
-        downlineEl.innerHTML = '<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-lo);padding:14px 0;text-align:center;">—</div>';
-      }
-    }
-
   } catch (err) {
     console.error('[Preview Search] error:', err);
     if (loadEl) loadEl.style.display = 'none';
@@ -6433,6 +6541,17 @@ async function loadLeaderboardView() {
     if (shEl) shEl.textContent = pad(hours);
     if (smEl) smEl.textContent = pad(minutes);
     if (ssEl) ssEl.textContent = pad(seconds);
+
+    // Sync preview section airdrop card — same live values, real-time
+    const pvdEl = document.getElementById('pv-airdrop-days');
+    const pvhEl = document.getElementById('pv-airdrop-hours');
+    const pvmEl = document.getElementById('pv-airdrop-minutes');
+    const pvsEl = document.getElementById('pv-airdrop-seconds');
+
+    if (pvdEl) pvdEl.textContent = pad(days);
+    if (pvhEl) pvhEl.textContent = pad(hours);
+    if (pvmEl) pvmEl.textContent = pad(minutes);
+    if (pvsEl) pvsEl.textContent = pad(seconds);
   }
 
   tick();
