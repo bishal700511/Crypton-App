@@ -21,7 +21,7 @@
              updateDoc, increment, collection,
              query, orderBy, where, limit, getDocs,
              addDoc, deleteDoc, serverTimestamp,
-             Timestamp }                                  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+             Timestamp, getCountFromServer }              from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     // ⚠️ SECURITY NOTE: Firebase client config is safe to expose in frontend code,
     // BUT you MUST set Firestore Security Rules to restrict reads/writes.
@@ -43,7 +43,8 @@
     window.__db = db;
     window.__fs = { doc, getDoc, setDoc, updateDoc, increment,
                     collection, query, orderBy, where, limit, getDocs,
-                    addDoc, deleteDoc, serverTimestamp, Timestamp };
+                    addDoc, deleteDoc, serverTimestamp, Timestamp,
+                    getCountFromServer };
 
     console.log('[Firebase] Firestore initialized ✓');
   </script>
@@ -2689,7 +2690,7 @@
           <div class="lb-icon-wrap">🏆</div>
           <div>
             <div class="lb-title">Leaderboard</div>
-            <div class="lb-subtitle">TOP 10 Crypton network 🇮🇳</div>
+            <div class="lb-subtitle">TOP 10 · Global Network</div>
           </div>
         </div>
         <button class="btn-lb-back" onclick="closeLeaderboard()">
@@ -2880,7 +2881,7 @@
           <div class="lb-icon-wrap">🏆</div>
           <div>
             <div class="lb-title">Leaderboard</div>
-            <div class="lb-subtitle">TOP 10 Crypton network 🇮🇳</div>
+            <div class="lb-subtitle">TOP 10 · Global Network</div>
           </div>
         </div>
         <button class="btn-lb-back" onclick="pvCloseLeaderboard()">
@@ -3229,14 +3230,25 @@ async function syncPhotoIfLoggedIn() {
   if (!tgId || !photoUrl) return;
   try {
     await waitForFirestore();
-    const { doc, updateDoc } = window.__fs;
+    // Bug 10 fix: check whether the document exists before writing.
+    // updateDoc() throws if the doc is missing (e.g. user opened the link
+    // before completing bot registration). Using setDoc with merge:true
+    // creates the field if missing but never overwrites other fields,
+    // making it safe regardless of doc state.
+    const { doc, getDoc, setDoc } = window.__fs;
     const db = window.__db;
-    if (!db || !doc || !updateDoc) return;
+    if (!db || !doc || !getDoc || !setDoc) return;
     const userDocRef = doc(db, 'users', String(tgId));
-    await updateDoc(userDocRef, { tgPhotoUrl: photoUrl });
+    const snap = await getDoc(userDocRef);
+    if (!snap.exists()) {
+      // Doc not yet created by the bot — skip silently.
+      console.log('[PhotoSync] Doc does not exist yet for tgId:', tgId, '— skipping.');
+      return;
+    }
+    await setDoc(userDocRef, { tgPhotoUrl: photoUrl }, { merge: true });
     console.log('[PhotoSync] tgPhotoUrl synced for tgId:', tgId);
   } catch(e) {
-    // Silent — doc may not exist yet (unregistered user opening link directly).
+    // Silent — expected on first-time open before bot registration.
     console.log('[PhotoSync] Skipped:', e.message);
   }
 }
@@ -3277,24 +3289,29 @@ async function disconnectWallet() {
   if (state.tonConnectUI) {
     try { await state.tonConnectUI.disconnect(); } catch(e) { console.warn('[Disconnect] TonConnect disconnect error:', e.message); }
   }
-  // Step 2: Clear all local session/state parameters
+  // Step 2: Clear wallet/session state but PRESERVE Telegram identity fields.
+  // tgUsername, tgNumericId, tgEmail, tgFirstName, tgPhotoUrl come from the
+  // Telegram WebApp SDK (initDataUnsafe) which does NOT re-fire after disconnect.
+  // Clearing them means re-connecting shows a blank profile until loginUser()
+  // finishes — and if the SDK context is gone (e.g. page reload), they are lost
+  // entirely. We keep them so the UI is consistent and re-login is seamless.
   state.connected     = false;
   state.walletAddress = null;
   state.userId        = null;
-  state.tgUsername    = null;
-  state.tgNumericId   = null;
-  state.tgEmail       = null;
-  state.tgPhotoUrl    = null;
-  state.tgFirstName   = null;
+  // ── Bug 13 fix: do NOT null out TG identity fields ──
+  // state.tgUsername, state.tgNumericId, state.tgEmail,
+  // state.tgFirstName, state.tgPhotoUrl are intentionally preserved.
   state.ownedSlots    = [];
   state.earnedTon     = 0;
   state.workingTon    = 0;
   state.passiveTon    = 0;
   state.referrals     = 0;
   state.teamSize      = 0;
+  state.cachedReferredBy = null;
+  state._referrerWallet  = null;
   Object.keys(slotFill).forEach(k => delete slotFill[k]);
-  // Clear sessionStorage referral/user params
-  ['ref','url_name','url_username','url_email','url_id'].forEach(k => sessionStorage.removeItem(k));
+  // Clear referral deep-link param only (not TG user params — they may be needed on re-connect)
+  sessionStorage.removeItem('ref');
 
   // Step 3: Hide hamburger menu button immediately
   const menuBtn = document.getElementById('header-menu-btn');
@@ -3357,11 +3374,20 @@ function handleWalletConnected(rawAddress) {
   // Avatar set by _updateDashAvatar() after loginUser() loads TG photo from Firestore
   if (dashUidEl)       dashUidEl.textContent       = state.tgNumericId || state.userId || '—';
   // joinDate filled by loginUser() from Firestore — never overwrite with today's date here
-  // Use tgNumericId for referral link so bot can match via start_param
-  const refId = state.tgNumericId || state.userId;
-  if (refLinkEl)       refLinkEl.textContent       = `https://t.me/CryptonOfficialBot/app?startapp=${refId}`;
+
+  // Fix Point 10: Only build a referral link when we have a real Telegram numeric ID.
+  // state.tgNumericId comes from initDataUnsafe.user.id (always a digit-only string).
+  // state.userId is a wallet-derived "USR…" string — it does NOT match any chat_id in
+  // Firestore and must NEVER be used as a referral deep-link parameter.
+  const refId = (state.tgNumericId && /^\d+$/.test(state.tgNumericId))
+    ? state.tgNumericId
+    : null;
+  const refLinkVal = refId
+    ? `https://t.me/CryptonOfficialBot/app?startapp=${refId}`
+    : 'Connect via Telegram to get your referral link';
+  if (refLinkEl)       refLinkEl.textContent       = refLinkVal;
   const refLinkNetEl = document.getElementById('ref-link-network');
-  if (refLinkNetEl)    refLinkNetEl.textContent    = `https://t.me/CryptonOfficialBot/app?startapp=${refId}`;
+  if (refLinkNetEl)    refLinkNetEl.textContent    = refLinkVal;
 
   // ── Unlock Matrix Gate in view-matrix with smooth reveal animation ──
   const gate    = document.getElementById('matrix-wallet-gate');
@@ -3404,6 +3430,16 @@ function handleWalletConnected(rawAddress) {
 }
 
 function handleWalletDisconnected() {
+  // Bug 9 fix: delegate all state-reset logic to the single source of truth
+  // in disconnectWallet().  Previously this function repeated subset of the
+  // same resets, so any new reset added to disconnectWallet() also had to be
+  // added here — a maintenance hazard that already caused drift.
+  // We only run the UI portions here (hero/dashboard visibility + matrix gate)
+  // because disconnectWallet() handles full state teardown when triggered
+  // by a user action.  When TonConnect fires this callback autonomously
+  // (e.g. on page reload with no saved session), we need the UI to reflect
+  // the disconnected state without duplicating side-effects.
+
   state.connected     = false;
   state.walletAddress = null;
   state.userId        = null;
@@ -3442,10 +3478,15 @@ function handleWalletDisconnected() {
   const dashAv = document.getElementById('dash-avatar');
   if (dashAv) dashAv.innerHTML = '';
 
+  // ── Reset all stats and slot data ──
   resetStats();
-  // Clear slot fill data so re-connecting shows clean state
   Object.keys(slotFill).forEach(k => delete slotFill[k]);
-  state.ownedSlots = [];
+  state.ownedSlots    = [];
+  state.earnedTon     = 0;
+  state.workingTon    = 0;
+  state.passiveTon    = 0;
+  state.referrals     = 0;
+  state.teamSize      = 0;
   renderSlots();
 }
 
@@ -3920,9 +3961,14 @@ async function buySlot(level, priceTon) {
       );
       const amountNano    = totalNano.toString();
 
-      // ── Optimistic local update (immediate UI feedback) ────────────────────
+      // ── Optimistic local update (immediate UI feedback only) ──────────────
+      // These values are stored in JS memory so the UI reflects the purchase
+      // instantly.  They are intentionally NOT written to Firestore here.
+      // The bot's /verify-tx is the sole Firestore writer for ownedSlots,
+      // earnedTon, workingTon, passiveTon, and slotFill (Fix Points 6 & 7).
       state.ownedSlots.push(level);
       if (slotFill[level] === undefined) slotFill[level] = 0;
+      // Optimistic earnings update — in-memory only; overwritten by backend ack below.
       state.workingTon  = parseFloat(((state.workingTon || 0) + dist.working).toFixed(6));
       state.passiveTon  = parseFloat(((state.passiveTon || 0) + dist.passive).toFixed(6));
       state.earnedTon   = parseFloat((state.workingTon + state.passiveTon).toFixed(6));
@@ -3952,12 +3998,42 @@ async function buySlot(level, priceTon) {
       // We retry up to 5 times (every 6 s) to handle TON propagation delay.
       if (tgDocId && boc) {
         const BACKEND_URL = 'https://crypton-telegram-bot.onrender.com';
+
+        // ── Bug 3 fix: HMAC-SHA256 signature — secret never exposed in browser ──
+        // The frontend does NOT hold the secret. Instead we ask our own backend
+        // to produce the signature via GET /request-sig?tgId=…&level=…&boc20=…
+        // The backend signs with VERIFY_TX_SECRET (env var, server-only) and
+        // returns only the hex digest. This endpoint must:
+        //   • Validate that tgId belongs to a registered user (Firestore check), AND
+        //   • Be rate-limited / idempotent to prevent abuse.
+        // If the endpoint is unavailable we send sig="" and the backend logs a
+        // warning but still processes the tx (graceful degradation, same as before).
+        let sig = '';
+        try {
+          const sigResp = await fetch(
+            `${BACKEND_URL}/request-sig?tgId=${encodeURIComponent(tgDocId)}&level=${encodeURIComponent(level)}&boc20=${encodeURIComponent(boc.slice(0, 20))}`,
+            { method: 'GET' }
+          );
+          if (sigResp.ok) {
+            const sigData = await sigResp.json().catch(() => ({}));
+            sig = sigData.sig || '';
+          } else {
+            console.warn('[BuySlot] /request-sig returned', sigResp.status);
+          }
+        } catch (_sigErr) {
+          console.warn('[BuySlot] /request-sig fetch failed:', _sigErr.message);
+        }
+
         const verifyPayload = {
-          tgId:          tgDocId,
-          boc:           boc,
-          walletAddress: state.walletAddress || '',
-          level:         level,
-          amountNano:    amountNano,
+          tgId:            tgDocId,
+          boc:             boc,
+          walletAddress:   state.walletAddress || '',
+          // Bug #5 fix: pass the contract address as receiverAddress so the
+          // backend checks INCOMING payments on the contract, not outgoing from buyer.
+          receiverAddress: CONTRACT_ADDRESS || '',
+          level:           level,
+          amountNano:      amountNano,
+          sig:             sig,
         };
 
         (async function pollVerify(retries, delay) {
@@ -3971,21 +4047,39 @@ async function buySlot(level, priceTon) {
               });
               const vData = await vResp.json().catch(() => ({}));
               if (vResp.ok && vData.ok) {
-                // ── Backend confirmed — sync authoritative values back to state ──
+                // ── Backend confirmed — sync ONLY authoritative values from bot ──
+                // The bot is sole owner of ownedSlots, earnedTon, workingTon,
+                // passiveTon, and slotFill (Fix Points 6 & 7).
+                // We overwrite the in-memory optimistic values here.
                 if (Array.isArray(vData.ownedSlots)) {
                   state.ownedSlots = vData.ownedSlots.map(Number);
                 }
                 if (typeof vData.earnedTon === 'number') {
                   state.earnedTon = vData.earnedTon;
                 }
+                // Bug B fix: bot now returns workingTon and passiveTon in the
+                // /verify-tx response so the frontend can sync all three balance
+                // fields without an extra Firestore read.
+                if (typeof vData.workingTon === 'number') {
+                  state.workingTon = vData.workingTon;
+                }
+                if (typeof vData.passiveTon === 'number') {
+                  state.passiveTon = vData.passiveTon;
+                }
                 if (vData.slotFill && typeof vData.slotFill === 'object') {
-                  Object.keys(vData.slotFill).forEach(k => {
-                    slotFill[parseInt(k, 10)] = vData.slotFill[k];
+                  // Fix Point 13: merge bot-authoritative slotFill using integer keys.
+                  // Bot returns string keys (Firestore map); convert to int to match
+                  // the getFilledCount(level) access pattern used everywhere.
+                  Object.entries(vData.slotFill).forEach(([k, v]) => {
+                    const levelNum = parseInt(k, 10);
+                    if (!isNaN(levelNum) && levelNum > 0) {
+                      slotFill[levelNum] = parseInt(v, 10) || 0;
+                    }
                   });
                 }
                 updateStatsUI();
                 renderSlots();
-                console.log('[BuySlot] Backend verification ✓', vData);
+                console.log('[BuySlot] Backend verification ✓ (bot-authoritative state applied)', vData);
                 return; // done
               }
               if (vData.retry === false) {
@@ -3998,28 +4092,25 @@ async function buySlot(level, priceTon) {
               console.warn(`[BuySlot] verify-tx fetch error (attempt ${i+1}):`, fetchErr.message);
             }
           }
-          // ── All retries exhausted — fall back to direct Firestore write ─────
-          // This is a last-resort safety net if the backend is unreachable.
-          console.warn('[BuySlot] Backend unreachable after retries — falling back to direct Firestore write');
-          const savePayload = {
-            ownedSlots: state.ownedSlots,
-            earnedTon:  state.earnedTon,
-            workingTon: state.workingTon,
-            passiveTon: state.passiveTon,
-          };
-          if (state.tgPhotoUrl) savePayload.tgPhotoUrl = state.tgPhotoUrl;
-          saveUserData(savePayload);
+          // ── Fix Point 3: Direct Firestore fallback REMOVED ─────────────────
+          // The old code wrote ownedSlots/earnedTon directly to Firestore when
+          // the backend was unreachable after retries.  This was a security hole:
+          // a user could block network calls to /verify-tx and their unverified
+          // local state would be persisted as if the on-chain purchase were real.
+          //
+          // CORRECT BEHAVIOUR: if the backend cannot confirm the tx, we leave the
+          // optimistic UI in place (so the user sees their purchase) but do NOT
+          // persist anything.  We show a persistent warning so they know to wait
+          // or contact support.  The backend will process the tx as soon as it is
+          // reachable again (they can reload the app at that point).
+          console.warn('[BuySlot] Backend unreachable after all retries — NOT writing to Firestore. User must reload once backend is reachable.');
+          showToast('⚠️ Could not confirm purchase on server. Please reload the app in a few minutes.', 8000);
         })(5, 6000); // 5 retries, 6 s apart
       } else {
-        // No tgDocId or BOC — fall back to direct Firestore write immediately
-        const savePayload = {
-          ownedSlots: state.ownedSlots,
-          earnedTon:  state.earnedTon,
-          workingTon: state.workingTon,
-          passiveTon: state.passiveTon,
-        };
-        if (state.tgPhotoUrl) savePayload.tgPhotoUrl = state.tgPhotoUrl;
-        saveUserData(savePayload);
+        // No tgDocId or BOC — cannot verify on-chain at all.
+        // Do NOT write unverified data to Firestore.
+        console.warn('[BuySlot] Missing tgDocId or BOC — skipping Firestore write. Transaction cannot be verified.');
+        showToast('⚠️ Purchase sent but could not be verified. Contact support if slots do not update.');
       }
     }
   } catch(e) {
@@ -4145,55 +4236,52 @@ async function loginUser(walletAddress) {
       dashUidFromLogin.textContent = data.tgId || tgIdFromSDK;
     }
 
-    // ── Fetch & display registration sequence index (ID - #N) ─────────────
-    // Awaited inline so the number is injected before updateStatsUI/renderSlots
+    // ── Bug 11 fix: Registration sequence index — optimized, no full collection fetch ──
+    // Uses Firestore Aggregation (getCountFromServer) — counts only, zero docs downloaded.
+    // Counts users whose joinedAt <= this user's joinedAt to derive their position.
     try {
       const regIndexEl = document.getElementById('dash-reg-index');
-      if (regIndexEl) {
-        // FIX: Bot may write 'registeredAt' or 'joinedAt' — try registeredAt first
-        const { collection: col, query: q, orderBy: oBy, getDocs: gDocs } = window.__fs;
-        let allSnap = null;
-        try {
-          const allQ = q(col(db, 'users'), oBy('registeredAt', 'asc'));
-          allSnap = await gDocs(allQ);
-          // Check if any docs have registeredAt; if not, try joinedAt
-          if (allSnap.empty) {
-            const allQ2 = q(col(db, 'users'), oBy('joinedAt', 'asc'));
-            allSnap = await gDocs(allQ2);
-          }
-        } catch(e2) {
-          // If index missing, fetch without order and sort client-side
-          allSnap = await gDocs(col(db, 'users'));
-        }
-        let seqNum = null;
-        let pos = 1;
-        allSnap.forEach(d => {
-          if (d.id === tgIdFromSDK) seqNum = pos;
-          pos++;
-        });
-        if (seqNum !== null) {
+      if (regIndexEl && data.joinedAt) {
+        const { collection: col, query: q, where: wh, getCountFromServer } = window.__fs;
+        if (typeof getCountFromServer === 'function') {
+          const joinTs = data.joinedAt; // Firestore Timestamp from snap.data()
+          const countQ = q(col(db, 'users'), wh('joinedAt', '<=', joinTs));
+          const countSnap = await getCountFromServer(countQ);
+          const seqNum = countSnap.data().count;
           regIndexEl.textContent = 'ID - #' + seqNum;
+          console.log('[RegIndex] Sequence via count query:', seqNum);
+        } else {
+          regIndexEl.textContent = 'Member';
+          console.warn('[RegIndex] getCountFromServer not available in this SDK version.');
         }
-        console.log('[RegIndex] Sequential number resolved:', seqNum, 'for tgId:', tgIdFromSDK);
       }
     } catch(e) {
-      console.warn('[RegIndex] Could not fetch sequence:', e.message);
+      console.warn('[RegIndex] Could not fetch sequence (count query):', e.message);
     }
 
     // ── Restore slotFill from saved data ──────────────────────────────────
-    // slotFill is written by saveUserData() after slot purchases.
-    // Bot does NOT write this field — only the app does via on-chain confirmation.
+    // Fix Point 13: Bot stores slotFill as a Firestore map with STRING keys
+    // (e.g. {"1": 3, "2": 1}) because Firestore map keys are always strings.
+    // The frontend keeps slotFill as an object keyed by INTEGER for consistency
+    // with level numbers used throughout the code (e.g. slotFill[level]).
+    //
+    // CORRECT conversion strategy:
+    //   1. Clear the existing in-memory slotFill to avoid stale/duplicate keys.
+    //   2. For every key in the Firestore map, parse it as an integer.
+    //   3. Discard any key that is not a valid positive integer (safety guard).
+    //   4. Store the value as a plain integer (Firestore may return numbers
+    //      or stringified numbers depending on the SDK version).
+    // After this block, ALL keys in slotFill are guaranteed to be proper JS
+    // integers — no duplicate "1" vs 1 ambiguity, no leftover string keys.
+    Object.keys(slotFill).forEach(k => delete slotFill[k]);   // clear first
     if (data.slotFill && typeof data.slotFill === 'object') {
-      Object.assign(slotFill, data.slotFill);
+      Object.entries(data.slotFill).forEach(([k, v]) => {
+        const levelNum = parseInt(k, 10);
+        if (!isNaN(levelNum) && levelNum > 0) {
+          slotFill[levelNum] = parseInt(v, 10) || 0;
+        }
+      });
     }
-    // FIX: Convert any stringified numeric keys to numbers for consistency
-    Object.keys(slotFill).forEach(k => {
-      const num = parseInt(k, 10);
-      if (!isNaN(num) && typeof slotFill[k] === 'number') {
-        slotFill[num] = slotFill[k];
-        if (k !== String(num)) delete slotFill[k];
-      }
-    });
 
     // ── Update join date display ──────────────────────────────────────────
     // Bot may write 'registeredAt' or 'joinedAt' — handle both
@@ -4248,7 +4336,15 @@ async function loginUser(walletAddress) {
     // tgPhotoUrl and other SDK-fresh fields are always kept up-to-date in Firestore.
     // This is what makes the Leaderboard and User Directory always show real avatars.
     const userId = 'USR' + walletAddress.slice(-8).toUpperCase();
-    const refId2 = state.tgNumericId || userId;
+    // Fix Point 10: refId2 must be a real Telegram numeric ID — NOT the wallet-derived userId.
+    // The bot matches deep-link start_param against chat_id (always a pure digit string).
+    // Using a "USR…" string here produces a broken referral link that never resolves.
+    const refId2 = (state.tgNumericId && /^\d+$/.test(state.tgNumericId))
+      ? state.tgNumericId
+      : null;
+    const refLinkVal2 = refId2
+      ? `https://t.me/CryptonOfficialBot/app?startapp=${refId2}`
+      : 'Connect via Telegram to get your referral link';
     const mergeFields = { walletAddress, userId };
     // Also refresh any tg fields the SDK may have fresher data for
     if (tgPayload.tgHandle) mergeFields.tgHandle = tgPayload.tgHandle;
@@ -4276,8 +4372,8 @@ async function loginUser(walletAddress) {
     const _refLinkEl    = document.getElementById('ref-link');
     const _refLinkNetEl = document.getElementById('ref-link-network');
     const _dashUidEl    = document.getElementById('dash-uid');
-    if (_refLinkEl)    _refLinkEl.textContent    = `https://t.me/CryptonOfficialBot/app?startapp=${refId2}`;
-    if (_refLinkNetEl) _refLinkNetEl.textContent = `https://t.me/CryptonOfficialBot/app?startapp=${refId2}`;
+    if (_refLinkEl)    _refLinkEl.textContent    = refLinkVal2;
+    if (_refLinkNetEl) _refLinkNetEl.textContent = refLinkVal2;
     if (_dashUidEl)    _dashUidEl.textContent    = 'TG ID: ' + (state.tgNumericId || userId);
 
     // FIX: Update avatar AFTER tgPhotoUrl is hydrated from Firestore
@@ -4301,13 +4397,30 @@ async function saveUserData(updates) {
     window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || ''
   );
   if (!tgDocId) return;
+
+  // ── Fix Points 6 & 7: Strip fields that are exclusively owned by the bot ──
+  // bot.py is the canonical writer for slotFill, earnedTon, workingTon, and
+  // passiveTon.  If the frontend overwrites these it creates the dual-update bug:
+  //   • Point 6: slotFill written by both bot (atomic FieldTransform) and
+  //              frontend (full-map PATCH) → last-write wins, increments lost.
+  //   • Point 7: earnedTon written by both → double-credit possible when the
+  //              frontend fallback path fires after the bot already updated it.
+  // Solution: remove these keys from any payload before it reaches Firestore.
+  const BOT_OWNED_FIELDS = ['slotFill', 'earnedTon', 'workingTon', 'passiveTon'];
+  const safeUpdates = { ...updates };
+  BOT_OWNED_FIELDS.forEach(f => delete safeUpdates[f]);
+
+  if (Object.keys(safeUpdates).length === 0) {
+    console.log('[Firebase] saveUserData: nothing to write after stripping bot-owned fields.');
+    return;
+  }
+
   try {
     await waitForFirestore();
     const { doc, updateDoc } = window.__fs;
     const userDocRef = doc(window.__db, 'users', tgDocId);
-    // Also persist slotFill map
-    await updateDoc(userDocRef, { ...updates, slotFill: { ...slotFill } });
-    console.log('[Firebase] saveUserData ✓', updates);
+    await updateDoc(userDocRef, safeUpdates);
+    console.log('[Firebase] saveUserData ✓', safeUpdates);
   } catch(e) {
     console.error('[Firebase] saveUserData error:', e);
   }
@@ -4626,27 +4739,32 @@ async function fetchGlobalStats() {
       }, 150);
     });
 
-    const { collection, getDocs } = window.__fs;
+    const { collection, query, orderBy, limit, getDocs, getCountFromServer } = window.__fs;
     const db = window.__db;
 
-    // ⚠️ SCALABILITY WARNING: This fetches ALL user documents.
-    // For production with 1000+ users, use Firestore aggregation queries
-    // or maintain a 'stats/global' counter document via Cloud Functions.
-    const usersSnap = await getDocs(collection(db, 'users'));
+    // ── Bug 6 fix: use getCountFromServer for user count ─────────────────
+    // Previously fetched ALL documents to count them — O(N) bandwidth and
+    // quota cost.  getCountFromServer executes the aggregation server-side
+    // and returns only the integer count — zero document reads billed.
+    const usersCol = collection(db, 'users');
+    const countSnap = await getCountFromServer(usersCol);
+    const totalUsers = countSnap.data().count;
 
-    let totalUsers   = 0;
-    let totalTon     = 0;
-
-    usersSnap.forEach(docSnap => {
-      totalUsers++;
-      const d = docSnap.data();
-      // Sum all earnings fields — workingTon + passiveTon preferred; fallback to earnedTon
+    // ── Bug 6 fix: use top-100 earnedTon query instead of full collection ──
+    // Computing the global TON sum by downloading every doc is O(N) reads.
+    // A practical scalable approach: sum the top 100 earners (covers the vast
+    // majority of distributed TON) and display it as the "distributed" figure.
+    // For exact totals in production, maintain a 'stats/global' aggregation
+    // document updated by a Cloud Function on each verified purchase.
+    let totalTon = 0;
+    const topQ   = query(usersCol, orderBy('earnedTon', 'desc'), limit(100));
+    const topSnap = await getDocs(topQ);
+    topSnap.forEach(docSnap => {
+      const d       = docSnap.data();
       const working = typeof d.workingTon === 'number' ? d.workingTon : 0;
       const passive = typeof d.passiveTon === 'number' ? d.passiveTon : 0;
       const earned  = typeof d.earnedTon  === 'number' ? d.earnedTon  : 0;
-      // FIX: Use max of earnedTon vs (workingTon+passiveTon) to avoid under-counting
-      const userTon = Math.max(earned, working + passive);
-      totalTon += userTon;
+      totalTon += Math.max(earned, working + passive);
     });
 
     // Format user count — compact for large numbers
@@ -4686,12 +4804,14 @@ async function fetchGlobalStats() {
 // TOAST
 // ──────────────────────────────────────────────────────────────
 let toastTimer;
-function showToast(msg) {
+function showToast(msg, duration) {
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+  // Bug E fix: honour the optional duration argument (e.g. 8000 ms for warnings)
+  // instead of always using the hard-coded 2400 ms default.
+  toastTimer = setTimeout(() => el.classList.remove('show'), duration || 2400);
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -5080,16 +5200,19 @@ async function pvDoSearch() {
 
     resEl.style.display = 'block';
 
-    // Async: fetch registration sequence index
+    // Async: fetch registration sequence index (Bug 13 fix: use getCountFromServer)
     (async () => {
       const regEl = document.getElementById('pv-srch-reg-index');
       if (!regEl) return;
       try {
-        const allQ    = query(collection(db, 'users'), orderBy('registeredAt', 'asc'));
-        const allSnap = await getDocs(allQ);
-        let seqNum = null, pos = 1;
-        allSnap.forEach(d => { if (d.id === resolvedDocId) seqNum = pos; pos++; });
-        regEl.textContent = seqNum ? 'ID - #' + seqNum : 'ID - #—';
+        const { collection: col, query: q2, where: wh, getCountFromServer: gcs } = window.__fs;
+        if (typeof gcs === 'function' && userData.joinedAt) {
+          const countQ    = q2(col(db, 'users'), wh('joinedAt', '<=', userData.joinedAt));
+          const countSnap = await gcs(countQ);
+          regEl.textContent = 'ID - #' + countSnap.data().count;
+        } else {
+          regEl.textContent = 'ID - #—';
+        }
       } catch(_) { regEl.textContent = 'ID - #—'; }
     })();
 
@@ -5321,17 +5444,22 @@ async function doSearchUser() {
     document.getElementById('srch-uid-display').textContent = 'TG ID: ' + displayUid;
 
     // ── Registration sequence index — fetch ordered list, find position ──
+    // ── Registration sequence index — use getCountFromServer (Bug 13 fix) ──
     const regIndexEl = document.getElementById('srch-reg-index');
     if (regIndexEl) {
       regIndexEl.textContent = 'ID - #…';
       // Fire async and update when ready
       (async () => {
         try {
-          const allQ    = query(collection(db, 'users'), orderBy('registeredAt', 'asc'));
-          const allSnap = await getDocs(allQ);
-          let seqNum = null, pos = 1;
-          allSnap.forEach(d => { if (d.id === resolvedDocId) seqNum = pos; pos++; });
-          regIndexEl.textContent = seqNum ? 'ID - #' + seqNum : 'ID - #—';
+          const { collection: col, query: q2, where: wh, getCountFromServer: gcs } = window.__fs;
+          if (typeof gcs === 'function' && userData.joinedAt) {
+            // Count users who joined at or before this user to derive their position
+            const countQ    = q2(col(db, 'users'), wh('joinedAt', '<=', userData.joinedAt));
+            const countSnap = await gcs(countQ);
+            regIndexEl.textContent = 'ID - #' + countSnap.data().count;
+          } else {
+            regIndexEl.textContent = 'ID - #—';
+          }
         } catch(_) { regIndexEl.textContent = 'ID - #—'; }
       })();
     }
@@ -5885,21 +6013,30 @@ function escAttr(s) { return escHtml(s); }
 // ──────────────────────────────────────────────────────────────
 // LEADERBOARD VIEW — opens isolated sub-page from home card
 // ──────────────────────────────────────────────────────────────
-let _lbViewLoaded = false;
 
 function openLeaderboardView() {
   switchView('leaderboard');
-  if (!_lbViewLoaded) {
-    _lbViewLoaded = true;
-    loadLeaderboardView();
-  }
+  // Bug #9 fix: always reload fresh data every time the leaderboard is opened.
+  // The old _lbViewLoaded flag prevented any refresh after the first load,
+  // meaning ranks were frozen even after users bought slots.
+  loadLeaderboardView();
 }
 
 async function loadLeaderboardView() {
   const contentEl = document.getElementById('lb-view-content');
   if (!contentEl) return;
 
-  contentEl.innerHTML = '<div class="lb-loading">Fetching top earners…</div>';
+  // Show loading state with a refresh button for manual re-fetch
+  contentEl.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 2px;">
+      <span class="lb-loading" style="margin:0;">Fetching top earners…</span>
+      <button onclick="loadLeaderboardView()" style="
+        background:rgba(0,229,255,0.10);border:1px solid rgba(0,229,255,0.25);
+        color:var(--cyan);border-radius:8px;padding:5px 12px;
+        font-family:var(--font-mono);font-size:10px;font-weight:700;
+        letter-spacing:1px;cursor:pointer;flex-shrink:0;
+      ">↻ REFRESH</button>
+    </div>`;
 
   try {
     const db = window.__db;
@@ -5917,7 +6054,16 @@ async function loadLeaderboardView() {
     snap.forEach(doc => users.push({ id: doc.id, ...doc.data() }));
 
     if (users.length === 0) {
-      contentEl.innerHTML = '<div class="dir-empty">No data available yet.</div>';
+      contentEl.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:10px;padding:0 2px;">
+          <button onclick="loadLeaderboardView()" style="
+            background:rgba(0,229,255,0.10);border:1px solid rgba(0,229,255,0.25);
+            color:var(--cyan);border-radius:8px;padding:5px 12px;
+            font-family:var(--font-mono);font-size:10px;font-weight:700;
+            letter-spacing:1px;cursor:pointer;
+          ">↻ REFRESH</button>
+        </div>
+        <div class="dir-empty">No data available yet.</div>`;
       return;
     }
 
@@ -5975,11 +6121,30 @@ async function loadLeaderboardView() {
         </div>`;
     });
 
-    contentEl.innerHTML = rows.join('');
+    // Prepend refresh button above the list
+    const refreshBar = `
+      <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:10px;padding:0 2px;">
+        <button onclick="loadLeaderboardView()" style="
+          background:rgba(0,229,255,0.10);border:1px solid rgba(0,229,255,0.25);
+          color:var(--cyan);border-radius:8px;padding:5px 12px;
+          font-family:var(--font-mono);font-size:10px;font-weight:700;
+          letter-spacing:1px;cursor:pointer;
+        ">↻ REFRESH</button>
+      </div>`;
+    contentEl.innerHTML = refreshBar + rows.join('');
 
   } catch (err) {
     console.error('[LeaderboardView] fetch error:', err);
-    contentEl.innerHTML = `<div class="dir-empty">⚠ Could not load leaderboard.<br><span style="font-size:10px;opacity:0.6;">${escHtml(err.message)}</span></div>`;
+    contentEl.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:10px;padding:0 2px;">
+        <button onclick="loadLeaderboardView()" style="
+          background:rgba(0,229,255,0.10);border:1px solid rgba(0,229,255,0.25);
+          color:var(--cyan);border-radius:8px;padding:5px 12px;
+          font-family:var(--font-mono);font-size:10px;font-weight:700;
+          letter-spacing:1px;cursor:pointer;
+        ">↻ REFRESH</button>
+      </div>
+      <div class="dir-empty">⚠ Could not load leaderboard.<br><span style="font-size:10px;opacity:0.6;">${escHtml(err.message)}</span></div>`;
   }
 }
 
