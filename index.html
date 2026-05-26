@@ -3529,9 +3529,15 @@ async function syncPhotoIfLoggedIn() {
     // before completing bot registration). Using setDoc with merge:true
     // creates the field if missing but never overwrites other fields,
     // making it safe regardless of doc state.
-    const { doc, getDoc, setDoc } = window.__fs;
+    // BUG 4 FIX: Use updateDoc instead of setDoc({merge:true}).
+    // Firestore rules have "allow create: if false" for the users collection.
+    // setDoc() with merge:true behaves like an update when the doc exists, BUT
+    // if the document is somehow missing it attempts a CREATE — which the rules
+    // block with a PERMISSION_DENIED error. updateDoc() is semantically correct:
+    // it only ever updates an existing document and throws cleanly if missing.
+    const { doc, getDoc, updateDoc } = window.__fs;
     const db = window.__db;
-    if (!db || !doc || !getDoc || !setDoc) return;
+    if (!db || !doc || !getDoc || !updateDoc) return;
     const userDocRef = doc(db, 'users', String(tgId));
     const snap = await getDoc(userDocRef);
     if (!snap.exists()) {
@@ -3539,7 +3545,7 @@ async function syncPhotoIfLoggedIn() {
       console.log('[PhotoSync] Doc does not exist yet for tgId:', tgId, '— skipping.');
       return;
     }
-    await setDoc(userDocRef, { tgPhotoUrl: photoUrl }, { merge: true });
+    await updateDoc(userDocRef, { tgPhotoUrl: photoUrl });
     console.log('[PhotoSync] tgPhotoUrl synced for tgId:', tgId);
   } catch(e) {
     // Silent — expected on first-time open before bot registration.
@@ -4645,13 +4651,34 @@ async function loginUser(walletAddress) {
     const isFirstWalletLink = (!data.walletAddress || data.walletAddress === '') && !data.referralCounted;
     if (isFirstWalletLink && referredBy) {
       try {
+        // BUG 3 FIX: Write referralCounted:true to the CURRENT USER's doc FIRST,
+        // before crediting the referrer. This prevents a double-credit race where:
+        //   1. Primary path credits referrer but referralCounted write fails → on next
+        //      session isFirstWalletLink is still true → referrer gets credited again.
+        //   2. Fallback query path would also try to credit, creating a second increment.
+        //
+        // Correct order:
+        //   Step 1: Mark this user as referralCounted:true (idempotent guard).
+        //   Step 2: Credit the referrer (safe to retry — if step 1 succeeded, step 2
+        //           cannot run again on the next session even if it fails this time).
+        //
+        // Trade-off: if step 2 fails after step 1 succeeded, the referrer misses
+        // their credit this session. This is acceptable — the alternative (double-
+        // credit) is a financial exploit. Admins can manually credit edge cases.
+        await updateDoc(userDocRef, {
+          referralCounted: true,
+          walletAddress,
+          userId: 'USR' + walletAddress.slice(-8).toUpperCase()
+        });
+        console.log('[Firebase] referralCounted set for current user:', tgIdFromSDK);
+
+        // Now safely credit the referrer — referralCounted is already true so
+        // even if this throws, the block will never run again next session.
         const refDocRef = doc(db, 'users', referredBy);
         const refSnap   = await getDoc(refDocRef);
         if (refSnap.exists()) {
           await updateDoc(refDocRef, { referrals: increment(1), teamSize: increment(1) });
-          // FIX 1: Simultaneously mark the current user so this block never runs twice
-          await updateDoc(userDocRef, { referralCounted: true, walletAddress, userId: 'USR' + walletAddress.slice(-8).toUpperCase() });
-          console.log('[Firebase] Referrer updated:', referredBy);
+          console.log('[Firebase] Referrer credited:', referredBy);
         } else {
           // referredBy may be a tgId string — query by tgId field as fallback
           if (where) {
@@ -4659,14 +4686,12 @@ async function loginUser(walletAddress) {
             const qSnap = await getDocs(q);
             if (!qSnap.empty) {
               await updateDoc(qSnap.docs[0].ref, { referrals: increment(1), teamSize: increment(1) });
-              // FIX 1: Mark referralCounted even when resolved via tgId fallback query
-              await updateDoc(userDocRef, { referralCounted: true, walletAddress, userId: 'USR' + walletAddress.slice(-8).toUpperCase() });
-              console.log('[Firebase] Referrer (by tgId field) updated:', referredBy);
+              console.log('[Firebase] Referrer (by tgId field) credited:', referredBy);
             }
           }
         }
       } catch(refErr) {
-        console.warn('[Firebase] Could not update referrer:', refErr);
+        console.warn('[Firebase] Referral processing error:', refErr);
       }
     }
 
