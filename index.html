@@ -2863,6 +2863,13 @@
 
       </div><!-- /read-only wrapper -->
 
+      <!-- Fix 4: srch-downline-inner div was missing — JS calls getElementById('srch-downline-inner')
+           in renderSearchDownline() but the HTML element did not exist, causing silent null errors. -->
+      <div class="srch-downline-header" style="margin-top:18px;">Downline Team</div>
+      <div id="srch-downline-inner">
+        <div class="ref-list-loading">Loading team…</div>
+      </div>
+
       <!-- ── AIRDROP BONUS POOL CARD (search section — live timer same as home) ── -->
       <div class="airdrop-pool-card" style="pointer-events:none; user-select:none;">
         <div class="airdrop-pool-top">
@@ -3081,9 +3088,9 @@
         <div class="gstat-card-icon">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
         </div>
-        <div class="gstat-label">Total TON<br>Distributed</div>
+        <div class="gstat-label">Top #100<br>TON Distributed</div>
         <div class="gstat-value" id="gstat-ton-total"><span class="gstat-shimmer"></span></div>
-        <div class="gstat-unit" id="gstat-ton-unit">TON</div>
+        <div class="gstat-unit" id="gstat-ton-unit">TON · Top 100</div>
       </div>
 
     </div><!-- /gstat-grid -->
@@ -3547,9 +3554,8 @@ setTimeout(syncPhotoIfLoggedIn, 3500);
 // ──────────────────────────────────────────────────────────────
 (function initTonConnect() {
   try {
-    // ⚠️ TODO: Replace manifestUrl with your own hosted tonconnect-manifest.json
-    // Example: 'https://yourdomain.com/tonconnect-manifest.json'
-    // The manifest must contain your app's name, icon URL, and allowed domains.
+    // TonConnect manifest — hosted at the Vercel deployment URL.
+    // Ensure tonconnect-manifest.json exists at this path with correct name/iconUrl/url fields.
     state.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
       manifestUrl: 'https://crypton-app-omega.vercel.app/tonconnect-manifest.json',
       buttonRootId: null,
@@ -4256,9 +4262,15 @@ async function buySlot(level, priceTon) {
       state.ownedSlots.push(level);
       if (slotFill[level] === undefined) slotFill[level] = 0;
       // Optimistic earnings update — in-memory only; overwritten by backend ack below.
+      // Fix 3: Bot increments earnedTon by passive_commission (price * 0.50) only,
+      // NOT by working + passive (which would be price * 1.0 — double the real value).
+      // Match exactly what bot-1.py _process_verify_tx does:
+      //   passive_commission = amount_nano_int / 1e9 * 0.50
+      //   earnedTon += passive_commission  (via atomic FieldTransform)
       state.workingTon  = parseFloat(((state.workingTon || 0) + dist.working).toFixed(6));
       state.passiveTon  = parseFloat(((state.passiveTon || 0) + dist.passive).toFixed(6));
-      state.earnedTon   = parseFloat((state.workingTon + state.passiveTon).toFixed(6));
+      // earnedTon optimistic = current_earned + passive_commission only (mirrors bot logic)
+      state.earnedTon   = parseFloat(((state.earnedTon || 0) + dist.passive).toFixed(6));
       updateStatsUI();
       renderSlots();
       showToast(`Level ${level} activated! 🎉`);
@@ -4391,7 +4403,51 @@ async function buySlot(level, priceTon) {
           // or contact support.  The backend will process the tx as soon as it is
           // reachable again (they can reload the app at that point).
           console.warn('[BuySlot] Backend unreachable after all retries — NOT writing to Firestore. User must reload once backend is reachable.');
-          showToast('⚠️ Could not confirm purchase on server. Please reload the app in a few minutes.', 8000);
+          // Fix 5: Show a persistent re-verify button so user does not have to manually reload.
+          // Button stores verifyPayload in closure and re-triggers pollVerify(3, 8000) on tap.
+          showToast('⚠️ Purchase sent but server unreachable. Tap to retry verification.', 12000);
+          (function showReVerifyButton(payload) {
+            const toastEl = document.getElementById('toast');
+            if (!toastEl) return;
+            // Reuse toast element — replace text with clickable retry UI
+            toastEl.innerHTML = '⚠️ Server unreachable &nbsp;<button id="btn-reverify" style="margin-left:8px;padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.50);background:rgba(255,255,255,0.18);color:#fff;font-family:var(--font-mono);font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.5px;" onclick="window.__retryVerify && window.__retryVerify()">RETRY</button>';
+            toastEl.classList.add('show');
+            window.__retryVerify = function() {
+              toastEl.textContent = '🔄 Retrying verification…';
+              window.__retryVerify = null;
+              const BACKEND_URL_RETRY = 'https://crypton-telegram-bot.onrender.com';
+              (async function pollVerifyRetry(retries, delay) {
+                for (let i = 0; i < retries; i++) {
+                  try {
+                    if (i > 0) await new Promise(r => setTimeout(r, delay));
+                    const vResp = await fetch(BACKEND_URL_RETRY + '/verify-tx', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(payload),
+                    });
+                    const vData = await vResp.json().catch(() => ({}));
+                    if (vResp.ok && vData.ok) {
+                      if (Array.isArray(vData.ownedSlots)) state.ownedSlots = vData.ownedSlots.map(Number);
+                      if (typeof vData.earnedTon  === 'number') state.earnedTon  = vData.earnedTon;
+                      if (typeof vData.workingTon === 'number') state.workingTon = vData.workingTon;
+                      if (typeof vData.passiveTon === 'number') state.passiveTon = vData.passiveTon;
+                      if (vData.slotFill && typeof vData.slotFill === 'object') {
+                        Object.entries(vData.slotFill).forEach(([k, v]) => {
+                          const ln = parseInt(k, 10);
+                          if (!isNaN(ln) && ln > 0) slotFill[ln] = parseInt(v, 10) || 0;
+                        });
+                      }
+                      updateStatsUI(); renderSlots();
+                      showToast('✅ Purchase verified successfully!', 4000);
+                      return;
+                    }
+                    if (vData.retry === false) { showToast('❌ Verification failed: ' + (vData.message || 'Contact support'), 6000); return; }
+                  } catch (e) { console.warn('[ReVerify] attempt', i+1, 'error:', e.message); }
+                }
+                showToast('⚠️ Still unreachable. Please reload the app later.', 8000);
+              })(3, 8000);
+            };
+          })(verifyPayload);
         })(5, 6000); // 5 retries, 6 s apart
       } else {
         // No tgDocId or BOC — cannot verify on-chain at all.
