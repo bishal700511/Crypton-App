@@ -221,10 +221,10 @@
 
     /* ── Premium solid-gold account card ── */
     #dashboard > .card:first-of-type {
-      background: linear-gradient(135deg, #e5c060 0%, #c49632 50%, #d8b24f 100%);
+      background: linear-gradient(145deg, #7a5a08 0%, #5c4206 40%, #4a3304 70%, #6b4e0a 100%);
       border: none;
       border-radius: 24px;
-      box-shadow: 0 8px 32px rgba(180,140,40,0.35), 0 2px 8px rgba(0,0,0,0.30);
+      box-shadow: 0 10px 40px rgba(40,25,0,0.75), 0 2px 10px rgba(0,0,0,0.65);
     }
 
     .dash-top {
@@ -248,8 +248,8 @@
     /* ── Wallet row — rich dark-mustard belt ── */
     .wallet-row {
       padding:14px 18px; display:flex; align-items:center; justify-content:space-between;
-      background: #c47a00;
-      border-top: 1px solid rgba(0,0,0,0.15);
+      background: #7a4800;
+      border-top: 1px solid rgba(0,0,0,0.25);
     }
     .wallet-label {
       font-size:11px; font-family:var(--font-mono); letter-spacing:0.5px;
@@ -535,20 +535,26 @@
       border-right: 1.5px solid rgba(0,229,255,0.25);
     }
 
-    /* WORKING — muted teal-blue from reference image, top card: rounded top only */
+    /* WORKING — dark deep teal, top card: rounded top only */
     .home-income-working {
-      background: #3d7d8c;
-      border-top: 1.5px solid rgba(0,229,255,0.25);
+      background: linear-gradient(160deg, #0f3d46 0%, #0a2d35 60%, #071f26 100%);
+      border-top: 1.5px solid rgba(0,180,210,0.30);
+      border-left: 1.5px solid rgba(0,180,210,0.20);
+      border-right: 1.5px solid rgba(0,180,210,0.20);
       border-bottom: none;
       border-radius: 20px 20px 0 0;
+      box-shadow: 0 6px 24px rgba(0,40,55,0.60);
     }
 
     /* NON WORKING — pale sage-green from reference image, bottom card: rounded bottom only */
     .home-income-nonworking {
-      background: #a8c4b8;
-      border-top: 1px solid rgba(0,229,255,0.12);
-      border-bottom: 1.5px solid rgba(0,229,255,0.25);
+      background: linear-gradient(160deg, #0e3028 0%, #092018 60%, #051510 100%);
+      border-top: 1px solid rgba(0,160,100,0.18);
+      border-bottom: 1.5px solid rgba(0,160,100,0.28);
+      border-left: 1.5px solid rgba(0,160,100,0.18);
+      border-right: 1.5px solid rgba(0,160,100,0.18);
       border-radius: 0 0 20px 20px;
+      box-shadow: 0 8px 26px rgba(0,20,10,0.60);
     }
 
     /* Shared body row */
@@ -563,7 +569,7 @@
       font-size: 28px;
       flex-shrink: 0;
       line-height: 1;
-      color: #000000;
+      color: rgba(255,255,255,0.85);
     }
 
     .hic-info { flex: 1; min-width: 0; }
@@ -572,48 +578,48 @@
       font-family: var(--font-mono);
       font-size: 9px; font-weight: 700;
       letter-spacing: 2px; text-transform: uppercase;
-      color: rgba(0,0,0,0.70);
+      color: rgba(255,255,255,0.60);
       margin-bottom: 4px;
     }
     .hic-label-gold {
-      color: rgba(0,0,0,0.70) !important;
+      color: rgba(255,255,255,0.60) !important;
     }
 
     .hic-val {
       font-family: var(--font-head);
       font-size: 26px; font-weight: 800;
-      color: #000000;
+      color: #ffffff;
       line-height: 1;
       letter-spacing: -0.5px;
-      text-shadow: none;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.40);
     }
     .hic-val-gold {
-      color: #000000 !important;
-      text-shadow: none !important;
-      -webkit-text-fill-color: #000000 !important;
+      color: #ffffff !important;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.40) !important;
+      -webkit-text-fill-color: #ffffff !important;
     }
 
     .hic-ton {
       font-family: var(--font-mono);
       font-size: 11px; font-weight: 600;
-      color: rgba(0,0,0,0.55);
+      color: rgba(255,255,255,0.55);
       margin-top: 3px;
     }
     .hic-ton-gold {
-      color: rgba(0,0,0,0.55) !important;
+      color: rgba(255,255,255,0.55) !important;
     }
 
     /* Belt at bottom of Non-Working card */
     .hic-belt {
-      background: rgba(0,0,0,0.08);
+      background: rgba(0,0,0,0.22);
       padding: 8px 20px;
-      border-top: 1px solid rgba(0,0,0,0.15);
+      border-top: 1px solid rgba(255,255,255,0.08);
     }
     .hic-belt-text {
       font-family: var(--font-mono);
       font-size: 9px; font-weight: 700;
       letter-spacing: 2px; text-transform: uppercase;
-      color: rgba(0,0,0,0.55);
+      color: rgba(255,255,255,0.45);
     }
 
     /* ─── REFERRAL VIEW ─────────────────────────────────────── */
@@ -669,19 +675,19 @@
     }
     /* Direct Referral card — darker salmon/orange from Image 1, top-rounded */
     .blue-stat-card:first-child {
-      background: #e8855c;
+      background: linear-gradient(160deg, #5c1a08 0%, #421005 60%, #2e0a03 100%);
       border: none;
-      border-bottom: 1px solid rgba(0,0,0,0.08);
+      border-bottom: 1px solid rgba(0,0,0,0.25);
       border-radius: 20px 20px 0 0;
-      box-shadow: 0 4px 20px rgba(220,110,70,0.28), 0 1px 4px rgba(0,0,0,0.15);
+      box-shadow: 0 6px 24px rgba(60,10,0,0.65), 0 2px 8px rgba(0,0,0,0.50);
     }
     /* Your Team card — lighter blush/peach from Image 2, bottom-rounded */
     .blue-stat-card:last-child {
-      background: #f2c9bc;
+      background: linear-gradient(160deg, #3d1010 0%, #2b0808 60%, #1c0505 100%);
       border: none;
-      border-top: 1px solid rgba(255,255,255,0.30);
+      border-top: 1px solid rgba(80,20,20,0.40);
       border-radius: 0 0 20px 20px;
-      box-shadow: 0 6px 22px rgba(220,160,140,0.22), 0 1px 4px rgba(0,0,0,0.10);
+      box-shadow: 0 8px 26px rgba(30,0,0,0.65), 0 2px 8px rgba(0,0,0,0.50);
     }
     .blue-stat-card::before { content: none; }
     .blue-stat-header {
@@ -690,12 +696,12 @@
     .blue-stat-icon { font-size:17px; opacity:0.75; color:rgba(0,0,0,0.45); line-height:1; }
     .blue-stat-title {
       font-family: var(--font-body); font-size:13px; font-weight:600;
-      color: rgba(0,0,0,0.55); letter-spacing:0.2px;
+      color: rgba(255,255,255,0.65); letter-spacing:0.2px;
     }
     .blue-stat-num {
       font-family: var(--font-head); font-size:34px; font-weight:800;
-      color: rgba(0,0,0,0.72); letter-spacing:-1px; line-height:1;
-      text-shadow: none;
+      color: #ffffff; letter-spacing:-1px; line-height:1;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.40);
       flex-shrink: 0;
     }
 
@@ -899,6 +905,40 @@
     .view.active { display:block; animation:fade-up 0.28s cubic-bezier(0.22,1,0.36,1) both; }
     @keyframes fade-up { from{opacity:0;transform:translateY(14px);} to{opacity:1;transform:translateY(0);} }
 
+    /* ══════════════════════════════════════════════════════════
+       PER-VIEW FULL-SCREEN BACKGROUNDS — DARK PROFESSIONAL THEME
+       ══════════════════════════════════════════════════════════ */
+
+    /* HOME — deep dark indigo */
+    body, body.home-bg { background-color: #0b0d1f !important; }
+    body .bg-canvas { background: #0b0d1f !important; }
+    body .orb-1, body .orb-2 { opacity: 0 !important; }
+    #view-home { background-color: #0b0d1f; min-height: 100vh; }
+
+    /* MATRIX — rich deep navy */
+    body.matrix-bg { background-color: #010e22 !important; }
+    body.matrix-bg .bg-canvas { background: #010e22 !important; }
+    body.matrix-bg .orb { opacity: 0 !important; }
+    #view-matrix { background-color: #010e22; min-height: 100vh; }
+
+    /* STATS — dark royal purple */
+    body.stats-bg { background-color: #1a0d3a !important; }
+    body.stats-bg .bg-canvas { background: #1a0d3a !important; }
+    body.stats-bg .orb { opacity: 0 !important; }
+    #view-stats { background-color: #1a0d3a; min-height: 100vh; }
+
+    /* TOP 100 USERS — dark slate blue */
+    body.users-bg { background-color: #0f1133 !important; }
+    body.users-bg .bg-canvas { background: #0f1133 !important; }
+    body.users-bg .orb { opacity: 0 !important; }
+    #view-users { background-color: #0f1133; min-height: 100vh; }
+
+    /* SEARCH — dark steel blue */
+    body.search-bg { background-color: #0a1628 !important; }
+    body.search-bg .bg-canvas { background: #0a1628 !important; }
+    body.search-bg .orb { opacity: 0 !important; }
+    #view-search { background-color: #0a1628; min-height: 100vh; }
+
     /* ─── PROFILE FETCH STATE ───────────────────────────────── */
     .profile-fetch-row {
       display:flex; align-items:center; justify-content:space-between;
@@ -1092,7 +1132,7 @@
     #level-indicator-bar {
       display: none; /* shown by JS after wallet connect */
       width: 100%;
-      background: #6236d0;
+      background: #3d1fa8;
       border-radius: 10px;
       padding: 12px 14px;
       flex-direction: row;
@@ -1329,10 +1369,10 @@
 
     /* 1. Top gold "Your Account" card clone */
     .srch-account-card {
-      background: linear-gradient(135deg, #e5c060 0%, #c49632 50%, #d8b24f 100%);
+      background: linear-gradient(145deg, #7a5a08 0%, #5c4206 40%, #4a3304 70%, #6b4e0a 100%);
       border: none;
       border-radius: 24px;
-      box-shadow: 0 8px 32px rgba(180,140,40,0.35), 0 2px 8px rgba(0,0,0,0.30);
+      box-shadow: 0 10px 40px rgba(40,25,0,0.75), 0 2px 10px rgba(0,0,0,0.65);
       overflow: hidden;
       margin-bottom: 0;
     }
@@ -1376,8 +1416,8 @@
     }
     .srch-account-wallet-row {
       padding: 14px 18px; display: flex; align-items: center; justify-content: space-between;
-      background: #c47a00;
-      border-top: 1px solid rgba(0,0,0,0.15);
+      background: #7a4800;
+      border-top: 1px solid rgba(0,0,0,0.25);
     }
     .srch-account-wallet-label {
       font-size: 11px; font-family: var(--font-mono); letter-spacing: 0.5px;
@@ -1393,50 +1433,53 @@
 
     /* 2. Srch Working / Non-Working income cards — clone of .home-income-card */
     .srch-income-working {
-      background: #3d7d8c;
-      border-top: 1.5px solid rgba(0,229,255,0.25);
-      border-left: 1.5px solid rgba(0,229,255,0.25);
-      border-right: 1.5px solid rgba(0,229,255,0.25);
+      background: linear-gradient(160deg, #0f3d46 0%, #0a2d35 60%, #071f26 100%);
+      border-top: 1.5px solid rgba(0,180,210,0.30);
+      border-left: 1.5px solid rgba(0,180,210,0.20);
+      border-right: 1.5px solid rgba(0,180,210,0.20);
       border-bottom: none;
       border-radius: 20px 20px 0 0;
       overflow: hidden;
       margin-top: 14px; margin-bottom: 0;
+      box-shadow: 0 6px 24px rgba(0,40,55,0.60);
     }
     .srch-income-nonworking {
-      background: #a8c4b8;
-      border-top: 1px solid rgba(0,229,255,0.12);
-      border-left: 1.5px solid rgba(0,229,255,0.25);
-      border-right: 1.5px solid rgba(0,229,255,0.25);
-      border-bottom: 1.5px solid rgba(0,229,255,0.25);
+      background: linear-gradient(160deg, #0e3028 0%, #092018 60%, #051510 100%);
+      border-top: 1px solid rgba(0,160,100,0.18);
+      border-left: 1.5px solid rgba(0,160,100,0.18);
+      border-right: 1.5px solid rgba(0,160,100,0.18);
+      border-bottom: 1.5px solid rgba(0,160,100,0.28);
       border-radius: 0 0 20px 20px;
       overflow: hidden;
       margin-top: 0; margin-bottom: 14px;
+      box-shadow: 0 8px 26px rgba(0,20,10,0.60);
     }
     .srch-hic-body {
       display: flex; align-items: center; gap: 16px; padding: 18px 20px;
     }
-    .srch-hic-icon { font-size: 28px; flex-shrink: 0; line-height: 1; color: #000000; }
+    .srch-hic-icon { font-size: 28px; flex-shrink: 0; line-height: 1; color: rgba(255,255,255,0.85); }
     .srch-hic-info { flex: 1; min-width: 0; }
     .srch-hic-label {
       font-family: var(--font-mono); font-size: 9px; font-weight: 700;
       letter-spacing: 2px; text-transform: uppercase;
-      color: rgba(0,0,0,0.70); margin-bottom: 4px;
+      color: rgba(255,255,255,0.60); margin-bottom: 4px;
     }
     .srch-hic-val {
       font-family: var(--font-head); font-size: 26px; font-weight: 800;
-      color: #000000; line-height: 1; letter-spacing: -0.5px;
+      color: #ffffff; line-height: 1; letter-spacing: -0.5px;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.40);
     }
     .srch-hic-ton {
       font-family: var(--font-mono); font-size: 11px; font-weight: 600;
-      color: rgba(0,0,0,0.55); margin-top: 3px;
+      color: rgba(255,255,255,0.55); margin-top: 3px;
     }
     .srch-hic-belt {
-      background: rgba(0,0,0,0.08); padding: 8px 20px;
-      border-top: 1px solid rgba(0,0,0,0.15);
+      background: rgba(0,0,0,0.22); padding: 8px 20px;
+      border-top: 1px solid rgba(255,255,255,0.08);
     }
     .srch-hic-belt-text {
       font-family: var(--font-mono); font-size: 9px; font-weight: 700;
-      letter-spacing: 2px; text-transform: uppercase; color: rgba(0,0,0,0.55);
+      letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.45);
     }
 
     /* 3. Direct Referral + Your Team — clone of .blue-stat-card */
@@ -1450,26 +1493,27 @@
       gap: 14px; position: relative; overflow: hidden; min-height: 70px;
     }
     .srch-blue-stat-card:first-child {
-      background: #e8855c; border: none;
-      border-bottom: 1px solid rgba(0,0,0,0.08);
+      background: linear-gradient(160deg, #5c1a08 0%, #421005 60%, #2e0a03 100%); border: none;
+      border-bottom: 1px solid rgba(0,0,0,0.25);
       border-radius: 20px 20px 0 0;
-      box-shadow: 0 4px 20px rgba(220,110,70,0.28), 0 1px 4px rgba(0,0,0,0.15);
+      box-shadow: 0 6px 24px rgba(60,10,0,0.65), 0 2px 8px rgba(0,0,0,0.50);
     }
     .srch-blue-stat-card:last-child {
-      background: #f2c9bc; border: none;
-      border-top: 1px solid rgba(255,255,255,0.30);
+      background: linear-gradient(160deg, #3d1010 0%, #2b0808 60%, #1c0505 100%); border: none;
+      border-top: 1px solid rgba(80,20,20,0.40);
       border-radius: 0 0 20px 20px;
-      box-shadow: 0 6px 22px rgba(220,160,140,0.22), 0 1px 4px rgba(0,0,0,0.10);
+      box-shadow: 0 8px 26px rgba(30,0,0,0.65), 0 2px 8px rgba(0,0,0,0.50);
     }
     .srch-blue-stat-header { display: flex; align-items: center; gap: 10px; }
     .srch-blue-stat-icon { font-size: 17px; opacity: 0.75; color: rgba(0,0,0,0.45); line-height: 1; }
     .srch-blue-stat-title {
       font-family: var(--font-body); font-size: 13px; font-weight: 600;
-      color: rgba(0,0,0,0.55); letter-spacing: 0.2px;
+      color: rgba(255,255,255,0.65); letter-spacing: 0.2px;
     }
     .srch-blue-stat-num {
       font-family: var(--font-head); font-size: 34px; font-weight: 800;
-      color: rgba(0,0,0,0.72); letter-spacing: -1px; line-height: 1; flex-shrink: 0;
+      color: #ffffff; letter-spacing: -1px; line-height: 1; flex-shrink: 0;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.40);
     }
 
     /* 4. Slots grid — full-width dashboard mirror */
@@ -1485,11 +1529,11 @@
       align-items: center;
       gap: 5px;
       padding: 12px 14px;
-      background: #6236d0;
+      background: #3d1fa8;
       border-radius: 10px;
       width: 100%;
       margin-bottom: 0;
-      box-shadow: 0 4px 18px rgba(98,54,208,0.38), 0 1px 4px rgba(0,0,0,0.22);
+      box-shadow: 0 6px 22px rgba(40,15,120,0.65), 0 2px 8px rgba(0,0,0,0.50);
     }
 
     /* Downline section */
@@ -2086,9 +2130,9 @@
       align-items: center;
       gap: 14px;
       padding: 18px 18px 16px;
-      background: linear-gradient(135deg, #e5c060 0%, #c49632 50%, #d8b24f 100%);
+      background: linear-gradient(145deg, #7a5a08 0%, #5c4206 40%, #4a3304 70%, #6b4e0a 100%);
       border-radius: 20px 20px 0 0;
-      box-shadow: 0 8px 32px rgba(180,140,40,0.30), 0 2px 8px rgba(0,0,0,0.25);
+      box-shadow: 0 10px 40px rgba(40,25,0,0.75), 0 2px 10px rgba(0,0,0,0.65);
       margin-bottom: 0;
     }
     .srch-profile-card .srch-avatar {
@@ -2109,7 +2153,7 @@
 
     /* ─── PREVIEW MODE — SLOT BADGE STRIP ───────────────────── */
     .srch-slots-wrap {
-      background: #6236d0;
+      background: #3d1fa8;
       border-radius: var(--radius-md);
       padding: 12px 14px;
       margin-bottom: 14px;
@@ -2193,14 +2237,16 @@
       letter-spacing: 0.3px;
     }
 
-    /* ─── AIRDROP BONUS POOL CARD — exact reference image match ── */
+    /* ─── AIRDROP BONUS POOL CARD — dark premium style ── */
     .airdrop-pool-card {
       margin-top: 14px;
       border-radius: 22px;
       overflow: hidden;
       position: relative;
-      /* Outer card: dark navy blue — same as image background */
-      background: linear-gradient(145deg, #1565c0 0%, #0d47a1 40%, #0a3880 70%, #072d6a 100%);
+      /* Dark deep navy-teal — premium dark like other cards */
+      background: linear-gradient(145deg, #0a2540 0%, #071c30 40%, #050f1e 70%, #040c18 100%);
+      border: 1px solid rgba(0,180,255,0.18);
+      box-shadow: 0 8px 32px rgba(0,20,50,0.70), 0 2px 8px rgba(0,0,0,0.55);
       padding: 16px 16px 0 16px;
     }
 
@@ -2214,13 +2260,12 @@
       position: relative;
     }
     .airdrop-pool-title {
-      font-family: var(--font-body);
-      font-size: 18px; font-weight: 500;
-      color: #ffffff;
-      letter-spacing: 0; line-height: 1.3;
+      font-family: var(--font-head);
+      font-size: 18px; font-weight: 700;
+      color: #e8f4ff;
+      letter-spacing: -0.3px; line-height: 1.3;
       padding-top: 4px;
-      /* match reference: normal weight, not bold */
-      -webkit-text-fill-color: #ffffff;
+      -webkit-text-fill-color: #e8f4ff;
     }
     /* The 3D device image — positioned top-right, partially overflowing */
     .airdrop-device-img {
@@ -2236,9 +2281,10 @@
       align-self: flex-end;
     }
 
-    /* Timer strip — inner rounded rectangle, brighter blue */
+    /* Timer strip — dark inner rounded rectangle, cyan accent */
     .airdrop-pool-timer {
-      background: linear-gradient(135deg, #42a5f5 0%, #2196f3 40%, #1e88e5 100%);
+      background: linear-gradient(135deg, #0d2d4a 0%, #091e32 40%, #060e1e 100%);
+      border: 1px solid rgba(0,180,255,0.20);
       border-radius: 16px;
       margin: 0 0 12px 0;
       padding: 14px 8px 12px;
@@ -2246,6 +2292,7 @@
       align-items: stretch;
       justify-content: center;
       gap: 0;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
     }
     .airdrop-timer-unit {
       flex: 1;
@@ -2261,20 +2308,22 @@
       right: 0; top: 50%;
       transform: translateY(-50%);
       width: 1px; height: 55%;
-      background: rgba(255,255,255,0.30);
+      background: rgba(0,180,255,0.20);
     }
     .airdrop-timer-num {
       font-family: var(--font-head);
-      font-size: 38px; font-weight: 800;
-      color: #ffffff;
-      line-height: 1; letter-spacing: -1px;
+      font-size: 26px; font-weight: 800;
+      color: var(--cyan);
+      line-height: 1; letter-spacing: -0.5px;
+      text-shadow: 0 0 16px rgba(0,229,255,0.35);
     }
     .airdrop-timer-label {
-      font-family: var(--font-body);
-      font-size: 11px; font-weight: 400;
-      color: rgba(255,255,255,0.85);
-      letter-spacing: 0.3px;
-      margin-top: 4px;
+      font-family: var(--font-mono);
+      font-size: 9px; font-weight: 600;
+      color: rgba(255,255,255,0.45);
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      margin-top: 3px;
     }
 
     /* Eligibility row at bottom (inside card, above timer) */
@@ -2289,7 +2338,7 @@
       font-family: var(--font-mono);
       font-size: 9px; font-weight: 700;
       letter-spacing: 1.5px; text-transform: uppercase;
-      color: rgba(255,255,255,0.55);
+      color: rgba(255,255,255,0.40);
       flex-shrink: 0;
     }
     .airdrop-level-badge {
@@ -2299,14 +2348,14 @@
       font-family: var(--font-mono);
       font-size: 9px; font-weight: 800;
       letter-spacing: 0.5px;
-      background: rgba(255,255,255,0.15);
-      border: 1px solid rgba(255,255,255,0.30);
-      color: #ffffff;
+      background: rgba(0,180,255,0.12);
+      border: 1px solid rgba(0,180,255,0.28);
+      color: var(--cyan);
     }
     .airdrop-level-badge.gold {
-      background: rgba(255,220,100,0.22);
-      border-color: rgba(255,220,100,0.50);
-      color: #ffe082;
+      background: rgba(212,168,67,0.12);
+      border-color: rgba(212,168,67,0.35);
+      color: var(--gold-lt);
     }
 
   </style>
@@ -2434,7 +2483,7 @@
       <span id="ref-link-network" style="display:none;"></span>
 
       <!-- ── LEVEL INDICATOR BAR ── -->
-      <div id="level-indicator-bar" style="display:none; flex-direction:row; align-items:center; background:#6236d0; border-radius:10px; padding:12px 14px; margin-top:14px; gap:5px; width:100%; box-shadow:0 4px 18px rgba(98,54,208,0.38),0 1px 4px rgba(0,0,0,0.22);">
+      <div id="level-indicator-bar" style="display:none; flex-direction:row; align-items:center; background:#3d1fa8; border-radius:10px; padding:12px 14px; margin-top:14px; gap:5px; width:100%; box-shadow:0 6px 22px rgba(40,15,120,0.65),0 2px 8px rgba(0,0,0,0.50);">
         <span class="lvl-label">Slots</span>
         <div class="lvl-cell" id="lvl-1">1</div>
         <div class="lvl-cell" id="lvl-2">2</div>
@@ -2580,8 +2629,8 @@
       <div id="lb-entry-card" onclick="openLeaderboardView()" style="
         cursor:pointer;
         margin-top:14px;
-        background: linear-gradient(160deg, rgba(107,80,53,0.55) 0%, rgba(90,65,40,0.62) 50%, rgba(74,52,30,0.68) 100%);
-        border: 1px solid rgba(160,120,72,0.45);
+        background: linear-gradient(160deg, #0d1f35 0%, #091525 50%, #060e1c 100%);
+        border: 1px solid rgba(212,168,67,0.22);
         border-radius: var(--radius-lg);
         padding: 18px 20px 14px;
         display: flex;
@@ -2591,13 +2640,13 @@
         -webkit-backdrop-filter: blur(18px);
         transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.15s;
         -webkit-tap-highlight-color: transparent;
-        box-shadow: 0 4px 20px rgba(74,52,30,0.32), 0 2px 8px rgba(0,0,0,0.22);
+        box-shadow: 0 6px 24px rgba(0,10,30,0.65), 0 2px 8px rgba(0,0,0,0.45);
         position: relative;
         overflow: hidden;
         animation: none;
       "
-      onmouseover="this.style.background='linear-gradient(160deg,rgba(122,92,60,0.68) 0%,rgba(105,78,48,0.75) 50%,rgba(88,62,34,0.82) 100%)';this.style.borderColor='rgba(180,138,84,0.65)';this.style.boxShadow='0 0 24px rgba(107,80,53,0.38),0 4px 14px rgba(0,0,0,0.26)';"
-      onmouseout="this.style.background='linear-gradient(160deg,rgba(107,80,53,0.55) 0%,rgba(90,65,40,0.62) 50%,rgba(74,52,30,0.68) 100%)';this.style.borderColor='rgba(160,120,72,0.45)';this.style.boxShadow='0 4px 20px rgba(74,52,30,0.32),0 2px 8px rgba(0,0,0,0.22)';"
+      onmouseover="this.style.background='linear-gradient(160deg,#112540 0%,#0c1c30 50%,#08101e 100%)';this.style.borderColor='rgba(212,168,67,0.42)';this.style.boxShadow='0 0 28px rgba(212,168,67,0.14),0 6px 24px rgba(0,10,30,0.70)';"
+      onmouseout="this.style.background='linear-gradient(160deg,#0d1f35 0%,#091525 50%,#060e1c 100%)';this.style.borderColor='rgba(212,168,67,0.22)';this.style.boxShadow='0 6px 24px rgba(0,10,30,0.65),0 2px 8px rgba(0,0,0,0.45)';"
       onmousedown="this.style.transform='scale(0.97)'"
       onmouseup="this.style.transform='scale(1)'"
       ontouchstart="this.style.transform='scale(0.97)'"
@@ -2607,8 +2656,8 @@
           <!-- Realistic SVG Trophy -->
           <div style="
             width:46px; height:46px; border-radius:13px; flex-shrink:0;
-            background: rgba(107,80,53,0.50);
-            border: 1px solid rgba(160,120,72,0.42);
+            background: rgba(212,168,67,0.10);
+            border: 1px solid rgba(212,168,67,0.28);
             display:flex; align-items:center; justify-content:center;
           ">
             <svg width="26" height="26" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -2639,13 +2688,13 @@
             </svg>
           </div>
           <div>
-            <div style="font-family:var(--font-head); font-size:16px; font-weight:800; color:#e8c99a; letter-spacing:-0.3px; line-height:1.2;">Leaderboard</div>
-            <div style="font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:rgba(200,160,100,0.70); margin-top:4px;">TOP EARNERS · CRYPTON</div>
+            <div style="font-family:var(--font-head); font-size:16px; font-weight:800; color:var(--gold-lt); letter-spacing:-0.3px; line-height:1.2;">Leaderboard</div>
+            <div style="font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:rgba(212,168,67,0.55); margin-top:4px;">TOP EARNERS · CRYPTON</div>
           </div>
         </div>
         <!-- Right: view link -->
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0;">
-          <span style="font-family:var(--font-mono); font-size:10px; font-weight:700; color:#e8c99a; letter-spacing:0.5px; opacity:0.85;">view →</span>
+          <span style="font-family:var(--font-mono); font-size:10px; font-weight:700; color:rgba(212,168,67,0.65); letter-spacing:0.5px; opacity:0.85;">view →</span>
         </div>
       </div>
 
@@ -2881,7 +2930,7 @@
         <p style="font-family:var(--font-mono); font-size:10px; font-weight:500; color:var(--cyan); letter-spacing:2px; text-transform:uppercase; margin-bottom:10px; margin-top:4px; opacity:0.8;">MATRIX SLOTS</p>
         <div id="srch-slots-grid" style="
           display:flex; flex-direction:row; align-items:center;
-          background:#6236d0; border-radius:10px;
+          background:#3d1fa8; border-radius:10px;
           padding:12px 14px; gap:5px; width:100%;
         ">
           <!-- Injected by renderSrchSlots() -->
@@ -2935,12 +2984,8 @@
 
       </div><!-- /read-only wrapper -->
 
-      <!-- Fix 4: srch-downline-inner div was missing — JS calls getElementById('srch-downline-inner')
-           in renderSearchDownline() but the HTML element did not exist, causing silent null errors. -->
-      <div class="srch-downline-header" style="margin-top:18px;">Downline Team</div>
-      <div id="srch-downline-inner">
-        <div class="ref-list-loading">Loading team…</div>
-      </div>
+      <!-- Hidden anchor kept so JS renderSearchDownline() doesn't throw null error -->
+      <div id="srch-downline-inner" style="display:none;"></div>
 
       <!-- ── AIRDROP BONUS POOL CARD (search section — live timer same as home) ── -->
       <div class="airdrop-pool-card" style="pointer-events:none; user-select:none;">
@@ -3000,8 +3045,8 @@
       <div onclick="openLeaderboard()" style="
         cursor:pointer;
         margin-top:14px;
-        background: linear-gradient(160deg, rgba(107,80,53,0.55) 0%, rgba(90,65,40,0.62) 50%, rgba(74,52,30,0.68) 100%);
-        border: 1px solid rgba(160,120,72,0.45);
+        background: linear-gradient(160deg, #0d1f35 0%, #091525 50%, #060e1c 100%);
+        border: 1px solid rgba(212,168,67,0.22);
         border-radius: var(--radius-lg);
         padding: 18px 20px 14px;
         display: flex;
@@ -3011,17 +3056,17 @@
         -webkit-backdrop-filter: blur(18px);
         transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.15s;
         -webkit-tap-highlight-color: transparent;
-        box-shadow: 0 4px 20px rgba(74,52,30,0.32), 0 2px 8px rgba(0,0,0,0.22);
+        box-shadow: 0 6px 24px rgba(0,10,30,0.65), 0 2px 8px rgba(0,0,0,0.45);
         position: relative; overflow: hidden;
       "
-      onmouseover="this.style.background='linear-gradient(160deg,rgba(122,92,60,0.68) 0%,rgba(105,78,48,0.75) 50%,rgba(88,62,34,0.82) 100%)';this.style.borderColor='rgba(180,138,84,0.65)'"
-      onmouseout="this.style.background='linear-gradient(160deg,rgba(107,80,53,0.55) 0%,rgba(90,65,40,0.62) 50%,rgba(74,52,30,0.68) 100%)';this.style.borderColor='rgba(160,120,72,0.45)'"
+      onmouseover="this.style.background='linear-gradient(160deg,#112540 0%,#0c1c30 50%,#08101e 100%)';this.style.borderColor='rgba(212,168,67,0.42)'"
+      onmouseout="this.style.background='linear-gradient(160deg,#0d1f35 0%,#091525 50%,#060e1c 100%)';this.style.borderColor='rgba(212,168,67,0.22)'"
       onmousedown="this.style.transform='scale(0.97)'"
       onmouseup="this.style.transform='scale(1)'"
       ontouchstart="this.style.transform='scale(0.97)'"
       ontouchend="this.style.transform='scale(1)'">
         <div style="display:flex; align-items:center; gap:14px;">
-          <div style="width:46px;height:46px;border-radius:13px;flex-shrink:0;background:rgba(107,80,53,0.50);border:1px solid rgba(160,120,72,0.42);display:flex;align-items:center;justify-content:center;">
+          <div style="width:46px;height:46px;border-radius:13px;flex-shrink:0;background:rgba(212,168,67,0.10);border:1px solid rgba(212,168,67,0.28);display:flex;align-items:center;justify-content:center;">
             <svg width="26" height="26" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M20 8 H44 L40 36 C40 40 36 44 32 44 C28 44 24 40 24 36 Z" fill="url(#srchtg1)" />
               <path d="M20 12 C12 12 10 22 16 26 C18 27 20 27 20 27" stroke="url(#srchtg2)" stroke-width="3.5" stroke-linecap="round" fill="none"/>
@@ -5232,6 +5277,12 @@ function switchView(name) {
   const view = document.getElementById('view-' + name);
   if (view) view.classList.add('active');
 
+  // Apply full-screen background colors per view
+  document.body.classList.toggle('matrix-bg', name === 'matrix');
+  document.body.classList.toggle('stats-bg',  name === 'stats');
+  document.body.classList.toggle('users-bg',  name === 'users');
+  document.body.classList.toggle('search-bg', name === 'search');
+
   // Show/hide back buttons in non-home views
   ['matrix','referral','profile','search','stats','preview','users','leaderboard'].forEach(n => {
     const btn = document.getElementById('back-' + n);
@@ -5747,7 +5798,7 @@ async function pvDoSearch() {
       <!-- ② SLOTS — purple level bar -->
       <div style="margin-top:14px; margin-bottom:14px;">
         <p style="font-family:var(--font-mono);font-size:10px;font-weight:500;color:var(--cyan);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;margin-top:4px;opacity:0.8;">MATRIX SLOTS</p>
-        <div style="display:flex;flex-direction:row;align-items:center;background:#6236d0;border-radius:10px;padding:12px 14px;gap:5px;width:100%;box-shadow:0 4px 18px rgba(98,54,208,0.38),0 1px 4px rgba(0,0,0,0.22);">
+        <div style="display:flex;flex-direction:row;align-items:center;background:#3d1fa8;border-radius:10px;padding:12px 14px;gap:5px;width:100%;box-shadow:0 6px 22px rgba(40,15,120,0.65),0 2px 8px rgba(0,0,0,0.50);">
           ${slotCells}
         </div>
       </div>
@@ -5857,8 +5908,8 @@ async function pvDoSearch() {
       <div onclick="pvOpenLeaderboard()" style="
         cursor:pointer;
         margin-top:14px;
-        background: linear-gradient(160deg, rgba(107,80,53,0.55) 0%, rgba(90,65,40,0.62) 50%, rgba(74,52,30,0.68) 100%);
-        border: 1px solid rgba(160,120,72,0.45);
+        background: linear-gradient(160deg, #0d1f35 0%, #091525 50%, #060e1c 100%);
+        border: 1px solid rgba(212,168,67,0.22);
         border-radius: var(--radius-lg);
         padding: 18px 20px 14px;
         display: flex;
@@ -5868,17 +5919,17 @@ async function pvDoSearch() {
         -webkit-backdrop-filter: blur(18px);
         transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.15s;
         -webkit-tap-highlight-color: transparent;
-        box-shadow: 0 4px 20px rgba(74,52,30,0.32), 0 2px 8px rgba(0,0,0,0.22);
+        box-shadow: 0 6px 24px rgba(0,10,30,0.65), 0 2px 8px rgba(0,0,0,0.45);
         position: relative; overflow: hidden;
       "
-      onmouseover="this.style.background='linear-gradient(160deg,rgba(122,92,60,0.68) 0%,rgba(105,78,48,0.75) 50%,rgba(88,62,34,0.82) 100%)';this.style.borderColor='rgba(180,138,84,0.65)'"
-      onmouseout="this.style.background='linear-gradient(160deg,rgba(107,80,53,0.55) 0%,rgba(90,65,40,0.62) 50%,rgba(74,52,30,0.68) 100%)';this.style.borderColor='rgba(160,120,72,0.45)'"
+      onmouseover="this.style.background='linear-gradient(160deg,#112540 0%,#0c1c30 50%,#08101e 100%)';this.style.borderColor='rgba(212,168,67,0.42)'"
+      onmouseout="this.style.background='linear-gradient(160deg,#0d1f35 0%,#091525 50%,#060e1c 100%)';this.style.borderColor='rgba(212,168,67,0.22)'"
       onmousedown="this.style.transform='scale(0.97)'"
       onmouseup="this.style.transform='scale(1)'"
       ontouchstart="this.style.transform='scale(0.97)'"
       ontouchend="this.style.transform='scale(1)'">
         <div style="display:flex; align-items:center; gap:14px;">
-          <div style="width:46px;height:46px;border-radius:13px;flex-shrink:0;background:rgba(107,80,53,0.50);border:1px solid rgba(160,120,72,0.42);display:flex;align-items:center;justify-content:center;">
+          <div style="width:46px;height:46px;border-radius:13px;flex-shrink:0;background:rgba(212,168,67,0.10);border:1px solid rgba(212,168,67,0.28);display:flex;align-items:center;justify-content:center;">
             <svg width="26" height="26" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M20 8 H44 L40 36 C40 40 36 44 32 44 C28 44 24 40 24 36 Z" fill="url(#pvtg1)" />
               <path d="M20 12 C12 12 10 22 16 26 C18 27 20 27 20 27" stroke="url(#pvtg2)" stroke-width="3.5" stroke-linecap="round" fill="none"/>
