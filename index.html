@@ -453,6 +453,78 @@
     .modal-btn-cancel  { flex:1; padding:13px; border-radius:10px; border:1px solid rgba(255,255,255,0.10); background:transparent; color:var(--text-mid); font-family:var(--font-mono); font-size:13px; cursor:pointer; }
     .modal-btn-upgrade { flex:2; padding:13px; border-radius:10px; border:none; background:linear-gradient(135deg,var(--gold),var(--gold-lt)); color:var(--navy); font-family:var(--font-head); font-size:14px; font-weight:700; cursor:pointer; }
 
+    /* ─── REFERRAL NODE MODAL ───────────────────────────────── */
+    #ref-node-modal {
+      display:none; position:fixed; inset:0; z-index:600;
+      background:rgba(5,13,26,0.90); backdrop-filter:blur(14px);
+      align-items:flex-end; justify-content:center;
+    }
+    #ref-node-modal.show { display:flex; animation:fade-up 0.28s ease; }
+    .ref-node-sheet {
+      width:100%; max-width:480px;
+      background:linear-gradient(160deg,#0b1d35 0%,#091525 100%);
+      border-top:1px solid rgba(0,229,255,0.22);
+      border-radius:22px 22px 0 0;
+      padding:24px 22px 44px;
+    }
+    .ref-node-drag {
+      width:36px; height:3px; border-radius:99px;
+      background:rgba(255,255,255,0.12);
+      margin:0 auto 18px;
+    }
+    .ref-node-header {
+      display:flex; align-items:center; gap:14px; margin-bottom:20px;
+    }
+    .ref-node-avatar {
+      width:52px; height:52px; border-radius:14px; overflow:hidden;
+      background:rgba(0,229,255,0.10);
+      border:1.5px solid rgba(0,229,255,0.25);
+      display:flex; align-items:center; justify-content:center;
+      flex-shrink:0;
+    }
+    .ref-node-avatar img { width:100%; height:100%; object-fit:cover; }
+    .ref-node-avatar svg { width:28px; height:28px; fill:var(--text-mid); }
+    .ref-node-name {
+      font-family:var(--font-head); font-size:18px; font-weight:800;
+      color:var(--text-hi); letter-spacing:-0.3px;
+    }
+    .ref-node-id {
+      font-family:var(--font-mono); font-size:11px;
+      color:var(--cyan); margin-top:3px;
+    }
+    .ref-node-rows { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+    .ref-node-row {
+      display:flex; align-items:center; justify-content:space-between;
+      background:rgba(255,255,255,0.04);
+      border:1px solid rgba(255,255,255,0.07);
+      border-radius:12px; padding:11px 14px;
+    }
+    .ref-node-row-label {
+      font-family:var(--font-mono); font-size:10px; font-weight:600;
+      color:var(--text-mid); letter-spacing:1px; text-transform:uppercase;
+    }
+    .ref-node-row-val {
+      font-family:var(--font-head); font-size:15px; font-weight:800;
+      color:var(--text-hi);
+    }
+    .ref-node-row-val.cyan  { color:var(--cyan); }
+    .ref-node-row-val.green { color:var(--green); }
+    .ref-node-row-val.gold  { color:var(--gold-lt); }
+    .ref-node-loading {
+      text-align:center; font-family:var(--font-mono);
+      font-size:12px; color:var(--text-mid);
+      padding:24px 0; letter-spacing:0.5px;
+    }
+    .ref-node-close {
+      width:100%; padding:13px; border-radius:12px;
+      border:1px solid rgba(255,255,255,0.10);
+      background:transparent; color:var(--text-mid);
+      font-family:var(--font-mono); font-size:13px;
+      cursor:pointer; letter-spacing:0.5px;
+      transition:background var(--transition), border-color var(--transition);
+    }
+    .ref-node-close:hover { background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.22); }
+
     /* ─── MATRIX VIEW HEADER ────────────────────────────────── */
     .matrix-header { padding:20px 16px 4px; }
 
@@ -2435,7 +2507,7 @@
         <!-- Top: Title left + 3D device SVG right (reference image style) -->
         <div class="airdrop-pool-top">
           <div style="padding-top:2px;">
-            <div class="airdrop-pool-title">Airdrop Bonus Pool<br>– Very soon</div>
+            <div class="airdrop-pool-title">Airdrop Bonus 𖡷</div>
           </div>
           <!-- 3D device illustration (SVG approximation of the reference machine) -->
           <svg width="100" height="90" viewBox="0 0 100 90" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;margin-top:-4px;margin-right:-4px;filter:drop-shadow(0 6px 18px rgba(0,0,0,0.40));">
@@ -2874,7 +2946,7 @@
       <div class="airdrop-pool-card" style="pointer-events:none; user-select:none;">
         <div class="airdrop-pool-top">
           <div style="padding-top:2px;">
-            <div class="airdrop-pool-title">Airdrop Bonus Pool<br>– Very soon</div>
+            <div class="airdrop-pool-title">Airdrop Bonus 𖡷</div>
           </div>
           <svg width="100" height="90" viewBox="0 0 100 90" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;margin-top:-4px;margin-right:-4px;filter:drop-shadow(0 6px 18px rgba(0,0,0,0.40));">
             <rect x="18" y="28" width="64" height="52" rx="8" fill="#d0d8e8"/>
@@ -3016,7 +3088,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold-lt)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       </div>
       <div>
-        <div class="gstat-header-title">Global Stats</div>
+        <div class="gstat-header-title">TOP EARNERS Stats</div>
         <div class="gstat-header-sub"></div>
       </div>
     </div>
@@ -3053,7 +3125,7 @@
           font-size:19px;
         ">🔍</div>
         <div>
-          <div style="font-family:var(--font-head);font-size:15px;font-weight:800;color:var(--cyan);letter-spacing:-0.3px;">View User ༚</div>
+          <div style="font-family:var(--font-head);font-size:15px;font-weight:800;color:var(--cyan);letter-spacing:-0.3px;">View Top #100</div>
           <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-lo);letter-spacing:1px;margin-top:3px;text-transform:uppercase;"></div>
         </div>
       </div>
@@ -3220,14 +3292,14 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       </div>
       <div>
-        <div class="dir-header-title">All Users</div>
+        <div class="dir-header-title">top #100</div>
         <div class="dir-header-sub"></div>
       </div>
     </div>
 
     <!-- Count bar -->
     <div class="dir-count-bar">
-      <span>Total registered</span>
+      <span>TOP EARNERS</span>
       <span class="dir-count-num" id="dir-total-count">—</span>
     </div>
 
@@ -3248,6 +3320,17 @@
       <button class="modal-btn-cancel" onclick="document.getElementById('upgrade-modal').classList.remove('show')">Later</button>
       <button class="modal-btn-upgrade" id="modal-upgrade-btn" onclick="doUpgrade()">&#x2B06; Upgrade Now</button>
     </div>
+  </div>
+</div>
+
+<!-- ── REFERRAL NODE MODAL ── -->
+<div id="ref-node-modal" onclick="closeRefNodeModal(event)">
+  <div class="ref-node-sheet">
+    <div class="ref-node-drag"></div>
+    <div id="ref-node-body">
+      <div class="ref-node-loading">Loading…</div>
+    </div>
+    <button class="ref-node-close" onclick="closeRefNodeModal(null)">Close</button>
   </div>
 </div>
 
@@ -3377,6 +3460,10 @@ let state = {
 // slotFill — tracks how many of the 6 matrix positions are filled per level
 const slotFill = {};
 function getFilledCount(level) { return slotFill[level] ?? 0; }
+
+// slotReferrals — tracks tgId array of users who filled each slot level
+// e.g. slotReferrals[1] = ["111111","222222","333333"]
+const slotReferrals = {};
 
 // ──────────────────────────────────────────────────────────────
 // REFERRAL DEEP LINK — read ?start= / ?startapp= from URL
@@ -3609,6 +3696,7 @@ async function disconnectWallet() {
   state.cachedReferredBy = null;
   state._referrerWallet  = null;
   Object.keys(slotFill).forEach(k => delete slotFill[k]);
+  Object.keys(slotReferrals).forEach(k => delete slotReferrals[k]);
   // Clear referral deep-link param only (not TG user params — they may be needed on re-connect)
   sessionStorage.removeItem('ref');
 
@@ -3780,6 +3868,7 @@ function handleWalletDisconnected() {
   // ── Reset all stats and slot data ──
   resetStats();
   Object.keys(slotFill).forEach(k => delete slotFill[k]);
+  Object.keys(slotReferrals).forEach(k => delete slotReferrals[k]);
   state.ownedSlots    = [];
   state.earnedTon     = 0;
   state.workingTon    = 0;
@@ -3903,9 +3992,11 @@ function updateStatsUI() {
 // ──────────────────────────────────────────────────────────────
 // MATRIX SVG BUILDER — bold 6-circle tree matching reference design
 // ──────────────────────────────────────────────────────────────
-function buildMatrixSVG(level, isGold, filled) {
+function buildMatrixSVG(level, isGold, filled, referralIds) {
   const isOwned  = state.ownedSlots.includes(level);
   const isFull   = isOwned && filled >= 6;
+  // referralIds: array of tgId strings in fill order, may be undefined for locked slots
+  const rIds = Array.isArray(referralIds) ? referralIds : [];
 
   // Color palette based on slot state
   let cStroke, cFill, cText, cLine;
@@ -3954,20 +4045,27 @@ function buildMatrixSVG(level, isGold, filled) {
   const greenFill   = 'rgba(34,197,94,0.22)';
   const greenText   = '#4ade80';
 
-  function circ(node, isFilled, label) {
+  function circ(node, isFilled, label, refTgId) {
     const stroke  = (isOwned && isFilled) ? greenStroke : cStroke;
     const bg      = (isOwned && isFilled) ? greenFill   : cFill;
     const numCol  = (isOwned && isFilled) ? greenText   : cText;
     const sw      = '2.0';
     const gFilter = (isOwned && isFilled) ? `filter="url(#${glowID})"` : '';
     const fs      = node.r >= 13 ? '9' : '8.5';
+    // Clickable transparent overlay circle — only for filled nodes with a known tgId
+    const clickOverlay = (isOwned && isFilled && refTgId)
+      ? `<circle cx="${node.x}" cy="${node.y}" r="${node.r}"
+           fill="transparent" stroke="none" style="cursor:pointer;"
+           onclick="showRefNodeModal('${refTgId}',${level})"/>`
+      : '';
     return `
       <circle cx="${node.x}" cy="${node.y}" r="${node.r}"
         fill="${bg}" stroke="${stroke}" stroke-width="${sw}" ${gFilter}/>
       <text x="${node.x}" y="${node.y}" font-size="${fs}"
         text-anchor="middle" dominant-baseline="central"
         fill="${numCol}"
-        style="font-family:'DM Mono',monospace;font-weight:700;user-select:none;">${label}</text>`;
+        style="font-family:'DM Mono',monospace;font-weight:700;user-select:none;">${label}</text>
+      ${clickOverlay}`;
   }
 
   // Connector lines
@@ -3998,12 +4096,12 @@ function buildMatrixSVG(level, isGold, filled) {
         </defs>
         ${lines}
         ${youNode}
-        ${circ(L,  lFill,'1')}
-        ${circ(R,  rFill,'2')}
-        ${circ(N3, n3F,  '3')}
-        ${circ(N5, n5F,  '5')}
-        ${circ(N4, n4F,  '4')}
-        ${circ(N6, n6F,  '6')}
+        ${circ(L,  lFill,'1', rIds[0])}
+        ${circ(R,  rFill,'2', rIds[1])}
+        ${circ(N3, n3F,  '3', rIds[2])}
+        ${circ(N5, n5F,  '5', rIds[3])}
+        ${circ(N4, n4F,  '4', rIds[4])}
+        ${circ(N6, n6F,  '6', rIds[5])}
       </svg>
     </div>`;
 }
@@ -4013,6 +4111,7 @@ function buildMatrixSVG(level, isGold, filled) {
 // ──────────────────────────────────────────────────────────────
 function renderSlots() {
   const grid = document.getElementById('slots-grid');
+  if (!grid) return;
   grid.innerHTML = '';
 
   SLOTS.forEach(slot => {
@@ -4087,7 +4186,7 @@ function renderSlots() {
           <span class="lbl-passive">$${dist.passiveUsd.toFixed(0)}♾</span>
         </div>` : ''}
         <div class="slot-recycle">&#x267B;</div>
-        ${buildMatrixSVG(slot.level, slot.gold, filled)}
+        ${buildMatrixSVG(slot.level, slot.gold, filled, slotReferrals[slot.level])}
         ${owned ? `
         <div class="fill-bar-wrap">
           <div class="fill-bar-track">
@@ -4136,6 +4235,127 @@ function doUpgrade() {
   const nextSlot = SLOTS.find(s => s.level === _upgradeTargetLevel);
   if (nextSlot) buySlot(nextSlot.level, nextSlot.price);
 }
+
+// ──────────────────────────────────────────────────────────────
+// REFERRAL NODE MODAL — shows user details when filled circle tapped
+// ──────────────────────────────────────────────────────────────
+async function showRefNodeModal(tgId, level) {
+  const modal = document.getElementById('ref-node-modal');
+  const body  = document.getElementById('ref-node-body');
+  if (!modal || !body) return;
+
+  // Show loading state immediately
+  body.innerHTML = '<div class="ref-node-loading">⏳ Loading…</div>';
+  modal.classList.add('show');
+
+  try {
+    await waitForFirestore();
+    const { collection, query, where, getDocs } = window.__fs;
+    const db = window.__db;
+
+    // Query by tgId field (bot stores as string)
+    const q    = query(collection(db, 'users'), where('tgId', '==', String(tgId)));
+    const snap = await getDocs(q);
+
+    let d = null;
+    if (!snap.empty) {
+      d = snap.docs[0].data();
+    } else {
+      // Fallback: try doc ID directly
+      const { doc, getDoc } = window.__fs;
+      const dSnap = await getDoc(doc(db, 'users', String(tgId)));
+      if (dSnap.exists()) d = dSnap.data();
+    }
+
+    if (!d) {
+      body.innerHTML = `
+        <div class="ref-node-header">
+          <div class="ref-node-avatar"><svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg></div>
+          <div>
+            <div class="ref-node-name">Unknown User</div>
+            <div class="ref-node-id">TG ID: ${tgId}</div>
+          </div>
+        </div>
+        <div class="ref-node-rows">
+          <div class="ref-node-row">
+            <span class="ref-node-row-label">Status</span>
+            <span class="ref-node-row-val" style="color:var(--text-mid);font-size:13px;">No data found</span>
+          </div>
+        </div>`;
+      return;
+    }
+
+    const rawName   = d.tgName || '';
+    const rawHandle = d.tgHandle ? d.tgHandle.replace(/^@+/, '') : '';
+    const name      = rawName.trim() || rawHandle || 'Unknown';
+    const handle    = rawHandle ? '@' + rawHandle : '';
+    const photoUrl  = d.tgPhotoUrl || null;
+
+    const passiveTon  = typeof d.passiveTon  === 'number' ? d.passiveTon  : 0;
+    const earnedTon   = typeof d.earnedTon   === 'number' ? d.earnedTon   : 0;
+    const workingTon  = typeof d.workingTon  === 'number' ? d.workingTon  : 0;
+    const slotCount   = Array.isArray(d.ownedSlots) ? d.ownedSlots.length : 0;
+
+    const fmtTon = (v) => v >= 1000
+      ? (v / 1000).toFixed(2) + 'K TON'
+      : v.toFixed(3) + ' TON';
+
+    const avatarHtml = photoUrl
+      ? `<img src="${photoUrl}" alt="avatar" onerror="this.parentNode.innerHTML='<svg viewBox=\\'0 0 24 24\\'><path d=\\'M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z\\'/></svg>'">`
+      : `<svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>`;
+
+    body.innerHTML = `
+      <div class="ref-node-header">
+        <div class="ref-node-avatar">${avatarHtml}</div>
+        <div>
+          <div class="ref-node-name">${name}</div>
+          <div class="ref-node-id">
+            TG ID: ${tgId}${handle ? ' · ' + handle : ''}
+          </div>
+        </div>
+      </div>
+      <div class="ref-node-rows">
+        <div class="ref-node-row">
+          <span class="ref-node-row-label">📊 Slot (Level ${level})</span>
+          <span class="ref-node-row-val cyan">FILLED</span>
+        </div>
+        <div class="ref-node-row">
+          <span class="ref-node-row-label">♾ Non-Working Income</span>
+          <span class="ref-node-row-val green">${fmtTon(passiveTon)}</span>
+        </div>
+        <div class="ref-node-row">
+          <span class="ref-node-row-label">⚡ Working Income</span>
+          <span class="ref-node-row-val gold">${fmtTon(workingTon)}</span>
+        </div>
+        <div class="ref-node-row">
+          <span class="ref-node-row-label">🏆 Total Earned</span>
+          <span class="ref-node-row-val">${fmtTon(earnedTon)}</span>
+        </div>
+        <div class="ref-node-row">
+          <span class="ref-node-row-label">🔓 Slots Owned</span>
+          <span class="ref-node-row-val">${slotCount}</span>
+        </div>
+      </div>`;
+
+  } catch(err) {
+    console.error('[RefNodeModal] Error:', err);
+    body.innerHTML = `<div class="ref-node-loading" style="color:var(--red);">⚠ Could not load data.<br><span style="font-size:10px;opacity:0.6;">${err.message}</span></div>`;
+  }
+}
+
+
+function closeRefNodeModal(event) {
+  const modal = document.getElementById('ref-node-modal');
+  if (!modal) return;
+  if (!event || event.target === modal || event.currentTarget === modal) {
+    modal.classList.remove('show');
+  }
+}
+
+
+
+
+
 
 // ──────────────────────────────────────────────────────────────
 // TAP ACTIVE SLOT — navigates to Matrix view for that slot.
@@ -4379,6 +4599,15 @@ async function buySlot(level, priceTon) {
                     const levelNum = parseInt(k, 10);
                     if (!isNaN(levelNum) && levelNum > 0) {
                       slotFill[levelNum] = parseInt(v, 10) || 0;
+                    }
+                  });
+                }
+                // Merge slotReferrals from bot response if present
+                if (vData.slotReferrals && typeof vData.slotReferrals === 'object') {
+                  Object.entries(vData.slotReferrals).forEach(([k, v]) => {
+                    const levelNum = parseInt(k, 10);
+                    if (!isNaN(levelNum) && levelNum > 0 && Array.isArray(v)) {
+                      slotReferrals[levelNum] = v.map(String);
                     }
                   });
                 }
@@ -4628,6 +4857,17 @@ async function loginUser(walletAddress) {
         const levelNum = parseInt(k, 10);
         if (!isNaN(levelNum) && levelNum > 0) {
           slotFill[levelNum] = parseInt(v, 10) || 0;
+        }
+      });
+    }
+
+    // ── Load slotReferrals — tgId arrays per level from Firestore ──────────
+    Object.keys(slotReferrals).forEach(k => delete slotReferrals[k]);
+    if (data.slotReferrals && typeof data.slotReferrals === 'object') {
+      Object.entries(data.slotReferrals).forEach(([k, v]) => {
+        const levelNum = parseInt(k, 10);
+        if (!isNaN(levelNum) && levelNum > 0 && Array.isArray(v)) {
+          slotReferrals[levelNum] = v.map(String);
         }
       });
     }
@@ -5125,7 +5365,7 @@ async function fetchGlobalStats() {
     // For exact totals in production, maintain a 'stats/global' aggregation
     // document updated by a Cloud Function on each verified purchase.
     let totalTon = 0;
-    const topQ   = query(usersCol, orderBy('earnedTon', 'desc'), limit(100));
+    const topQ   = query(usersCol, orderBy('passiveTon', 'desc'), limit(100));
     const topSnap = await getDocs(topQ);
     topSnap.forEach(docSnap => {
       const d       = docSnap.data();
@@ -5253,7 +5493,7 @@ async function fetchLeaderboard() {
     const db = window.__db;
 
     // Top 10 users ordered by earnedTon descending
-    const q    = query(collection(db, 'users'), orderBy('earnedTon', 'desc'), limit(10));
+    const q    = query(collection(db, 'users'), orderBy('passiveTon', 'desc'), limit(10));
     const snap = await getDocs(q);
 
     if (snap.empty) {
@@ -5563,7 +5803,7 @@ async function pvDoSearch() {
       <div class="airdrop-pool-card" style="pointer-events:none; user-select:none;">
         <div class="airdrop-pool-top">
           <div style="padding-top:2px;">
-            <div class="airdrop-pool-title">Airdrop Bonus Pool<br>– Very soon</div>
+            <div class="airdrop-pool-title">Airdrop Bonus 𖡷</div>
           </div>
           <svg width="100" height="90" viewBox="0 0 100 90" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;margin-top:-4px;margin-right:-4px;filter:drop-shadow(0 6px 18px rgba(0,0,0,0.40));">
             <rect x="18" y="28" width="64" height="52" rx="8" fill="#d0d8e8"/>
@@ -5721,7 +5961,7 @@ async function pvFetchLeaderboard() {
     const { collection, query, orderBy, limit, getDocs } = window.__fs;
     const db = window.__db;
 
-    const q    = query(collection(db, 'users'), orderBy('earnedTon', 'desc'), limit(10));
+    const q    = query(collection(db, 'users'), orderBy('passiveTon', 'desc'), limit(10));
     const snap = await getDocs(q);
 
     if (snap.empty) {
@@ -6028,7 +6268,7 @@ async function fetchTickerDataFromFirestore() {
   try {
     await waitForFirestore();
     const { collection, query, orderBy, limit, getDocs } = window.__fs;
-    const q     = query(collection(window.__db, 'users'), orderBy('earnedTon','desc'), limit(100));
+    const q     = query(collection(window.__db, 'users'), orderBy('passiveTon','desc'), limit(100));
     const snap  = await getDocs(q);
     const users = [];
     snap.forEach(d => {
@@ -6297,7 +6537,7 @@ let _dirLoaded = false; // cache flag — only fetch once per session
 
 /**
  * Open the dedicated User Directory sub-page.
- * Called by the "View User ༚" card on the Global Stats view.
+ * Called by the "View Top #100" card on the Global Stats view.
  * NEVER injects into the Search view; always navigates to view-users.
  */
 function openUserDirectory() {
@@ -6324,9 +6564,11 @@ async function loadUserDirectory() {
     const fs = window.__fs;
     if (!db || !fs) throw new Error('Firestore not ready');
 
-    // Fetch all users — no server-side orderBy to avoid composite index requirement.
-    // Sort client-side by registeredAt ascending (chronological registration order).
-    const snap = await fs.getDocs(fs.collection(db, 'users'));
+    // Fetch latest 100 users ordered by joinedAt descending — limit prevents full collection scan.
+    // Client-side sort flips to ascending (chronological) for display.
+    const snap = await fs.getDocs(
+      fs.query(fs.collection(db, 'users'), fs.orderBy('joinedAt', 'desc'), fs.limit(100))
+    );
     const users = [];
     snap.forEach(doc => users.push({ id: doc.id, ...doc.data() }));
 
@@ -6473,7 +6715,7 @@ async function loadLeaderboardView() {
 
     const q = fs.query(
       fs.collection(db, 'users'),
-      fs.orderBy('earnedTon', 'desc'),
+      fs.orderBy('passiveTon', 'desc'),
       fs.limit(10)
     );
 
@@ -6577,66 +6819,145 @@ async function loadLeaderboardView() {
 }
 
 // ──────────────────────────────────────────────────────────────
-// AIRDROP BONUS POOL — Live countdown timer (resets every 10 days)
-// Uses a fixed epoch so all users see the same synchronized timer.
+// AIRDROP BONUS POOL — Firebase se startDate load karo
+// Har 10 days reset hoga, max 3 baar (30 days total)
+// Firestore: /config/airdrop → { startDate: timestamp, resetCount: number }
 // ──────────────────────────────────────────────────────────────
 (function initAirdropTimer() {
-  // Fixed reference epoch — May 25 2026 00:00:00 UTC
-  // Every 10 days a new cycle starts relative to this anchor.
-  const CYCLE_MS    = 10 * 24 * 60 * 60 * 1000; // 10 days in ms
-  const EPOCH_START = new Date('2026-05-25T00:00:00Z').getTime();
+  const CYCLE_MS  = 10 * 24 * 60 * 60 * 1000; // 10 days in ms
+  const MAX_RESETS = 3;
+  let   _timerInterval = null;
+  let   _cycleStart    = null; // current cycle start ms
+  let   _resetCount    = 0;
+  let   _finished      = false;
 
   function pad(n) { return String(n).padStart(2, '0'); }
 
-  function tick() {
-    const now       = Date.now();
-    const elapsed   = now - EPOCH_START;
-    // How far we are into the current 10-day cycle
-    const cyclePos  = elapsed % CYCLE_MS;
-    // Remaining ms until the next reset
-    const remaining = CYCLE_MS - cyclePos;
-
-    const totalSec  = Math.floor(remaining / 1000);
-    const days      = Math.floor(totalSec / 86400);
-    const hours     = Math.floor((totalSec % 86400) / 3600);
-    const minutes   = Math.floor((totalSec % 3600)  / 60);
-    const seconds   = totalSec % 60;
-
-    const dEl = document.getElementById('airdrop-days');
-    const hEl = document.getElementById('airdrop-hours');
-    const mEl = document.getElementById('airdrop-minutes');
-    const sEl = document.getElementById('airdrop-seconds');
-
-    if (dEl) dEl.textContent = pad(days);
-    if (hEl) hEl.textContent = pad(hours);
-    if (mEl) mEl.textContent = pad(minutes);
-    if (sEl) sEl.textContent = pad(seconds);
-
-    // Sync search section airdrop card — same live values, real-time
-    const sdEl = document.getElementById('srch-airdrop-days');
-    const shEl = document.getElementById('srch-airdrop-hours');
-    const smEl = document.getElementById('srch-airdrop-minutes');
-    const ssEl = document.getElementById('srch-airdrop-seconds');
-
-    if (sdEl) sdEl.textContent = pad(days);
-    if (shEl) shEl.textContent = pad(hours);
-    if (smEl) smEl.textContent = pad(minutes);
-    if (ssEl) ssEl.textContent = pad(seconds);
-
-    // Sync preview section airdrop card — same live values, real-time
-    const pvdEl = document.getElementById('pv-airdrop-days');
-    const pvhEl = document.getElementById('pv-airdrop-hours');
-    const pvmEl = document.getElementById('pv-airdrop-minutes');
-    const pvsEl = document.getElementById('pv-airdrop-seconds');
-
-    if (pvdEl) pvdEl.textContent = pad(days);
-    if (pvhEl) pvhEl.textContent = pad(hours);
-    if (pvmEl) pvmEl.textContent = pad(minutes);
-    if (pvsEl) pvsEl.textContent = pad(seconds);
+  // Update all airdrop timer elements on the page
+  function setAllTimers(days, hours, minutes, seconds) {
+    const ids = [
+      ['airdrop-days','airdrop-hours','airdrop-minutes','airdrop-seconds'],
+      ['srch-airdrop-days','srch-airdrop-hours','srch-airdrop-minutes','srch-airdrop-seconds'],
+      ['pv-airdrop-days','pv-airdrop-hours','pv-airdrop-minutes','pv-airdrop-seconds'],
+    ];
+    ids.forEach(([d,h,m,s]) => {
+      const dEl = document.getElementById(d);
+      const hEl = document.getElementById(h);
+      const mEl = document.getElementById(m);
+      const sEl = document.getElementById(s);
+      if (dEl) dEl.textContent = pad(days);
+      if (hEl) hEl.textContent = pad(hours);
+      if (mEl) mEl.textContent = pad(minutes);
+      if (sEl) sEl.textContent = pad(seconds);
+    });
   }
 
-  tick();
-  setInterval(tick, 1000);
+  function tick() {
+    if (_finished || !_cycleStart) return;
+
+    const now       = Date.now();
+    const elapsed   = now - _cycleStart;
+    const remaining = CYCLE_MS - elapsed;
+
+    if (remaining <= 0) {
+      // Cycle complete — check if more resets left
+      if (_resetCount < MAX_RESETS) {
+        // Auto-reset: update Firestore with new startDate and increment resetCount
+        _resetCount++;
+        _cycleStart = now;
+        _updateFirestoreReset(now, _resetCount);
+        console.log('[Airdrop] Timer reset #' + _resetCount);
+      } else {
+        // All 3 resets done — airdrop is live!
+        _finished = true;
+        clearInterval(_timerInterval);
+        setAllTimers(0, 0, 0, 0);
+        // Show "Airdrop Live!" on all timer cards
+        document.querySelectorAll('.airdrop-pool-title').forEach(el => {
+          el.innerHTML = 'Airdrop Bonus Pool<br>🎉 Live Now!';
+        });
+        console.log('[Airdrop] All cycles complete — Airdrop is LIVE!');
+        return;
+      }
+    }
+
+    const rem      = Math.max(remaining, 0);
+    const totalSec = Math.floor(rem / 1000);
+    const days     = Math.floor(totalSec / 86400);
+    const hours    = Math.floor((totalSec % 86400) / 3600);
+    const minutes  = Math.floor((totalSec % 3600)  / 60);
+    const seconds  = totalSec % 60;
+    setAllTimers(days, hours, minutes, seconds);
+  }
+
+  // Update Firestore when a reset happens (frontend convenience — optional)
+  async function _updateFirestoreReset(nowMs, newResetCount) {
+    try {
+      await waitForFirestore();
+      const { doc, updateDoc, Timestamp } = window.__fs;
+      const db = window.__db;
+      await updateDoc(doc(db, 'config', 'airdrop'), {
+        startDate:  Timestamp.fromMillis(nowMs),
+        resetCount: newResetCount,
+      });
+      console.log('[Airdrop] Firestore reset updated → resetCount:', newResetCount);
+    } catch(e) {
+      console.warn('[Airdrop] Could not update Firestore on reset:', e.message);
+    }
+  }
+
+  // Load startDate from Firestore
+  async function loadAndStart() {
+    try {
+      await waitForFirestore();
+      const { doc, getDoc } = window.__fs;
+      const db = window.__db;
+      const snap = await getDoc(doc(db, 'config', 'airdrop'));
+
+      if (snap.exists()) {
+        const data       = snap.data();
+        const startTs    = data.startDate;
+        _resetCount      = typeof data.resetCount === 'number' ? data.resetCount : 0;
+
+        // Convert Firestore Timestamp to ms
+        const startMs = startTs?.toMillis
+          ? startTs.toMillis()
+          : (startTs?.seconds ? startTs.seconds * 1000 : Date.now());
+
+        // Calculate current cycle start based on resetCount
+        _cycleStart = startMs + (_resetCount * CYCLE_MS);
+
+        // Check if already finished
+        if (_resetCount >= MAX_RESETS && Date.now() >= _cycleStart + CYCLE_MS) {
+          _finished = true;
+          setAllTimers(0, 0, 0, 0);
+          document.querySelectorAll('.airdrop-pool-title').forEach(el => {
+            el.innerHTML = 'Airdrop Bonus Pool<br>🎉 Live Now!';
+          });
+          return;
+        }
+
+        console.log('[Airdrop] Loaded from Firebase — cycleStart:', new Date(_cycleStart).toISOString(), '| resetCount:', _resetCount);
+        tick();
+        _timerInterval = setInterval(tick, 1000);
+      } else {
+        // Config doc missing — fallback to current time
+        console.warn('[Airdrop] config/airdrop document not found — using current time as fallback');
+        _cycleStart = Date.now();
+        _resetCount = 0;
+        tick();
+        _timerInterval = setInterval(tick, 1000);
+      }
+    } catch(e) {
+      console.warn('[Airdrop] Firebase load failed — using fallback:', e.message);
+      _cycleStart = Date.now();
+      tick();
+      _timerInterval = setInterval(tick, 1000);
+    }
+  }
+
+  // Start after short delay to ensure Firestore is initialized
+  setTimeout(loadAndStart, 1500);
 })();
 
 // ──────────────────────────────────────────────────────────────
