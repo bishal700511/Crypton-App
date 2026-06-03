@@ -2393,11 +2393,43 @@
         <span id="logo-tg-handle"></span>
       </div>
     </div>
-    <a class="header-tg-btn" href="https://t.me/CRYPTONDecentralizedOfficial" target="_blank" rel="noopener" aria-label="Join Telegram">
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <!-- Social toggle: Telegram ↔ Instagram every 3 seconds -->
+    <a id="social-toggle-btn" class="header-tg-btn"
+       href="https://t.me/CRYPTONDecentralizedOfficial"
+       target="_blank" rel="noopener" aria-label="Join Telegram">
+      <svg id="social-icon-tg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width:18px;height:18px;fill:currentColor;transition:opacity 0.4s;">
         <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
       </svg>
+      <svg id="social-icon-ig" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="display:none;width:18px;height:18px;fill:currentColor;transition:opacity 0.4s;">
+        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/>
+      </svg>
     </a>
+    <script>
+    (function(){
+      var btn=document.getElementById('social-toggle-btn');
+      var tgIco=document.getElementById('social-icon-tg');
+      var igIco=document.getElementById('social-icon-ig');
+      var TG_URL='https://t.me/CRYPTONDecentralizedOfficial';
+      var IG_URL='https://www.instagram.com/cryptonofficialbot?igsh=MTc3aDE4bnEzOHdtbg==';
+      var showingTg=true;
+      function switchSocial(){
+        var cur=showingTg?tgIco:igIco;
+        var nxt=showingTg?igIco:tgIco;
+        cur.style.opacity='0';
+        setTimeout(function(){
+          cur.style.display='none';
+          nxt.style.display='block';
+          nxt.style.opacity='0';
+          setTimeout(function(){nxt.style.opacity='1';},20);
+          showingTg=!showingTg;
+          btn.href=showingTg?TG_URL:IG_URL;
+          btn.style.color=showingTg?'#29a8e0':'#e1306c';
+          btn.setAttribute('aria-label',showingTg?'Join Telegram':'Follow Instagram');
+        },400);
+      }
+      setInterval(switchSocial,3000);
+    })();
+    </script>
   </header>
 
   <!-- ══════════ VIEW: HOME ══════════ -->
@@ -4097,19 +4129,46 @@ function buildMatrixSVG(level, isGold, filled, referralIds) {
     const sw      = '2.0';
     const gFilter = (isOwned && isFilled) ? `filter="url(#${glowID})"` : '';
     const fs      = node.r >= 13 ? '9' : '8.5';
-    // Clickable transparent overlay circle — only for filled nodes with a known tgId
+
+    // ── Photo circle: filled + tgId available → show DP ──────────────────────
+    // Try to get cached photo from window.__photoCache (populated by loginUser
+    // and showRefNodeModal on previous taps). Falls back to number label.
+    const photoUrl = (isOwned && isFilled && refTgId)
+      ? (window.__photoCache && window.__photoCache[String(refTgId)]) || null
+      : null;
+
+    // Unique clipPath ID per node so multiple SVGs on page don't clash
+    const clipId = `cp-${level}-${label}`;
+
+    // Photo content inside circle — image if cached, else number
+    const innerContent = photoUrl
+      ? `<defs>
+           <clipPath id="${clipId}">
+             <circle cx="${node.x}" cy="${node.y}" r="${node.r - 1}"/>
+           </clipPath>
+         </defs>
+         <image href="${photoUrl}"
+           x="${node.x - node.r + 1}" y="${node.y - node.r + 1}"
+           width="${(node.r - 1) * 2}" height="${(node.r - 1) * 2}"
+           clip-path="url(#${clipId})"
+           preserveAspectRatio="xMidYMid slice"
+           style="pointer-events:none;"/>`
+      : `<text x="${node.x}" y="${node.y}" font-size="${fs}"
+           text-anchor="middle" dominant-baseline="central"
+           fill="${numCol}"
+           style="font-family:'DM Mono',monospace;font-weight:700;user-select:none;">${label}</text>`;
+
+    // Clickable overlay — only for filled nodes with known tgId
     const clickOverlay = (isOwned && isFilled && refTgId)
       ? `<circle cx="${node.x}" cy="${node.y}" r="${node.r}"
            fill="transparent" stroke="none" style="cursor:pointer;"
            onclick="showRefNodeModal('${refTgId}',${level})"/>`
       : '';
+
     return `
       <circle cx="${node.x}" cy="${node.y}" r="${node.r}"
         fill="${bg}" stroke="${stroke}" stroke-width="${sw}" ${gFilter}/>
-      <text x="${node.x}" y="${node.y}" font-size="${fs}"
-        text-anchor="middle" dominant-baseline="central"
-        fill="${numCol}"
-        style="font-family:'DM Mono',monospace;font-weight:700;user-select:none;">${label}</text>
+      ${innerContent}
       ${clickOverlay}`;
   }
 
@@ -4161,13 +4220,12 @@ function renderSlots() {
 
   SLOTS.forEach(slot => {
     const owned   = state.ownedSlots.includes(slot.level);
-    // SEQUENTIAL LOCK: ALL unowned slots show as LOCKED until purchased.
-    // Level 1 is buyable (not hard-locked) but visually shows LOCKED badge until bought.
-    // Level N is hard-locked unless Level N-1 is owned.
+    const filled  = getFilledCount(slot.level);
+    const isFull  = owned && filled >= 6;  // All 6 slots purchased — recycle time
+
+    // SEQUENTIAL LOCK: hard-locked if previous level not yet owned (not yet activated)
     const hardLocked = !owned && (slot.level > 1 && !state.ownedSlots.includes(slot.level - 1));
     const locked     = !owned; // every unowned slot shows LOCKED status visually
-    const filled  = getFilledCount(slot.level);
-    const isFull  = owned && filled >= 6;
     const dist    = calculateIncomeDistribution(slot.price);
     const usdPrice= TON_TO_USD ? (slot.price * TON_TO_USD).toFixed(0) : '—';
 
@@ -4183,12 +4241,16 @@ function renderSlots() {
     else if (isFull) { badge='RECYCLE'; badgeClass='badge-full'; }
     else if (owned)  { badge='ACTIVE';  badgeClass='badge-active'; }
 
-    // Button — Level 1 is clickable (shows BUY flow), higher levels hard-locked
+    // Button logic:
+    // • Full (6/6): show UPGRADE (recycle to next level)
+    // • Owned but not full (1-5/6): show BUY NEXT SLOT (can buy more)
+    // • Hard-locked: disabled LOCKED
+    // • Not owned, not locked: BUY NOW (Level 1 or next unlockable)
     let btnClass='', btnLabel='ACTIVATE', btnDisabled='';
     if (isFull)           { btnClass='upgrade'; btnLabel='⬆ UPGRADE'; }
-    else if (owned)       { btnClass='owned';   btnLabel='✓ ACTIVE'; btnDisabled='disabled'; }
+    else if (owned)       { btnClass='';        btnLabel=`BUY SLOT ${filled+1}`; }  // Bug Fix: allow buying slots 2-6
     else if (hardLocked)  { btnClass='locked';  btnLabel='LOCKED'; btnDisabled='disabled'; }
-    else                  { btnClass='';        btnLabel='BUY NOW'; } // Level 1 & next unlockable
+    else                  { btnClass='';        btnLabel='BUY NOW'; }
 
     const onclick = isFull ? `showUpgradeModal(${slot.level})` : `buySlot(${slot.level},${slot.price})`;
 
@@ -4336,6 +4398,10 @@ async function showRefNodeModal(tgId, level) {
     const handle    = rawHandle ? '@' + rawHandle : '';
     const photoUrl  = d.tgPhotoUrl || null;
 
+    // ── Update photo cache so circle shows DP on next renderSlots ────────────
+    if (!window.__photoCache) window.__photoCache = {};
+    window.__photoCache[String(tgId)] = photoUrl || '';
+
     const passiveTon  = typeof d.passiveTon  === 'number' ? d.passiveTon  : 0;
     const earnedTon   = typeof d.earnedTon   === 'number' ? d.earnedTon   : 0;
     const workingTon  = typeof d.workingTon  === 'number' ? d.workingTon  : 0;
@@ -4361,24 +4427,16 @@ async function showRefNodeModal(tgId, level) {
       </div>
       <div class="ref-node-rows">
         <div class="ref-node-row">
-          <span class="ref-node-row-label">📊 Slot (Level ${level})</span>
-          <span class="ref-node-row-val cyan">FILLED</span>
-        </div>
-        <div class="ref-node-row">
-          <span class="ref-node-row-label">♾ Non-Working Income</span>
-          <span class="ref-node-row-val green">${fmtTon(passiveTon)}</span>
+          <span class="ref-node-row-label">🏆 Total Income</span>
+          <span class="ref-node-row-val gold">${fmtTon(earnedTon + workingTon + passiveTon)}</span>
         </div>
         <div class="ref-node-row">
           <span class="ref-node-row-label">⚡ Working Income</span>
-          <span class="ref-node-row-val gold">${fmtTon(workingTon)}</span>
+          <span class="ref-node-row-val cyan">${fmtTon(workingTon)}</span>
         </div>
         <div class="ref-node-row">
-          <span class="ref-node-row-label">🏆 Total Earned</span>
-          <span class="ref-node-row-val">${fmtTon(earnedTon)}</span>
-        </div>
-        <div class="ref-node-row">
-          <span class="ref-node-row-label">🔓 Slots Owned</span>
-          <span class="ref-node-row-val">${slotCount}</span>
+          <span class="ref-node-row-label">♾ Passive Income</span>
+          <span class="ref-node-row-val green">${fmtTon(passiveTon)}</span>
         </div>
       </div>`;
 
@@ -4427,8 +4485,12 @@ async function buySlot(level, priceTon) {
     showToast(`Unlock Level ${level - 1} first!`);
     return;
   }
-  if (state.ownedSlots.includes(level)) {
-    showToast(`Level ${level} already active`);
+  // Bug Fix: A level is "full" when all 6 slots are filled (slotFill[level] >= 6)
+  // ownedSlots.includes(level) only means "ever activated" — same level can be
+  // bought up to 6 times total. Block only when fully filled.
+  const currentFill = getFilledCount(level);
+  if (currentFill >= 6) {
+    showToast(`Level ${level} fully filled (6/6) ♻️`);
     return;
   }
 
@@ -4442,31 +4504,22 @@ async function buySlot(level, priceTon) {
   // └─────────────────────────────────────────────────────────┘
   // ── Contract address — replace with your deployed contract ──
   // ⚠️ CRITICAL: Replace this with your deployed TON smart contract address before going live!
+  // ── CONTRACT ADDRESS — replace with your deployed contract address ──────────
+  // After deploying CryptonMatrix contract: npx blueprint deploy
+  // Copy the deployed address from the output and paste below.
+  // Format: EQ... or UQ... (48 characters, TON mainnet address)
+  // ⚠️ App will NOT work until this is set correctly.
   const CONTRACT_ADDRESS = 'EQD__YOUR_CRYPTON_CONTRACT_ADDRESS_HERE';
-  if (CONTRACT_ADDRESS.includes('YOUR_CRYPTON')) {
-    console.error('[CRITICAL] CONTRACT_ADDRESS is a placeholder! Replace before production.');
-    showToast('⚠️ Contract not configured. Contact admin.');
+  if (!CONTRACT_ADDRESS || CONTRACT_ADDRESS.includes('YOUR_CRYPTON') || CONTRACT_ADDRESS.length < 48) {
+    showToast('⚠️ Smart contract not deployed yet. Contact admin to complete setup.');
+    console.error('[CRITICAL] CONTRACT_ADDRESS not configured. Deploy CryptonMatrix contract first:\n  npx blueprint deploy\nThen update CONTRACT_ADDRESS in index.html');
     return;
   }
 
-  // ── Referrer wallet for direct (50%) payment ──
-  // Load referrer's actual wallet address from Firestore
-  let referrerWallet = CONTRACT_ADDRESS; // default to contract if no referrer
-  try {
-    // FIX 3: Use cachedReferredBy as fallback so payments never fail if sessionStorage is cleared
-    const _refId = getStoredRef() || state.cachedReferredBy || null;
-    if (_refId && !state._referrerWallet) {
-      await waitForFirestore();
-      const { doc: _d, getDoc: _g } = window.__fs;
-      const _rSnap = await _g(_d(window.__db, 'users', _refId));
-      if (_rSnap.exists() && _rSnap.data().walletAddress) {
-        state._referrerWallet = _rSnap.data().walletAddress;
-      }
-    }
-    referrerWallet = state._referrerWallet || CONTRACT_ADDRESS;
-  } catch(_re) {
-    console.warn('[BuySlot] Could not load referrer wallet, using contract:', _re.message);
-  }
+  // ── Contract handles all distribution internally ──────────────────────────
+  // 100% of payment goes to contract. Contract auto-distributes:
+  //   50% → direct referrer wallet, 20% → upline1, 20% → upline2, 10% → drop pool
+  // No need to look up referrer wallet in frontend.
 
   try {
     // Use integer arithmetic to avoid floating-point rounding errors
@@ -4481,30 +4534,42 @@ async function buySlot(level, priceTon) {
       catch(e) { return ''; }
     }
 
+    // ── Build BuySlot message body for TON smart contract ──────────────────
+    // Contract expects: 32-bit opcode + 64-bit tgId + 8-bit level
+    // Opcode for BuySlot — REPLACE with actual value from compiled ABI after:
+    //   npx blueprint build → open build/CryptonMatrix.abi.json → find BuySlot opcode
+    const BUYSLOT_OPCODE = 0x2c76b973; // ← REPLACE after compiling contract
+
+    function buildBuySlotPayload(tgIdStr, levelNum) {
+      // Encode: 4 bytes opcode + 8 bytes tgId + 1 byte level = 13 bytes
+      const buf = new ArrayBuffer(13);
+      const view = new DataView(buf);
+      view.setUint32(0, BUYSLOT_OPCODE, false);          // 32-bit opcode, big-endian
+      // tgId as 64-bit — JS BigInt to two 32-bit halves
+      const tgBig = BigInt(tgIdStr || '0');
+      view.setUint32(4, Number(tgBig >> 32n) >>> 0, false);  // high 32 bits
+      view.setUint32(8, Number(tgBig & 0xFFFFFFFFn) >>> 0, false); // low 32 bits
+      view.setUint8(12, levelNum & 0xFF);                // 8-bit level
+      // Base64-encode for TonConnect payload field
+      const bytes = new Uint8Array(buf);
+      let binary = '';
+      bytes.forEach(b => binary += String.fromCharCode(b));
+      return btoa(binary);
+    }
+
+    const buyerTgId = String(
+      window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || '0'
+    );
+
     const tx = {
       validUntil: Math.floor(Date.now() / 1000) + 600,
       messages: [
         {
-          // 50% → Direct referrer wallet (working income)
-          address: referrerWallet,
-          amount:  halfNano.toString(),
-          payload: _safePayload({
-            op: 'direct_income', level,
-            userId: state.userId,
-            percent: 50,
-            usd: dist.workingUsd.toFixed(2)
-          }),
-        },
-        {
-          // 50% → Matrix smart contract (passive/spillover income)
+          // 100% → Smart contract (contract handles all distribution internally)
+          // Contract splits: 50% direct referrer, 20% upline1, 20% upline2, 10% drop pool
           address: CONTRACT_ADDRESS,
-          amount:  remNano.toString(),
-          payload: _safePayload({
-            op: 'matrix_spillover', level,
-            userId: state.userId,
-            percent: 50,
-            usd: dist.passiveUsd.toFixed(2)
-          }),
+          amount:  totalNano.toString(),
+          payload: buildBuySlotPayload(buyerTgId, level),
         }
       ]
     };
@@ -4523,6 +4588,7 @@ async function buySlot(level, priceTon) {
       const tgDocId       = String(
         window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || ''
       );
+      // Full amount sent to contract (contract handles distribution internally)
       const amountNano    = totalNano.toString();
 
       // ── Optimistic local update (immediate UI feedback only) ──────────────
@@ -4538,10 +4604,12 @@ async function buySlot(level, priceTon) {
       // Match exactly what bot-1.py _process_verify_tx does:
       //   passive_commission = amount_nano_int / 1e9 * 0.50
       //   earnedTon += passive_commission  (via atomic FieldTransform)
+      // Optimistic UI: buyer spent TON, earnings come from others buying below you
+      // Do NOT increment earnedTon here — contract pays referrers directly on-chain
       state.workingTon  = parseFloat(((state.workingTon || 0) + dist.working).toFixed(6));
       state.passiveTon  = parseFloat(((state.passiveTon || 0) + dist.passive).toFixed(6));
-      // earnedTon optimistic = current_earned + passive_commission only (mirrors bot logic)
-      state.earnedTon   = parseFloat(((state.earnedTon || 0) + dist.passive).toFixed(6));
+      // earnedTon NOT incremented — contract sends TON directly to referrer wallets
+      // Backend /verify-tx will sync authoritative values from Firestore
       updateStatsUI();
       renderSlots();
       showToast(`Level ${level} activated! 🎉`);
@@ -4655,6 +4723,26 @@ async function buySlot(level, priceTon) {
                       slotReferrals[levelNum] = v.map(String);
                     }
                   });
+                  // Prefetch photos for any newly added tgIds in slotReferrals
+                  if (!window.__photoCache) window.__photoCache = {};
+                  const newIds = new Set();
+                  Object.values(slotReferrals).forEach(arr => {
+                    if (Array.isArray(arr)) arr.forEach(id => {
+                      if (id && window.__photoCache[String(id)] === undefined) newIds.add(String(id));
+                    });
+                  });
+                  if (newIds.size > 0) {
+                    waitForFirestore().then(() => {
+                      const { doc: _d, getDoc: _g } = window.__fs;
+                      const _db = window.__db;
+                      Promise.all([...newIds].map(async id => {
+                        try {
+                          const s = await _g(_d(_db, 'users', id));
+                          window.__photoCache[id] = (s.exists() && s.data().tgPhotoUrl) ? s.data().tgPhotoUrl : '';
+                        } catch(_) { window.__photoCache[id] = ''; }
+                      })).then(() => renderSlots());
+                    }).catch(() => {});
+                  }
                 }
                 updateStatsUI();
                 renderSlots();
@@ -4916,6 +5004,51 @@ async function loginUser(walletAddress) {
         }
       });
     }
+
+    // ── Photo prefetch — load DP for each referral tgId into cache ───────────
+    // Collects all unique tgIds from slotReferrals, fetches their tgPhotoUrl
+    // from Firestore in parallel, and stores in window.__photoCache.
+    // circ() checks this cache to show DP inside matrix circles.
+    // Runs in background — does NOT block loginUser or renderSlots.
+    (async function prefetchReferralPhotos() {
+      try {
+        // Collect all unique tgIds across all slot levels
+        const allIds = new Set();
+        Object.values(slotReferrals).forEach(arr => {
+          if (Array.isArray(arr)) arr.forEach(id => { if (id) allIds.add(String(id)); });
+        });
+        if (allIds.size === 0) return;
+
+        if (!window.__photoCache) window.__photoCache = {};
+        await waitForFirestore();
+        const { doc: _doc, getDoc: _getDoc } = window.__fs;
+        const _db = window.__db;
+        if (!_db || !_doc || !_getDoc) return;
+
+        // Fetch all in parallel — one Firestore read per unique tgId
+        await Promise.all([...allIds].map(async (tgId) => {
+          // Skip if already cached
+          if (window.__photoCache[tgId] !== undefined) return;
+          try {
+            const snap = await _getDoc(_doc(_db, 'users', tgId));
+            if (snap.exists()) {
+              const photoUrl = snap.data().tgPhotoUrl || null;
+              window.__photoCache[tgId] = photoUrl || '';
+            } else {
+              window.__photoCache[tgId] = '';
+            }
+          } catch (_e) {
+            window.__photoCache[tgId] = '';
+          }
+        }));
+
+        // Re-render slots so circles show newly loaded photos
+        renderSlots();
+        console.log('[PhotoCache] Prefetched', allIds.size, 'referral photos');
+      } catch (_err) {
+        console.warn('[PhotoCache] Prefetch failed:', _err.message);
+      }
+    })();
 
     // ── Update join date display ──────────────────────────────────────────
     // Bot may write 'registeredAt' or 'joinedAt' — handle both
