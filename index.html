@@ -3885,6 +3885,31 @@ function handleWalletConnected(rawAddress) {
     ...tgPayload,
   });
 
+  // ── Fix: Register wallet with smart contract immediately on connect ──────────
+  // Contract requires walletSet=true before any BuySlot call.
+  // We call /register-wallet NOW so UpdateWallet is sent to contract
+  // BEFORE the user tries to buy their first slot.
+  // Without this, BuySlot always reverts → "Dapp Not Responding" error.
+  (async () => {
+    try {
+      const tgId = state.tgNumericId;
+      if (tgId && /^\d+$/.test(tgId)) {
+        const BACKEND_URL_RW = 'https://crypton-telegram-bot.onrender.com';
+        const resp = await fetch(`${BACKEND_URL_RW}/register-wallet`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ tgId: tgId, walletAddress: rawAddress }),
+        });
+        const data = await resp.json().catch(() => ({}));
+        console.log('[register-wallet]', data.message || data);
+      } else {
+        console.warn('[register-wallet] Skipped — tgNumericId not available yet');
+      }
+    } catch (err) {
+      console.warn('[register-wallet] fetch error (non-fatal):', err.message);
+    }
+  })();
+
   loginUser(rawAddress);
   showToast('Wallet connected ✓');
   renderTicker();
