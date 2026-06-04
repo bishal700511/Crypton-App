@@ -7040,23 +7040,32 @@ async function loadLeaderboardView() {
 // Firestore: /config/airdrop → { startDate: timestamp, resetCount: number }
 // ──────────────────────────────────────────────────────────────
 (function initAirdropTimer() {
-  const CYCLE_MS  = 10 * 24 * 60 * 60 * 1000; // 10 days in ms
-  const MAX_RESETS = 3;
+  // ── Global Firebase-synced timer ────────────────────────────────────────────
+  // HOW IT WORKS:
+  //   • startDate is stored ONCE in Firestore → config/airdrop → startDate
+  //   • ALL users read the same startDate → timer is identical for everyone
+  //   • App open/close does NOT affect timer — it's always derived from startDate
+  //   • When timer hits 0 → backend /distribute-drop is called automatically
+  //     → contract sends TON to Level 4, 8, 10 eligible users
+  //   • Then startDate is updated in Firestore for next 10-day cycle
+  // ────────────────────────────────────────────────────────────────────────────
+
+  const CYCLE_MS       = 10 * 24 * 60 * 60 * 1000; // 10 days in ms
+  const BACKEND_URL    = 'https://crypton-telegram-bot.onrender.com';
   let   _timerInterval = null;
-  let   _cycleStart    = null; // current cycle start ms
-  let   _resetCount    = 0;
-  let   _finished      = false;
+  let   _cycleEndMs    = null;   // absolute epoch ms when current cycle ends
+  let   _distributing  = false;  // prevent double-trigger
 
   function pad(n) { return String(n).padStart(2, '0'); }
 
-  // Update all airdrop timer elements on the page
+  // Update all 3 timer cards (home, search, preview) simultaneously
   function setAllTimers(days, hours, minutes, seconds) {
-    const ids = [
-      ['airdrop-days','airdrop-hours','airdrop-minutes','airdrop-seconds'],
-      ['srch-airdrop-days','srch-airdrop-hours','srch-airdrop-minutes','srch-airdrop-seconds'],
-      ['pv-airdrop-days','pv-airdrop-hours','pv-airdrop-minutes','pv-airdrop-seconds'],
+    const groups = [
+      ['airdrop-days',      'airdrop-hours',      'airdrop-minutes',      'airdrop-seconds'],
+      ['srch-airdrop-days', 'srch-airdrop-hours', 'srch-airdrop-minutes', 'srch-airdrop-seconds'],
+      ['pv-airdrop-days',   'pv-airdrop-hours',   'pv-airdrop-minutes',   'pv-airdrop-seconds'],
     ];
-    ids.forEach(([d,h,m,s]) => {
+    groups.forEach(([d, h, m, s]) => {
       const dEl = document.getElementById(d);
       const hEl = document.getElementById(h);
       const mEl = document.getElementById(m);
@@ -7068,111 +7077,135 @@ async function loadLeaderboardView() {
     });
   }
 
-  function tick() {
-    if (_finished || !_cycleStart) return;
+  function showLiveNow() {
+    setAllTimers(0, 0, 0, 0);
+    document.querySelectorAll('.airdrop-pool-title').forEach(el => {
+      el.innerHTML = 'Airdrop Bonus Pool<br>🎉 Live Now!';
+    });
+  }
 
-    const now       = Date.now();
-    const elapsed   = now - _cycleStart;
-    const remaining = CYCLE_MS - elapsed;
+  // ── Called when timer hits zero ─────────────────────────────────────────────
+  // 1. Calls backend /distribute-drop → triggers DistributeDrop on smart contract
+  //    → Contract pays TON to all Level 4, 8, 10 eligible user wallets
+  // 2. Updates Firestore startDate to now → starts fresh 10-day cycle for all users
+  async function onCycleComplete() {
+    if (_distributing) return;
+    _distributing = true;
+    clearInterval(_timerInterval);
+    showLiveNow();
+    console.log('[Airdrop] Cycle complete — triggering DistributeDrop');
 
-    if (remaining <= 0) {
-      // Cycle complete — check if more resets left
-      if (_resetCount < MAX_RESETS) {
-        // Auto-reset: update Firestore with new startDate and increment resetCount
-        _resetCount++;
-        _cycleStart = now;
-        _updateFirestoreReset(now, _resetCount);
-        console.log('[Airdrop] Timer reset #' + _resetCount);
-      } else {
-        // All 3 resets done — airdrop is live!
-        _finished = true;
-        clearInterval(_timerInterval);
-        setAllTimers(0, 0, 0, 0);
-        // Show "Airdrop Live!" on all timer cards
-        document.querySelectorAll('.airdrop-pool-title').forEach(el => {
-          el.innerHTML = 'Airdrop Bonus Pool<br>🎉 Live Now!';
-        });
-        console.log('[Airdrop] All cycles complete — Airdrop is LIVE!');
-        return;
-      }
+    // ── Step 1: Call backend to send DistributeDrop to smart contract ──
+    // Contract will auto-distribute TON to all eligible wallets (Level 4, 8, 10)
+    try {
+      // VERIFY_TX_SECRET is needed — store it as a JS constant or fetch from env
+      // For security, the secret should be injected server-side or via a signed token.
+      // Here we use a lightweight approach: bot.py /get-drop-token returns a time-limited token.
+      const tokenResp = await fetch(`${BACKEND_URL}/get-drop-token`);
+      const tokenData = await tokenResp.json().catch(() => ({}));
+      const secret    = tokenData.token || '';
+
+      const dropResp  = await fetch(`${BACKEND_URL}/distribute-drop`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ secret }),
+      });
+      const dropData  = await dropResp.json().catch(() => ({}));
+      console.log('[Airdrop] distribute-drop response:', dropData.message || dropData);
+    } catch(err) {
+      console.warn('[Airdrop] distribute-drop call failed (non-fatal):', err.message);
     }
 
-    const rem      = Math.max(remaining, 0);
-    const totalSec = Math.floor(rem / 1000);
+    // ── Step 2: Update Firestore startDate to now — resets timer for all users ──
+    try {
+      await waitForFirestore();
+      const { doc, setDoc, Timestamp } = window.__fs;
+      const db = window.__db;
+      const nowMs = Date.now();
+      await setDoc(doc(db, 'config', 'airdrop'), {
+        startDate: Timestamp.fromMillis(nowMs),
+      });
+      console.log('[Airdrop] Firestore startDate updated — new cycle begins');
+      // Restart timer with new cycle
+      _cycleEndMs    = nowMs + CYCLE_MS;
+      _distributing  = false;
+      _timerInterval = setInterval(tick, 1000);
+    } catch(e) {
+      console.warn('[Airdrop] Could not update Firestore startDate:', e.message);
+      _distributing = false;
+    }
+  }
+
+  // ── Tick: runs every second, purely derives display from _cycleEndMs ─────────
+  // Because _cycleEndMs comes from Firebase startDate (same for ALL users),
+  // the countdown is identical on every device regardless of app open/close.
+  function tick() {
+    if (!_cycleEndMs) return;
+
+    const remaining = _cycleEndMs - Date.now();
+
+    if (remaining <= 0) {
+      onCycleComplete();
+      return;
+    }
+
+    const totalSec = Math.floor(remaining / 1000);
     const days     = Math.floor(totalSec / 86400);
     const hours    = Math.floor((totalSec % 86400) / 3600);
-    const minutes  = Math.floor((totalSec % 3600)  / 60);
+    const minutes  = Math.floor((totalSec % 3600) / 60);
     const seconds  = totalSec % 60;
     setAllTimers(days, hours, minutes, seconds);
   }
 
-  // Update Firestore when a reset happens (frontend convenience — optional)
-  async function _updateFirestoreReset(nowMs, newResetCount) {
-    try {
-      await waitForFirestore();
-      const { doc, updateDoc, Timestamp } = window.__fs;
-      const db = window.__db;
-      await updateDoc(doc(db, 'config', 'airdrop'), {
-        startDate:  Timestamp.fromMillis(nowMs),
-        resetCount: newResetCount,
-      });
-      console.log('[Airdrop] Firestore reset updated → resetCount:', newResetCount);
-    } catch(e) {
-      console.warn('[Airdrop] Could not update Firestore on reset:', e.message);
-    }
-  }
-
-  // Load startDate from Firestore
+  // ── Load startDate from Firestore and start timer ───────────────────────────
+  // If config/airdrop doesn't exist yet, create it now with current time.
+  // This means the FIRST user to open the app sets the global start — after
+  // that everyone reads the same value.
   async function loadAndStart() {
     try {
       await waitForFirestore();
-      const { doc, getDoc } = window.__fs;
-      const db = window.__db;
-      const snap = await getDoc(doc(db, 'config', 'airdrop'));
+      const { doc, getDoc, setDoc, Timestamp } = window.__fs;
+      const db   = window.__db;
+      const ref  = doc(db, 'config', 'airdrop');
+      const snap = await getDoc(ref);
+
+      let startMs;
 
       if (snap.exists()) {
-        const data       = snap.data();
-        const startTs    = data.startDate;
-        _resetCount      = typeof data.resetCount === 'number' ? data.resetCount : 0;
-
-        // Convert Firestore Timestamp to ms
-        const startMs = startTs?.toMillis
+        const data   = snap.data();
+        const startTs = data.startDate;
+        startMs = startTs?.toMillis
           ? startTs.toMillis()
           : (startTs?.seconds ? startTs.seconds * 1000 : Date.now());
-
-        // Calculate current cycle start based on resetCount
-        _cycleStart = startMs + (_resetCount * CYCLE_MS);
-
-        // Check if already finished
-        if (_resetCount >= MAX_RESETS && Date.now() >= _cycleStart + CYCLE_MS) {
-          _finished = true;
-          setAllTimers(0, 0, 0, 0);
-          document.querySelectorAll('.airdrop-pool-title').forEach(el => {
-            el.innerHTML = 'Airdrop Bonus Pool<br>🎉 Live Now!';
-          });
-          return;
-        }
-
-        console.log('[Airdrop] Loaded from Firebase — cycleStart:', new Date(_cycleStart).toISOString(), '| resetCount:', _resetCount);
-        tick();
-        _timerInterval = setInterval(tick, 1000);
+        console.log('[Airdrop] Global startDate loaded from Firebase:', new Date(startMs).toISOString());
       } else {
-        // Config doc missing — fallback to current time
-        console.warn('[Airdrop] config/airdrop document not found — using current time as fallback');
-        _cycleStart = Date.now();
-        _resetCount = 0;
-        tick();
-        _timerInterval = setInterval(tick, 1000);
+        // First run — create the global timer document
+        startMs = Date.now();
+        await setDoc(ref, { startDate: Timestamp.fromMillis(startMs) });
+        console.log('[Airdrop] config/airdrop created with startDate:', new Date(startMs).toISOString());
       }
+
+      _cycleEndMs = startMs + CYCLE_MS;
+
+      // If already expired when app opens, trigger distribution immediately
+      if (Date.now() >= _cycleEndMs) {
+        onCycleComplete();
+        return;
+      }
+
+      tick(); // show immediately without waiting 1s
+      _timerInterval = setInterval(tick, 1000);
+
     } catch(e) {
-      console.warn('[Airdrop] Firebase load failed — using fallback:', e.message);
-      _cycleStart = Date.now();
+      console.warn('[Airdrop] Firebase load failed — using local fallback:', e.message);
+      // Fallback: local timer (won't be synced across users)
+      _cycleEndMs    = Date.now() + CYCLE_MS;
       tick();
       _timerInterval = setInterval(tick, 1000);
     }
   }
 
-  // Start after short delay to ensure Firestore is initialized
+  // Start after Firestore is ready
   setTimeout(loadAndStart, 1500);
 })();
 
