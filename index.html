@@ -4664,18 +4664,13 @@ async function buySlot(level, priceTon) {
       // earnedTon, workingTon, passiveTon, and slotFill (Fix Points 6 & 7).
       state.ownedSlots.push(level);
       if (slotFill[level] === undefined) slotFill[level] = 0;
-      // Optimistic earnings update — in-memory only; overwritten by backend ack below.
-      // Fix 3: Bot increments earnedTon by passive_commission (price * 0.50) only,
-      // NOT by working + passive (which would be price * 1.0 — double the real value).
-      // Match exactly what bot-1.py _process_verify_tx does:
-      //   passive_commission = amount_nano_int / 1e9 * 0.50
-      //   earnedTon += passive_commission  (via atomic FieldTransform)
-      // Optimistic UI: buyer spent TON, earnings come from others buying below you
-      // Do NOT increment earnedTon here — contract pays referrers directly on-chain
-      state.workingTon  = parseFloat(((state.workingTon || 0) + dist.working).toFixed(6));
-      state.passiveTon  = parseFloat(((state.passiveTon || 0) + dist.passive).toFixed(6));
-      // earnedTon NOT incremented — contract sends TON directly to referrer wallets
-      // Backend /verify-tx will sync authoritative values from Firestore
+      // INCOME FIX: Buyer's workingTon and passiveTon do NOT increase when they
+      // buy a slot. Their income cards only grow when THEIR OWN REFERRALS buy.
+      // workingTon = earned when your direct referral buys (bot credits referrer)
+      // passiveTon = earned as upline1/upline2 when downline buys (bot credits uplines)
+      // DO NOT update state.workingTon or state.passiveTon here — backend will
+      // return authoritative values from Firestore (which are unchanged for buyer).
+      // earnedTon also NOT incremented — contract pays referrers directly on-chain.
       updateStatsUI();
       renderSlots();
       showToast(`Level ${level} activated! 🎉`);
@@ -4915,9 +4910,26 @@ function waitForFirestore(timeout = 8000) {
 async function loginUser(walletAddress) {
   // ── Guard: we must have a Telegram numeric ID to locate the single user doc ──
   // The document ID in Firestore is always String(chat_id) — set by the bot.
-  const tgIdFromSDK = String(
+  // FIX: If tgId is not ready yet (SDK init async), retry up to 3 times with a
+  // 500ms delay. This prevents "No Telegram ID" on app reopen when TonConnect
+  // auto-restores the wallet session before Telegram SDK fires initDataUnsafe.
+  let tgIdFromSDK = String(
     window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || ''
   );
+
+  if (!tgIdFromSDK) {
+    // Retry up to 3 times (1.5 seconds total) waiting for Telegram SDK
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await new Promise(r => setTimeout(r, 500));
+      tgIdFromSDK = String(
+        window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || ''
+      );
+      if (tgIdFromSDK) {
+        console.log('[Firebase] tgId resolved after retry attempt', attempt + 1, ':', tgIdFromSDK);
+        break;
+      }
+    }
+  }
 
   if (!tgIdFromSDK) {
     console.warn('[Firebase] No Telegram ID available — cannot locate user document.');
