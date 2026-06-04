@@ -4561,56 +4561,65 @@ async function buySlot(level, priceTon) {
     }
 
     // ── Build BuySlot message body for TON smart contract ──────────────────
-    // Contract expects: 32-bit opcode + 64-bit tgId + 8-bit level
-    // Opcode for BuySlot — REPLACE with actual value from compiled ABI after:
-    //   npx blueprint build → open build/CryptonMatrix.abi.json → find BuySlot opcode
-    const BUYSLOT_OPCODE = 0xccadf5a7; // BuySlot opcode (CRC32)
+    // Contract expects: 32-bit opcode + 64-bit tgId + 8-bit level = 104 bits = 13 bytes
+    const BUYSLOT_OPCODE = 0xccadf5a7; // CRC32("BuySlot") — Tact message opcode
 
     function buildBuySlotPayload(tgIdStr, levelNum) {
-      // Build proper TON Cell BOC for TonConnect (Tonkeeper expects valid BOC base64)
-      // BuySlot message layout: opcode(32) + tgId(64) + level(8) = 104 bits = 13 bytes
+      // ── Correct TON BOC (Bag of Cells) — 26 bytes total ───────────────────
+      // Cell data layout: d1(1) + d2(1) + opcode(4) + tgId(8) + level(1) = 15 bytes
+      //
+      // d1 = 0x00  (0 refs, not exotic)
+      // d2 = 0x1A  (26 = 13*2, byte-aligned 104-bit payload, no augmentation bit)
+      //
+      // BOC header (size=1 format — all count fields are 1 byte each):
+      //   B5 EE 9C 72 = magic
+      //   01 = flags byte (size=1)
+      //   01 = off_size (1 byte offsets)
+      //   01 = cell_count
+      //   01 = root_count
+      //   00 = absent_count
+      //   0F = tot_cells_size (15 bytes)
+      //   00 = root_idx
+      //   [15 bytes cell data]
+      // Total: 4+1+1+1+1+1+1+1+15 = 26 bytes
 
       const tgBig = BigInt(tgIdStr || '0');
-      const tgHi = Number(tgBig >> 32n) >>> 0;
-      const tgLo = Number(tgBig & 0xFFFFFFFFn) >>> 0;
-      const lvl  = levelNum & 0xFF;
+      const tgHi  = Number(tgBig >> 32n) >>> 0;
+      const tgLo  = Number(tgBig & 0xFFFFFFFFn) >>> 0;
+      const lvl   = levelNum & 0xFF;
 
-      // Cell descriptor: d1=0x00 (no refs, not special), d2=0x1A (13 bytes * 2 = 26, no tail padding)
       const cell = new Uint8Array(15);
-      cell[0] = 0x00; cell[1] = 0x1A;
-      // opcode (4 bytes big-endian)
-      cell[2] = (BUYSLOT_OPCODE >>> 24) & 0xFF;
-      cell[3] = (BUYSLOT_OPCODE >>> 16) & 0xFF;
-      cell[4] = (BUYSLOT_OPCODE >>>  8) & 0xFF;
-      cell[5] =  BUYSLOT_OPCODE         & 0xFF;
-      // tgId high 32 bits
-      cell[6]  = (tgHi >>> 24) & 0xFF;
-      cell[7]  = (tgHi >>> 16) & 0xFF;
-      cell[8]  = (tgHi >>>  8) & 0xFF;
-      cell[9]  =  tgHi         & 0xFF;
-      // tgId low 32 bits
-      cell[10] = (tgLo >>> 24) & 0xFF;
-      cell[11] = (tgLo >>> 16) & 0xFF;
-      cell[12] = (tgLo >>>  8) & 0xFF;
-      cell[13] =  tgLo         & 0xFF;
-      // level (1 byte)
-      cell[14] = lvl;
+      cell[0]  = 0x00;                            // d1
+      cell[1]  = 0x1A;                            // d2 = 26
+      cell[2]  = (BUYSLOT_OPCODE >>> 24) & 0xFF;  // opcode byte 1
+      cell[3]  = (BUYSLOT_OPCODE >>> 16) & 0xFF;  // opcode byte 2
+      cell[4]  = (BUYSLOT_OPCODE >>>  8) & 0xFF;  // opcode byte 3
+      cell[5]  =  BUYSLOT_OPCODE         & 0xFF;  // opcode byte 4
+      cell[6]  = (tgHi >>> 24) & 0xFF;            // tgId hi byte 1
+      cell[7]  = (tgHi >>> 16) & 0xFF;            // tgId hi byte 2
+      cell[8]  = (tgHi >>>  8) & 0xFF;            // tgId hi byte 3
+      cell[9]  =  tgHi         & 0xFF;            // tgId hi byte 4
+      cell[10] = (tgLo >>> 24) & 0xFF;            // tgId lo byte 1
+      cell[11] = (tgLo >>> 16) & 0xFF;            // tgId lo byte 2
+      cell[12] = (tgLo >>>  8) & 0xFF;            // tgId lo byte 3
+      cell[13] =  tgLo         & 0xFF;            // tgId lo byte 4
+      cell[14] = lvl;                             // level
 
-      // Minimal BOC: magic(4) + flags(1) + off_size(1) + cells_cnt(4) + roots_cnt(4) + absent(4) + tot_size(4) + root_idx(1) + cell(15)
-      const boc = new Uint8Array(38);
+      // BOC = 26 bytes: header(11) + cell(15)
+      const boc = new Uint8Array(26);
       let i = 0;
-      boc[i++]=0xB5; boc[i++]=0xEE; boc[i++]=0x9C; boc[i++]=0x72; // magic
-      boc[i++]=0x01; // flags: ref_byte_size=1
-      boc[i++]=0x01; // offset_byte_size=1
-      boc[i++]=0x00; boc[i++]=0x00; boc[i++]=0x00; boc[i++]=0x01; // cells=1
-      boc[i++]=0x00; boc[i++]=0x00; boc[i++]=0x00; boc[i++]=0x01; // roots=1
-      boc[i++]=0x00; boc[i++]=0x00; boc[i++]=0x00; boc[i++]=0x00; // absent=0
-      boc[i++]=0x00; boc[i++]=0x00; boc[i++]=0x00; boc[i++]=0x0F; // tot_cells_size=15
-      boc[i++]=0x00; // root index
-      for (let j=0;j<cell.length;j++) boc[i++]=cell[j];
+      boc[i++] = 0xB5; boc[i++] = 0xEE; boc[i++] = 0x9C; boc[i++] = 0x72; // magic
+      boc[i++] = 0x01; // flags (size=1)
+      boc[i++] = 0x01; // off_size = 1
+      boc[i++] = 0x01; // cell_count = 1
+      boc[i++] = 0x01; // root_count = 1
+      boc[i++] = 0x00; // absent_count = 0
+      boc[i++] = 0x0F; // tot_cells_size = 15 (1 byte because off_size=1)
+      boc[i++] = 0x00; // root_idx = 0
+      for (let j = 0; j < cell.length; j++) boc[i++] = cell[j];
 
-      let binary='';
-      boc.forEach(b=>binary+=String.fromCharCode(b));
+      let binary = '';
+      boc.forEach(b => binary += String.fromCharCode(b));
       return btoa(binary);
     }
 
