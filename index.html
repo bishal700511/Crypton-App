@@ -4542,19 +4542,50 @@ async function buySlot(level, priceTon) {
     const BUYSLOT_OPCODE = 0xccadf5a7; // BuySlot opcode (CRC32)
 
     function buildBuySlotPayload(tgIdStr, levelNum) {
-      // Encode: 4 bytes opcode + 8 bytes tgId + 1 byte level = 13 bytes
-      const buf = new ArrayBuffer(13);
-      const view = new DataView(buf);
-      view.setUint32(0, BUYSLOT_OPCODE, false);          // 32-bit opcode, big-endian
-      // tgId as 64-bit — JS BigInt to two 32-bit halves
+      // Build proper TON Cell BOC for TonConnect (Tonkeeper expects valid BOC base64)
+      // BuySlot message layout: opcode(32) + tgId(64) + level(8) = 104 bits = 13 bytes
+
       const tgBig = BigInt(tgIdStr || '0');
-      view.setUint32(4, Number(tgBig >> 32n) >>> 0, false);  // high 32 bits
-      view.setUint32(8, Number(tgBig & 0xFFFFFFFFn) >>> 0, false); // low 32 bits
-      view.setUint8(12, levelNum & 0xFF);                // 8-bit level
-      // Base64-encode for TonConnect payload field
-      const bytes = new Uint8Array(buf);
-      let binary = '';
-      bytes.forEach(b => binary += String.fromCharCode(b));
+      const tgHi = Number(tgBig >> 32n) >>> 0;
+      const tgLo = Number(tgBig & 0xFFFFFFFFn) >>> 0;
+      const lvl  = levelNum & 0xFF;
+
+      // Cell descriptor: d1=0x00 (no refs, not special), d2=0x1A (13 bytes * 2 = 26, no tail padding)
+      const cell = new Uint8Array(15);
+      cell[0] = 0x00; cell[1] = 0x1A;
+      // opcode (4 bytes big-endian)
+      cell[2] = (BUYSLOT_OPCODE >>> 24) & 0xFF;
+      cell[3] = (BUYSLOT_OPCODE >>> 16) & 0xFF;
+      cell[4] = (BUYSLOT_OPCODE >>>  8) & 0xFF;
+      cell[5] =  BUYSLOT_OPCODE         & 0xFF;
+      // tgId high 32 bits
+      cell[6]  = (tgHi >>> 24) & 0xFF;
+      cell[7]  = (tgHi >>> 16) & 0xFF;
+      cell[8]  = (tgHi >>>  8) & 0xFF;
+      cell[9]  =  tgHi         & 0xFF;
+      // tgId low 32 bits
+      cell[10] = (tgLo >>> 24) & 0xFF;
+      cell[11] = (tgLo >>> 16) & 0xFF;
+      cell[12] = (tgLo >>>  8) & 0xFF;
+      cell[13] =  tgLo         & 0xFF;
+      // level (1 byte)
+      cell[14] = lvl;
+
+      // Minimal BOC: magic(4) + flags(1) + off_size(1) + cells_cnt(4) + roots_cnt(4) + absent(4) + tot_size(4) + root_idx(1) + cell(15)
+      const boc = new Uint8Array(38);
+      let i = 0;
+      boc[i++]=0xB5; boc[i++]=0xEE; boc[i++]=0x9C; boc[i++]=0x72; // magic
+      boc[i++]=0x01; // flags: ref_byte_size=1
+      boc[i++]=0x01; // offset_byte_size=1
+      boc[i++]=0x00; boc[i++]=0x00; boc[i++]=0x00; boc[i++]=0x01; // cells=1
+      boc[i++]=0x00; boc[i++]=0x00; boc[i++]=0x00; boc[i++]=0x01; // roots=1
+      boc[i++]=0x00; boc[i++]=0x00; boc[i++]=0x00; boc[i++]=0x00; // absent=0
+      boc[i++]=0x00; boc[i++]=0x00; boc[i++]=0x00; boc[i++]=0x0F; // tot_cells_size=15
+      boc[i++]=0x00; // root index
+      for (let j=0;j<cell.length;j++) boc[i++]=cell[j];
+
+      let binary='';
+      boc.forEach(b=>binary+=String.fromCharCode(b));
       return btoa(binary);
     }
 
