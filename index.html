@@ -1128,10 +1128,6 @@
     .flash-cyan { animation: success-flash      0.7s ease-out forwards; }
     .flash-gold { animation: success-flash-gold 0.7s ease-out forwards; }
 
-    /* ─── PENDING SLOT (awaiting /verify-tx confirmation) ──── */
-    .slot-pending { opacity: 0.80; pointer-events: none; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
     /* ─── LEVEL INDICATOR BAR ──────────────────────────────── */
     #level-indicator-bar {
       display: none; /* shown by JS after wallet connect */
@@ -4510,17 +4506,6 @@ function simulateFill(level) {
 async function buySlot(level, priceTon) {
   if (!state.connected)    { showToast('Connect wallet first'); return; }
 
-  // Guard: tgNumericId must be loaded (by loginUser) before we can build the
-  // BuySlot payload or call /register-wallet. If it's missing after wallet connect
-  // it means Firestore hasn't responded yet — ask the user to wait a moment.
-  const resolvedTgId = String(
-    window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || ''
-  );
-  if (!resolvedTgId || resolvedTgId === '0') {
-    showToast('Loading your account… please try again in a moment.');
-    return;
-  }
-
   // Sequential lock validation — cannot skip levels
   if (level > 1 && !state.ownedSlots.includes(level - 1)) {
     showToast(`Unlock Level ${level - 1} first!`);
@@ -4550,8 +4535,8 @@ async function buySlot(level, priceTon) {
   // Copy the deployed address from the output and paste below.
   // Format: EQ... or UQ... (48 characters, TON mainnet address)
   // ⚠️ App will NOT work until this is set correctly.
-  const CONTRACT_ADDRESS = 'kQB7qM9C0JFii87JwQfG8GuOVrWU6yrXad3Gjo80oXBGLqAd'; // Testnet deployed (FIX 11 — auto-derives wallet from sender())
-  if (!CONTRACT_ADDRESS || CONTRACT_ADDRESS.includes('YOUR_CRYPTON') || CONTRACT_ADDRESS.length < 47) {
+  const CONTRACT_ADDRESS = 'kQB7qM9C0JFii87JwQfG8GuOVrWU6yrXad3Gjo80oXBGLhuX'; // Testnet deployed
+  if (!CONTRACT_ADDRESS || CONTRACT_ADDRESS.includes('YOUR_CRYPTON') || CONTRACT_ADDRESS.length < 48) {
     showToast('⚠️ Smart contract not deployed yet. Contact admin to complete setup.');
     console.error('[CRITICAL] CONTRACT_ADDRESS not configured. Deploy CryptonMatrix contract first:\n  npx blueprint deploy\nThen update CONTRACT_ADDRESS in index.html');
     return;
@@ -4672,32 +4657,23 @@ async function buySlot(level, priceTon) {
       // Full amount sent to contract (contract handles distribution internally)
       const amountNano    = totalNano.toString();
 
-      // ── Pending state: show spinner in the bought slot while backend verifies ─
-      // We intentionally do NOT push level into state.ownedSlots here.
-      // The slot stays locked-looking with a "pending" overlay until /verify-tx
-      // returns ok=true. This prevents the "unlocked → reload → locked" ghost state
-      // that happened when the contract reverted but the optimistic push was already done.
-      if (!window.__pendingSlots) window.__pendingSlots = new Set();
-      window.__pendingSlots.add(level);
-
-      // Mark the slot card visually as pending (spinner overlay)
-      const pendingCard = document.querySelector(`[data-level="${level}"]`);
-      if (pendingCard) {
-        pendingCard.classList.add('slot-pending');
-        // Inject spinner overlay if not already present
-        if (!pendingCard.querySelector('.pending-overlay')) {
-          const overlay = document.createElement('div');
-          overlay.className = 'pending-overlay';
-          overlay.innerHTML = '<span class="pending-spinner">⏳</span><span class="pending-label">Verifying…</span>';
-          overlay.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);border-radius:inherit;z-index:10;gap:4px;pointer-events:none;';
-          overlay.querySelector('.pending-label').style.cssText = 'font-size:11px;color:#ffe;font-family:var(--font-mono,monospace);letter-spacing:0.5px;';
-          overlay.querySelector('.pending-spinner').style.cssText = 'font-size:22px;animation:spin 1.2s linear infinite;';
-          pendingCard.style.position = 'relative';
-          pendingCard.appendChild(overlay);
-        }
-      }
-
-      showToast('Transaction sent! Verifying on-chain… ⏳');
+      // ── Optimistic local update (immediate UI feedback only) ──────────────
+      // These values are stored in JS memory so the UI reflects the purchase
+      // instantly.  They are intentionally NOT written to Firestore here.
+      // The bot's /verify-tx is the sole Firestore writer for ownedSlots,
+      // earnedTon, workingTon, passiveTon, and slotFill (Fix Points 6 & 7).
+      state.ownedSlots.push(level);
+      if (slotFill[level] === undefined) slotFill[level] = 0;
+      // INCOME FIX: Buyer's workingTon and passiveTon do NOT increase when they
+      // buy a slot. Their income cards only grow when THEIR OWN REFERRALS buy.
+      // workingTon = earned when your direct referral buys (bot credits referrer)
+      // passiveTon = earned as upline1/upline2 when downline buys (bot credits uplines)
+      // DO NOT update state.workingTon or state.passiveTon here — backend will
+      // return authoritative values from Firestore (which are unchanged for buyer).
+      // earnedTon also NOT incremented — contract pays referrers directly on-chain.
+      updateStatsUI();
+      renderSlots();
+      showToast(`Level ${level} activated! 🎉`);
 
       // ── Celebration burst ──────────────────────────────────────────────────
       const card = document.querySelector(`[data-level="${level}"]`);
@@ -4770,24 +4746,12 @@ async function buySlot(level, priceTon) {
               });
               const vData = await vResp.json().catch(() => ({}));
               if (vResp.ok && vData.ok) {
-                // ── Backend confirmed — now apply authoritative state ──────────
-                // This is the ONLY place we update ownedSlots and renderSlots.
-                // No optimistic update was done above, so this is the single
-                // source of truth. Clear pending overlay first.
-                if (window.__pendingSlots) window.__pendingSlots.delete(level);
-                const doneCard = document.querySelector(`[data-level="${level}"]`);
-                if (doneCard) {
-                  doneCard.classList.remove('slot-pending');
-                  const ov = doneCard.querySelector('.pending-overlay');
-                  if (ov) ov.remove();
-                }
-
-                // Sync authoritative values from bot response
+                // ── Backend confirmed — sync ONLY authoritative values from bot ──
+                // The bot is sole owner of ownedSlots, earnedTon, workingTon,
+                // passiveTon, and slotFill (Fix Points 6 & 7).
+                // We overwrite the in-memory optimistic values here.
                 if (Array.isArray(vData.ownedSlots)) {
                   state.ownedSlots = vData.ownedSlots.map(Number);
-                } else if (!state.ownedSlots.includes(level)) {
-                  // Fallback: backend confirmed but didn't return ownedSlots list
-                  state.ownedSlots.push(level);
                 }
                 if (typeof vData.earnedTon === 'number') {
                   state.earnedTon = vData.earnedTon;
@@ -4843,28 +4807,11 @@ async function buySlot(level, priceTon) {
                 }
                 updateStatsUI();
                 renderSlots();
-                showToast(`Level ${level} activated! 🎉`);
-                // Celebration burst (runs after slot is rendered as owned)
-                const confirmedCard = document.querySelector(`[data-level="${level}"]`);
-                const slotDefConf = SLOTS.find(s => s.level === level);
-                if (window.burstParticles) burstParticles(confirmedCard, slotDefConf && slotDefConf.gold);
-                if (confirmedCard) {
-                  confirmedCard.classList.add(slotDefConf && slotDefConf.gold ? 'flash-gold' : 'flash-cyan');
-                  setTimeout(() => confirmedCard.classList.remove('flash-gold','flash-cyan'), 800);
-                }
                 console.log('[BuySlot] Backend verification ✓ (bot-authoritative state applied)', vData);
                 return; // done
               }
               if (vData.retry === false) {
-                // Hard failure — no point retrying — clear pending state
-                if (window.__pendingSlots) window.__pendingSlots.delete(level);
-                const failCard = document.querySelector(`[data-level="${level}"]`);
-                if (failCard) {
-                  failCard.classList.remove('slot-pending');
-                  const fov = failCard.querySelector('.pending-overlay');
-                  if (fov) fov.remove();
-                }
-                showToast('❌ Purchase failed: ' + (vData.message || 'Contact support'), 6000);
+                // Hard failure — no point retrying
                 console.warn('[BuySlot] Backend hard rejection:', vData.message);
                 return;
               }
@@ -4879,16 +4826,11 @@ async function buySlot(level, priceTon) {
           // a user could block network calls to /verify-tx and their unverified
           // local state would be persisted as if the on-chain purchase were real.
           //
-          // CORRECT BEHAVIOUR: if the backend cannot confirm the tx, we clear
-          // the pending overlay (slot returns to locked state) and show a retry
-          // button.  State stays clean — no ghost "unlocked" slot.
-          if (window.__pendingSlots) window.__pendingSlots.delete(level);
-          const exhaustedCard = document.querySelector(`[data-level="${level}"]`);
-          if (exhaustedCard) {
-            exhaustedCard.classList.remove('slot-pending');
-            const eov = exhaustedCard.querySelector('.pending-overlay');
-            if (eov) eov.remove();
-          }
+          // CORRECT BEHAVIOUR: if the backend cannot confirm the tx, we leave the
+          // optimistic UI in place (so the user sees their purchase) but do NOT
+          // persist anything.  We show a persistent warning so they know to wait
+          // or contact support.  The backend will process the tx as soon as it is
+          // reachable again (they can reload the app at that point).
           console.warn('[BuySlot] Backend unreachable after all retries — NOT writing to Firestore. User must reload once backend is reachable.');
           // Fix 5: Show a persistent re-verify button so user does not have to manually reload.
           // Button stores verifyPayload in closure and re-triggers pollVerify(3, 8000) on tap.
