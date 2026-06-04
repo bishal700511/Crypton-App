@@ -3728,6 +3728,7 @@ setTimeout(syncPhotoIfLoggedIn, 3500);
     // Ensure tonconnect-manifest.json exists at this path with correct name/iconUrl/url fields.
     state.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
       manifestUrl: 'https://crypton-app-omega.vercel.app/tonconnect-manifest.json',
+      network: 'testnet', // Switch to 'mainnet' when going live
       buttonRootId: null,
     });
     state.tonConnectUI.onStatusChange(wallet => {
@@ -4509,7 +4510,7 @@ async function buySlot(level, priceTon) {
   // Copy the deployed address from the output and paste below.
   // Format: EQ... or UQ... (48 characters, TON mainnet address)
   // ⚠️ App will NOT work until this is set correctly.
-  const CONTRACT_ADDRESS = 'EQD__YOUR_CRYPTON_CONTRACT_ADDRESS_HERE';
+  const CONTRACT_ADDRESS = 'kQB7qM9C0JFii87JwQfG8GuOVrWU6yrXad3Gjo80oXBGLhuX'; // Testnet deployed
   if (!CONTRACT_ADDRESS || CONTRACT_ADDRESS.includes('YOUR_CRYPTON') || CONTRACT_ADDRESS.length < 48) {
     showToast('⚠️ Smart contract not deployed yet. Contact admin to complete setup.');
     console.error('[CRITICAL] CONTRACT_ADDRESS not configured. Deploy CryptonMatrix contract first:\n  npx blueprint deploy\nThen update CONTRACT_ADDRESS in index.html');
@@ -4538,7 +4539,7 @@ async function buySlot(level, priceTon) {
     // Contract expects: 32-bit opcode + 64-bit tgId + 8-bit level
     // Opcode for BuySlot — REPLACE with actual value from compiled ABI after:
     //   npx blueprint build → open build/CryptonMatrix.abi.json → find BuySlot opcode
-    const BUYSLOT_OPCODE = 0x2c76b973; // ← REPLACE after compiling contract
+    const BUYSLOT_OPCODE = 0xccadf5a7; // BuySlot opcode (CRC32)
 
     function buildBuySlotPayload(tgIdStr, levelNum) {
       // Encode: 4 bytes opcode + 8 bytes tgId + 1 byte level = 13 bytes
