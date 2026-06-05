@@ -3192,6 +3192,17 @@
         </div>
       </div>
 
+      <!-- Wallet Address row — shown after wallet connects -->
+      <div class="card mt-16" id="profile-wallet-card" style="display:none; overflow:hidden;">
+        <div class="wallet-row" style="border-top:none;">
+          <div style="flex:1; min-width:0;">
+            <div class="wallet-label">CONNECTED WALLET</div>
+            <div class="wallet-addr" id="profile-wallet-addr" style="margin-top:3px; font-size:11px; word-break:break-all;">—</div>
+          </div>
+          <button class="btn-copy" id="btn-copy-wallet" onclick="copyWallet()">COPY</button>
+        </div>
+      </div>
+
       <div class="card mt-16" style="padding:20px; text-align:center;">
         <button
           onclick="handleLogout()"
@@ -3909,7 +3920,6 @@ function calculateIncomeDistribution(priceTon) {
 let state = {
   connected:     false,
   walletAddress: null,
-  userId:        null,
   tgUsername:    null,   // Telegram @username — used in ticker
   tgNumericId:   null,   // Telegram numeric user ID
   tgEmail:       null,   // Telegram email (if shared)
@@ -4075,34 +4085,31 @@ function getStoredRef() {
 async function syncPhotoIfLoggedIn() {
   const tgId     = state.tgNumericId;
   const photoUrl = state.tgPhotoUrl;
-  if (!tgId || !photoUrl) return;
+  if (!photoUrl) return;
+
+  // FIX BUG 1: New users are keyed by seed-hash docId, NOT tgNumericId.
+  // Always try session docId first, then fall back to tgNumericId.
+  const session = (() => {
+    try { return JSON.parse(localStorage.getItem('crypton_session') || 'null'); }
+    catch(_) { return null; }
+  })();
+  const docIdToUse = session?.docId || (tgId ? String(tgId) : null);
+  if (!docIdToUse) return;
+
   try {
     await waitForFirestore();
-    // Bug 10 fix: check whether the document exists before writing.
-    // updateDoc() throws if the doc is missing (e.g. user opened the link
-    // before completing bot registration). Using setDoc with merge:true
-    // creates the field if missing but never overwrites other fields,
-    // making it safe regardless of doc state.
-    // BUG 4 FIX: Use updateDoc instead of setDoc({merge:true}).
-    // Firestore rules have "allow create: if false" for the users collection.
-    // setDoc() with merge:true behaves like an update when the doc exists, BUT
-    // if the document is somehow missing it attempts a CREATE — which the rules
-    // block with a PERMISSION_DENIED error. updateDoc() is semantically correct:
-    // it only ever updates an existing document and throws cleanly if missing.
     const { doc, getDoc, updateDoc } = window.__fs;
     const db = window.__db;
     if (!db || !doc || !getDoc || !updateDoc) return;
-    const userDocRef = doc(db, 'users', String(tgId));
+    const userDocRef = doc(db, 'users', docIdToUse);
     const snap = await getDoc(userDocRef);
     if (!snap.exists()) {
-      // Doc not yet created by the bot — skip silently.
-      console.log('[PhotoSync] Doc does not exist yet for tgId:', tgId, '— skipping.');
+      console.log('[PhotoSync] Doc does not exist yet for id:', docIdToUse, '— skipping.');
       return;
     }
     await updateDoc(userDocRef, { tgPhotoUrl: photoUrl });
-    console.log('[PhotoSync] tgPhotoUrl synced for tgId:', tgId);
+    console.log('[PhotoSync] tgPhotoUrl synced for docId:', docIdToUse);
   } catch(e) {
-    // Silent — expected on first-time open before bot registration.
     console.log('[PhotoSync] Skipped:', e.message);
   }
 }
@@ -4180,11 +4187,34 @@ async function connectWallet() {
 }
 
 async function disconnectWallet() {
-  // Step 1: Call TonConnect disconnect
+  // ── Step 1: Erase ONLY walletAddress in Firestore — all other account data
+  // (email, cryptonId, referrals, ownedSlots, earnedTon, etc.) is preserved.
+  // This lets the user reconnect later with a completely different TON wallet
+  // under the exact same profile.
+  try {
+    const session = (() => {
+      try { return JSON.parse(localStorage.getItem('crypton_session') || 'null'); }
+      catch(_) { return null; }
+    })();
+    if (session?.docId && window.__db && window.__fs) {
+      await waitForFirestore();
+      const { doc, updateDoc } = window.__fs;
+      await updateDoc(doc(window.__db, 'users', session.docId), {
+        walletAddress: null,   // only this field is touched — everything else untouched
+      });
+      console.log('[Disconnect] walletAddress cleared in Firestore for docId:', session.docId);
+    }
+  } catch (fsErr) {
+    // Non-fatal — proceed with local disconnect even if Firestore write fails
+    console.warn('[Disconnect] Firestore walletAddress clear failed (non-fatal):', fsErr.message);
+  }
+
+  // Step 2: Call TonConnect disconnect
   if (state.tonConnectUI) {
     try { await state.tonConnectUI.disconnect(); } catch(e) { console.warn('[Disconnect] TonConnect disconnect error:', e.message); }
   }
-  // Step 2: Clear wallet/session state but PRESERVE Telegram identity fields.
+
+  // Step 3: Clear wallet/session state but PRESERVE Telegram identity fields.
   // tgUsername, tgNumericId, tgEmail, tgFirstName, tgPhotoUrl come from the
   // Telegram WebApp SDK (initDataUnsafe) which does NOT re-fire after disconnect.
   // Clearing them means re-connecting shows a blank profile until loginUser()
@@ -4192,7 +4222,6 @@ async function disconnectWallet() {
   // entirely. We keep them so the UI is consistent and re-login is seamless.
   state.connected     = false;
   state.walletAddress = null;
-  state.userId        = null;
   // ── Bug 13 fix: do NOT null out TG identity fields ──
   // state.tgUsername, state.tgNumericId, state.tgEmail,
   // state.tgFirstName, state.tgPhotoUrl are intentionally preserved.
@@ -4211,17 +4240,17 @@ async function disconnectWallet() {
   // If user disconnects and reconnects in the same session, the referrer
   // should still be credited. 'ref' is only cleared on full logout.
 
-  // Step 3: Hide hamburger menu button immediately
+  // Step 4: Hide hamburger menu button immediately
   const menuBtn = document.getElementById('header-menu-btn');
   if (menuBtn) menuBtn.style.display = 'none';
 
-  // Step 4: Close any open fab menu panel
+  // Step 5: Close any open fab menu panel
   closeFabMenu();
 
-  // Step 5: Run the standard disconnect handler (resets UI elements)
+  // Step 6: Run the standard disconnect handler (resets UI elements)
   handleWalletDisconnected();
 
-  // Step 6: Navigate back to home view (root connect screen)
+  // Step 7: Navigate back to home view (root connect screen)
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const homeView = document.getElementById('view-home');
   if (homeView) homeView.classList.add('active');
@@ -4235,7 +4264,7 @@ async function disconnectWallet() {
   if (heroEl) heroEl.style.display = 'block';
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
-  showToast('Wallet disconnected');
+  showToast('Wallet disconnected successfully. You can now connect a new wallet.');
 }
 
 function handleWalletConnected(rawAddress) {
@@ -4261,7 +4290,6 @@ function handleWalletConnected(rawAddress) {
 
   state.connected     = true;
   state.walletAddress = rawAddress;
-  state.userId        = 'USR' + rawAddress.slice(-8).toUpperCase();
 
   // ── Home view: hide hero, show dashboard ──
   const heroEl = document.getElementById('hero-section');
@@ -4286,7 +4314,7 @@ function handleWalletConnected(rawAddress) {
 
   if (walletDisplayEl) walletDisplayEl.textContent = short;
   // Avatar set by _updateDashAvatar() after loginUser() loads TG photo from Firestore
-  if (dashUidEl)       dashUidEl.textContent       = state.cryptonId ? ('Crypton ID: ' + state.cryptonId) : (state.tgNumericId || state.userId || '—');
+  if (dashUidEl)       dashUidEl.textContent       = state.cryptonId ? ('Crypton ID: ' + state.cryptonId) : (state.tgNumericId || '—');
   // joinDate filled by loginUser() from Firestore — never overwrite with today's date here
 
   // FIX 1: Referral link must strictly use state.cryptonId (the exact same 7-digit ID
@@ -4327,7 +4355,6 @@ function handleWalletConnected(rawAddress) {
     : {};
   console.log('[Firebase] User payload on connect:', {
     walletAddress: rawAddress,
-    userId: state.userId,
     ...tgPayload,
   });
 
@@ -4371,7 +4398,6 @@ function handleWalletDisconnected() {
 
   state.connected     = false;
   state.walletAddress = null;
-  state.userId        = null;
 
   const heroEl          = document.getElementById('hero-section');
   const dashEl          = document.getElementById('dashboard');
@@ -5099,8 +5125,8 @@ async function buySlot(level, priceTon) {
         card.classList.add(slotDef && slotDef.gold ? 'flash-gold' : 'flash-cyan');
         setTimeout(() => card.classList.remove('flash-gold','flash-cyan'), 800);
       }
-      if (_tickerSeeded && (state.tgNumericId || state.userId)) {
-        const myUid = String(state.tgNumericId || state.userId);
+      if (_tickerSeeded && state.tgNumericId) {
+        const myUid = String(state.tgNumericId);
         const idx = _tickerData.findIndex(r => r.tgId === myUid);
         if (idx === -1) _tickerData.push({ tgId: myUid, earnedTon: state.earnedTon||0 });
         else            _tickerData[idx].earnedTon = state.earnedTon||0;
@@ -5109,8 +5135,22 @@ async function buySlot(level, priceTon) {
       }
 
       // ── Direct Firestore write — frontend is the canonical writer ────────────
-      // In-flight guard: prevents duplicate writes if user taps rapidly
-      if (tgDocId && !buySlot._writing) {
+      // In-flight guard: prevents duplicate writes if user taps rapidly.
+      //
+      // STANDALONE BROWSER SUPPORT: tgDocId may be empty when running outside
+      // Telegram. Fall back to sessionDocId (seed-phrase users stored in
+      // localStorage) so slot purchases always persist regardless of environment.
+      const _bsSession = (() => {
+        try { return JSON.parse(localStorage.getItem('crypton_session') || 'null'); }
+        catch(_) { return null; }
+      })();
+      const _bsDocId =
+        tgDocId                                                ||
+        (_bsSession && _bsSession.docId ? String(_bsSession.docId) : null) ||
+        state.userId                                           ||
+        null;
+
+      if (_bsDocId && !buySlot._writing) {
         buySlot._writing = true;
         (async function persistSlotPurchase() {
           try {
@@ -5126,22 +5166,23 @@ async function buySlot(level, priceTon) {
             if (_au) {
               updateData.ownedSlots = _au(level);
             } else {
-              // Fallback: deduplicate manually
               const deduped = [...new Set(state.ownedSlots)];
               updateData.ownedSlots = deduped;
             }
             // Firestore server-side increment — safe against concurrent writes
             updateData[sfKey] = _inc ? _inc(1) : ((slotFill[level] || 0));
 
-            await _u(_d(_db, 'users', tgDocId), updateData);
-            console.log('[BuySlot] Firestore updated ✓ level:', level, '| fill:', slotFill[level]);
+            await _u(_d(_db, 'users', _bsDocId), updateData);
+            console.log('[BuySlot] Firestore updated ✓ docId:', _bsDocId, '| level:', level, '| fill:', slotFill[level]);
           } catch (fsErr) {
             console.warn('[BuySlot] Firestore write failed:', fsErr.message);
-            showToast('⚠️ Purchase recorded locally. Will sync on next login.');
+            showToast('\u26a0\ufe0f Purchase recorded locally. Will sync on next login.');
           } finally {
             buySlot._writing = false;
           }
         })();
+      } else if (!_bsDocId) {
+        console.warn('[BuySlot] Cannot persist \u2014 no document ID resolved (no TG session, no localStorage session).');
       }
     }
   } catch(e) {
@@ -5502,7 +5543,6 @@ async function handleVerifyAndCreate() {
       name:          _regState.name,
       email:         _regState.email,
       seedPhrase:    _regState.seedWords.join(' '), // stored for recovery (hash in docId)
-      tgId:          (window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '').toString() || null,
       tgHandle:      tgPayload.tgHandle   || null,
       tgName:        _regState.name,
       tgEmail:       _regState.email,
@@ -5774,7 +5814,6 @@ function handleLogout() {
 
   state.connected          = false;
   state.walletAddress      = null;
-  state.userId             = null;
   state.cryptonId          = null;
   state.tgNumericId        = null;
   state.tgFirstName        = null;
@@ -6074,8 +6113,22 @@ async function loginUser(walletAddress) {
   const { doc, getDoc, updateDoc, increment, collection, query, where, getDocs } = window.__fs;
   const db = window.__db;
 
-  // ── SINGLE document reference — always keyed by Telegram Chat ID ──
+  // ── DUAL document lookup — tgIdFromSDK first, then session docId ──
+  // New users registered via seed phrase have docs keyed by seed-hash docId.
+  // Returning via wallet connect, tgIdFromSDK may not match their Firestore doc.
+  // We try both: tgId path (for legacy/bot users) AND session docId (for app users).
+  const session = (() => {
+    try { return JSON.parse(localStorage.getItem('crypton_session') || 'null'); }
+    catch(_) { return null; }
+  })();
+  const sessionDocId = session?.docId || null;
+
+  // Primary ref: by tgId (legacy bot users + returning users who were bot-registered)
   const userDocRef = doc(db, 'users', tgIdFromSDK);
+  // Secondary ref: by seed-hash docId (new app-registered users)
+  const sessionDocRef = sessionDocId && sessionDocId !== tgIdFromSDK
+    ? doc(db, 'users', sessionDocId)
+    : null;
 
   const tgPayload  = typeof window.buildTelegramPayload === 'function'
     ? window.buildTelegramPayload() : {};
@@ -6083,7 +6136,18 @@ async function loginUser(walletAddress) {
   // This is resolved after snap.exists() check using data.referredBy — see below.
 
   try {
-    const snap = await getDoc(userDocRef);
+    let snap = await getDoc(userDocRef);
+    let activeDocRef = userDocRef;
+
+    // FIX BUG 2: If tgId-keyed doc not found, try session docId (seed-hash users)
+    if (!snap.exists() && sessionDocRef) {
+      console.log('[Firebase] tgId doc not found — trying session docId:', sessionDocId);
+      snap = await getDoc(sessionDocRef);
+      if (snap.exists()) {
+        activeDocRef = sessionDocRef;
+        console.log('[Firebase] Found user doc via session docId:', sessionDocId);
+      }
+    }
 
     if (!snap.exists()) {
       // ── STRICT GATE: No document found — wallet connection is rejected.
@@ -6094,7 +6158,6 @@ async function loginUser(walletAddress) {
       // 1. Clear connected state so nothing downstream treats this as authenticated
       state.connected     = false;
       state.walletAddress = null;
-      state.userId        = null;
 
       // 2. Disconnect the TON wallet so the session is not retained
       if (state.tonConnectUI) {
@@ -6181,7 +6244,7 @@ async function loginUser(walletAddress) {
           legacyAttempts++;
         }
         if (!legacyCryptonId) legacyCryptonId = String(Date.now()).slice(-7);
-        await _upd(userDocRef, { cryptonId: legacyCryptonId });
+        await _upd(activeDocRef, { cryptonId: legacyCryptonId });
         state.cryptonId = legacyCryptonId;
         if (dashUidFromLogin) dashUidFromLogin.textContent = 'Crypton ID: ' + legacyCryptonId;
         console.log('[Firebase] Legacy user — cryptonId assigned:', legacyCryptonId);
@@ -6338,12 +6401,11 @@ async function loginUser(walletAddress) {
         // Trade-off: if step 2 fails after step 1 succeeded, the referrer misses
         // their credit this session. This is acceptable — the alternative (double-
         // credit) is a financial exploit. Admins can manually credit edge cases.
-        await updateDoc(userDocRef, {
+        await updateDoc(activeDocRef, {
           referralCounted: true,
           walletAddress,
-          userId: 'USR' + walletAddress.slice(-8).toUpperCase()
         });
-        console.log('[Firebase] referralCounted set for current user:', tgIdFromSDK);
+        console.log('[Firebase] referralCounted set for current user (activeDocRef)');
 
         // Now safely credit the referrer — referralCounted is already true so
         // even if this throws, the block will never run again next session.
@@ -6370,18 +6432,17 @@ async function loginUser(walletAddress) {
 
     showToast('Welcome back! Data loaded ✓');
 
-    // ── Merge wallet address + userId into the single Telegram-keyed doc ──
+    // ── Merge wallet address into the single Telegram-keyed doc ──
     // This is the bridge moment: the bot document gains the wallet address.
     // updateDoc is used (not setDoc) so no existing bot fields are overwritten.
     // NOTE: This block runs EVERY session (not gated by isFirstWalletLink) so that
     // tgPhotoUrl and other SDK-fresh fields are always kept up-to-date in Firestore.
     // This is what makes the Leaderboard and User Directory always show real avatars.
-    const userId = 'USR' + walletAddress.slice(-8).toUpperCase();
+
     // Referral link MUST use Telegram numeric ID — canonical priority order:
     //   1. state.tgNumericId (from SDK initDataUnsafe — most reliable)
     //   2. tgIdFromSDK (raw SDK value captured at function entry)
     //   3. data.tgId (from Firestore — written by bot at registration)
-    // NEVER use userId ("USR...") — it will never match referredBy in Firestore
     const canonicalTgId =
       (state.tgNumericId && /^\d+$/.test(state.tgNumericId) ? state.tgNumericId : null) ||
       (tgIdFromSDK && /^\d+$/.test(tgIdFromSDK) ? tgIdFromSDK : null) ||
@@ -6394,7 +6455,7 @@ async function loginUser(walletAddress) {
     const refLinkVal2 = refId2
       ? `${window.location.origin}/?ref=${refId2}`
       : 'Referral link loading…';
-    const mergeFields = { walletAddress, userId };
+    const mergeFields = { walletAddress };
     // Also refresh any tg fields the SDK may have fresher data for
     if (tgPayload.tgHandle) mergeFields.tgHandle = tgPayload.tgHandle;
     if (tgPayload.tgName)   mergeFields.tgName   = tgPayload.tgName;
@@ -6407,23 +6468,18 @@ async function loginUser(walletAddress) {
     //   (b) Other users see the real avatar on Leaderboard and User Directory.
     //   (c) No extra Firestore read is needed — it piggybacks on this existing write.
     if (state.tgPhotoUrl) mergeFields.tgPhotoUrl = state.tgPhotoUrl;
-    await updateDoc(userDocRef, mergeFields).catch(err =>
+    await updateDoc(activeDocRef, mergeFields).catch(err =>
       console.error('[Firebase] Failed to merge wallet into user doc:', err)
     );
-    console.log('[Firebase] Wallet address + tgPhotoUrl merged into tgId doc:', tgIdFromSDK, '←', walletAddress, '| photo:', state.tgPhotoUrl ? 'set' : 'not available');
+    console.log('[Firebase] Wallet + tgPhotoUrl merged into doc:', activeDocRef.id, '←', walletAddress, '| photo:', state.tgPhotoUrl ? 'set' : 'not available');
 
-    state.userId = userId;
-
-    // ── Set referral link exactly ONCE — prefer tgNumericId over walletUserId ──
-    // refId2 = tgNumericId || userId (already computed above); this is the canonical value.
-    // Previous code wrote the link twice with different IDs — second write (userId only)
-    // would immediately overwrite the tgNumericId-based link, breaking bot deep-link matching.
+    // ── Set referral link exactly ONCE — uses state.cryptonId as the canonical value ──
     const _refLinkEl    = document.getElementById('ref-link');
     const _refLinkNetEl = document.getElementById('ref-link-network');
     const _dashUidEl    = document.getElementById('dash-uid');
     if (_refLinkEl)    _refLinkEl.textContent    = refLinkVal2;
     if (_refLinkNetEl) _refLinkNetEl.textContent = refLinkVal2;
-    if (_dashUidEl)    _dashUidEl.textContent    = state.cryptonId ? ('Crypton ID: ' + state.cryptonId) : ('ID: ' + (state.tgNumericId || userId));
+    if (_dashUidEl)    _dashUidEl.textContent    = state.cryptonId ? ('Crypton ID: ' + state.cryptonId) : ('ID: ' + (state.tgNumericId || '—'));
 
     // FIX: Update avatar AFTER tgPhotoUrl is hydrated from Firestore
     _updateDashAvatar();
@@ -6441,10 +6497,38 @@ async function loginUser(walletAddress) {
 }
 
 async function saveUserData(updates) {
-  const tgDocId = String(
-    window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || ''
-  );
-  if (!tgDocId) return;
+  // ── Resolve the correct Firestore document ID ──────────────────────────────
+  // Priority order (standalone browser-first architecture):
+  //   1. Telegram numeric ID from SDK (only available inside Telegram WebApp)
+  //   2. state.tgNumericId (cached from SDK or Firestore on last login)
+  //   3. sessionDocId from localStorage (seed-phrase registered users in browser)
+  //      This is the canonical fallback for ALL non-Telegram environments.
+  //   4. state.userId if set (last-resort)
+  // This ensures saveUserData() always locates the correct document regardless
+  // of whether the user is inside Telegram or using a standalone browser.
+
+  const tgSdkId    = window.Telegram?.WebApp?.initDataUnsafe?.user?.id
+                     ? String(window.Telegram.WebApp.initDataUnsafe.user.id)
+                     : null;
+
+  // Read session from localStorage — written by handleVerifyAndCreate() on registration
+  const _session   = (() => {
+    try { return JSON.parse(localStorage.getItem('crypton_session') || 'null'); }
+    catch(_) { return null; }
+  })();
+  const sessionDocId = _session?.docId || null;
+
+  const resolvedDocId =
+    tgSdkId                                              ||
+    (state.tgNumericId && /^\d+$/.test(String(state.tgNumericId)) ? String(state.tgNumericId) : null) ||
+    sessionDocId                                         ||
+    state.userId                                         ||
+    null;
+
+  if (!resolvedDocId) {
+    console.warn('[Firebase] saveUserData: cannot resolve document ID — skipping write.', updates);
+    return;
+  }
 
   if (Object.keys(updates).length === 0) {
     console.log('[Firebase] saveUserData: nothing to write.');
@@ -6454,11 +6538,11 @@ async function saveUserData(updates) {
   try {
     await waitForFirestore();
     const { doc, updateDoc } = window.__fs;
-    const userDocRef = doc(window.__db, 'users', tgDocId);
+    const userDocRef = doc(window.__db, 'users', resolvedDocId);
     await updateDoc(userDocRef, updates);
-    console.log('[Firebase] saveUserData ✓', updates);
+    console.log('[Firebase] saveUserData ✓ (docId:', resolvedDocId, ')', updates);
   } catch(e) {
-    console.error('[Firebase] saveUserData error:', e);
+    console.error('[Firebase] saveUserData error (docId:', resolvedDocId, '):', e);
   }
 }
 
@@ -6488,15 +6572,12 @@ async function getReferralStats() {
 // ──────────────────────────────────────────────────────────────
 // MY REFERRALS LIST — fetch users where referredBy == myId
 // ──────────────────────────────────────────────────────────────
-// FIX: myId MUST be the Telegram numeric ID (tgId) — NOT state.userId (USR…)
-// Bot writes referredBy as String(chat_id), e.g. "8501412057".
+// FIX: myId MUST be the Telegram numeric ID (tgId) OR session cryptonId.
+// Bot writes referredBy as String(chat_id) or cryptonId depending on flow.
 // Resolution order:
 //   1. Telegram WebApp SDK (most reliable inside Mini App)
 //   2. state.tgNumericId  (loaded from Firestore by loginUser)
-//   3. state.userId only as absolute last resort — but state.userId is
-//      "USRxxxxxxxx" (wallet-derived), which will NEVER match referredBy.
-//      So we only fall through to it if nothing else is available,
-//      and we also run a Firestore tgId-field query to be safe.
+// We deliberately use only tgNumericId — wallet-derived IDs never match referredBy.
 async function renderReferralList() {
   const inner   = document.getElementById('ref-list-inner');
   const loading = document.getElementById('ref-list-loading');
@@ -6702,13 +6783,54 @@ function switchView(name) {
 // COPY HELPERS
 // ──────────────────────────────────────────────────────────────
 function copyWallet() {
-  if (!state.walletAddress) return;
-  navigator.clipboard.writeText(state.walletAddress).then(() => {
-    const btn = document.querySelector('.wallet-row .btn-copy');
-    btn.textContent='COPIED!'; btn.classList.add('copied');
-    setTimeout(() => { btn.textContent='COPY'; btn.classList.remove('copied'); }, 2000);
+  // Uses a specific unique ID to avoid fragile class-based DOM traversal.
+  // The button with id="btn-copy-wallet" is the canonical wallet copy trigger.
+  if (!state.walletAddress) { showToast('No wallet connected'); return; }
+
+  const doCopy = () => {
+    const btn = document.getElementById('btn-copy-wallet');
+    if (btn) {
+      btn.textContent = 'COPIED!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'COPY';
+        btn.classList.remove('copied');
+      }, 2000);
+    }
     showToast('Wallet address copied');
-  });
+  };
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(state.walletAddress).then(doCopy).catch(() => {
+      // Fallback for Telegram WebApp / older browsers
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = state.walletAddress;
+        ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;';
+        document.body.appendChild(ta);
+        ta.focus(); ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        doCopy();
+      } catch(_e) {
+        showToast('Copy failed. Long-press address to copy manually.');
+      }
+    });
+  } else {
+    // No clipboard API — use execCommand fallback
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = state.walletAddress;
+      ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;';
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      doCopy();
+    } catch(_e) {
+      showToast('Copy failed. Long-press address to copy manually.');
+    }
+  }
 }
 
 function copyReferral() {
@@ -7939,8 +8061,8 @@ function renderTicker() {
 
 function _injectLiveUserIntoTicker() {
   // Key live user entry on numeric UID — matches what fetchTickerDataFromFirestore now stores
-  if (state.connected && (state.tgNumericId || state.userId)) {
-    const myUid = String(state.tgNumericId || state.userId);
+  if (state.connected && state.tgNumericId) {
+    const myUid = String(state.tgNumericId);
     const myTon = state.earnedTon || 0;
     const idx   = _tickerData.findIndex(r => r.tgId === myUid);
     if (idx === -1) _tickerData.push({ tgId: myUid, earnedTon: myTon });
@@ -8100,23 +8222,40 @@ function _updateHeaderCapsule() {
     if (handleEl) handleEl.textContent = firstName;
     logoIdCapsule.style.display = 'inline-flex';
   }
+
+  // ── Sync Profile view wallet card ────────────────────────────────────────
+  // Reveals the wallet address row in the Profile view and populates the address.
+  // Uses id="btn-copy-wallet" for the copy button — robust, no class-based traversal.
+  const profileWalletCard = document.getElementById('profile-wallet-card');
+  const profileWalletAddr = document.getElementById('profile-wallet-addr');
+  if (profileWalletCard && profileWalletAddr) {
+    if (state.walletAddress) {
+      profileWalletAddr.textContent = state.walletAddress;
+      profileWalletCard.style.display = 'block';
+    } else {
+      profileWalletCard.style.display = 'none';
+    }
+  }
 }
 
 // ──────────────────────────────────────────────────────────────
 // DASHBOARD AVATAR — Telegram DP or WhatsApp-style silhouette
 // ──────────────────────────────────────────────────────────────
 function _insertSilhouette(container) {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 56 56');
-  svg.setAttribute('width',  '100%');
-  svg.setAttribute('height', '100%');
-  svg.style.cssText = 'display:block;border-radius:16px;';
-  svg.innerHTML =
-    '<rect width="56" height="56" rx="16" fill="rgba(255,255,255,0.06)"/>' +
-    '<circle cx="28" cy="21" r="10" fill="#8aa5c0"/>' +
-    '<path d="M6 50 Q6 36 28 36 Q50 36 50 50" fill="#8aa5c0"/>';
+  // Show Crypton app logo as default avatar (when no Telegram photo is available)
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'width:100%;height:100%;border-radius:16px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0d1e38 0%,#091525 100%);';
+  const img = document.createElement('img');
+  img.src = 'https://i.ibb.co/sv3gKkfx/IPROS3221059704984801090.png';
+  img.alt = 'Crypton';
+  img.style.cssText = 'width:72%;height:72%;object-fit:contain;display:block;';
+  img.onerror = function() {
+    // Fallback if logo image fails to load — show C letter
+    wrapper.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#d4a843,#00e5ff);border-radius:16px;font-family:Syne,sans-serif;font-size:22px;font-weight:900;color:#050d1a;">C</div>';
+  };
+  wrapper.appendChild(img);
   container.innerHTML = '';
-  container.appendChild(svg);
+  container.appendChild(wrapper);
 }
 
 function _updateDashAvatar() {
