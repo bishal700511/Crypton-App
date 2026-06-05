@@ -1133,6 +1133,23 @@
     .flash-cyan { animation: success-flash      0.7s ease-out forwards; }
     .flash-gold { animation: success-flash-gold 0.7s ease-out forwards; }
 
+    /* ── On-chain confirmation pending state ──────────────────── */
+    @keyframes confirming-pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.55; }
+    }
+    .slot-confirming {
+      animation: confirming-pulse 1.2s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .slot-confirming::after {
+      content: '';
+      position: absolute; inset: 0;
+      border-radius: inherit;
+      border: 2px solid rgba(0, 212, 255, 0.55);
+      animation: confirming-pulse 1.2s ease-in-out infinite;
+    }
+
     /* ─── LEVEL INDICATOR BAR ──────────────────────────────── */
     #level-indicator-bar {
       display: none; /* shown by JS after wallet connect */
@@ -4128,7 +4145,7 @@ setTimeout(syncPhotoIfLoggedIn, 3500);
     //   Change 'testnet' → 'mainnet' below when smart contract is deployed on mainnet
     // STEP 2 of 2: Update CONTRACT_ADDRESS in buySlot() to mainnet address
     // ──────────────────────────────────────────────────────────────────────────
-    const ACTIVE_NETWORK = 'testnet'; // ← Change to 'mainnet' for production
+    const ACTIVE_NETWORK = 'testnet'; // ← Locked to testnet for live on-chain verification
     state.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
       manifestUrl: 'https://crypton-app-omega.vercel.app/tonconnect-manifest.json',
       network: ACTIVE_NETWORK,
@@ -4999,16 +5016,8 @@ async function buySlot(level, priceTon) {
   // │  MAINNET address: Paste here after mainnet deploy                       │
   // └─────────────────────────────────────────────────────────────────────────┘
   // ⚠️  REPLACE THIS PLACEHOLDER WITH YOUR ACTUAL CONTRACT ADDRESS:
-  const CONTRACT_ADDRESS = 'PASTE_YOUR_CONTRACT_ADDRESS_HERE';
-
-  // ── Validation guard — app will show a clear message if not configured ────
-  if (!CONTRACT_ADDRESS
-      || CONTRACT_ADDRESS === 'PASTE_YOUR_CONTRACT_ADDRESS_HERE'
-      || CONTRACT_ADDRESS.length < 48) {
-    showToast('⚠️ Smart contract not configured yet. Coming soon!', 5000);
-    console.warn('[BuySlot] CONTRACT_ADDRESS not set. Deploy the contract and paste the address in index.html.');
-    return;
-  }
+  // ── LIVE TESTNET CONTRACT — EQBB8BO6wOZChLcJBTKT1DkrThhBb7iilP5934lQvg-SUmoM ──
+  const CONTRACT_ADDRESS = 'EQBB8BO6wOZChLcJBTKT1DkrThhBb7iilP5934lQvg-SUmoM';
 
   try {
     // ── Amount calculation — full price in nanotons to contract ──────────────
@@ -5102,41 +5111,11 @@ async function buySlot(level, priceTon) {
     const result = await state.tonConnectUI.sendTransaction(tx);
 
     if (result) {
-      const boc     = result.boc || '';
       const tgDocId = String(
         window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || ''
       );
-      const amountNano = totalNano.toString();
 
-      // ── Optimistic local update (immediate UI feedback) ───────────────────
-      // Only push level to ownedSlots if not already there (re-buys same level up to 6 fills)
-      if (!state.ownedSlots.includes(level)) state.ownedSlots.push(level);
-      if (slotFill[level] === undefined) slotFill[level] = 0;
-      slotFill[level]++;
-      updateStatsUI();
-      renderSlots();
-      showToast(`Level ${level} activated! 🎉`);
-
-      // ── Celebration burst ──────────────────────────────────────────────────
-      const card = document.querySelector(`[data-level="${level}"]`);
-      const slotDef = SLOTS.find(s => s.level === level);
-      if (window.burstParticles) burstParticles(card, slotDef && slotDef.gold);
-      if (card) {
-        card.classList.add(slotDef && slotDef.gold ? 'flash-gold' : 'flash-cyan');
-        setTimeout(() => card.classList.remove('flash-gold','flash-cyan'), 800);
-      }
-      if (_tickerSeeded && state.tgNumericId) {
-        const myUid = String(state.tgNumericId);
-        const idx = _tickerData.findIndex(r => r.tgId === myUid);
-        if (idx === -1) _tickerData.push({ tgId: myUid, earnedTon: state.earnedTon||0 });
-        else            _tickerData[idx].earnedTon = state.earnedTon||0;
-        _tickerData.sort((a,b) => b.earnedTon - a.earnedTon);
-        renderTicker();
-      }
-
-      // ── Direct Firestore write — frontend is the canonical writer ────────────
-      // In-flight guard: prevents duplicate writes if user taps rapidly.
-      //
+      // ── Resolve Firestore document ID ────────────────────────────────────────
       // STANDALONE BROWSER SUPPORT: tgDocId may be empty when running outside
       // Telegram. Fall back to sessionDocId (seed-phrase users stored in
       // localStorage) so slot purchases always persist regardless of environment.
@@ -5150,40 +5129,138 @@ async function buySlot(level, priceTon) {
         state.userId                                           ||
         null;
 
-      if (_bsDocId && !buySlot._writing) {
-        buySlot._writing = true;
-        (async function persistSlotPurchase() {
-          try {
-            await waitForFirestore();
-            const { doc: _d, updateDoc: _u, increment: _inc, arrayUnion: _au } = window.__fs;
-            const _db = window.__db;
+      // ── On-chain confirmation gate via Toncenter testnet ─────────────────────
+      // We do NOT do any optimistic local update. Instead we poll the contract's
+      // getSlotFillForUser getter every 5 s and ONLY update the UI + Firestore
+      // once the on-chain fill count has incremented. This closes all bypass
+      // exploits — a fake BOC or a cancelled tx cannot trigger a UI update.
+      //
+      // Using Toncenter public API (no auth key, no CORS issues on mobile/WebView):
+      //   POST https://testnet.toncenter.com/api/v2/runGetMethod
+      //   Body: { address, method: 'getSlotFillForUser', stack: [['num', buyerTgId], ['num', level]] }
 
-            const sfKey = 'slotFill.' + level;
-            const updateData = {
-              walletAddress: state.walletAddress || '',
-            };
-            // arrayUnion ensures no duplicate level in ownedSlots even if called twice
-            if (_au) {
-              updateData.ownedSlots = _au(level);
-            } else {
-              const deduped = [...new Set(state.ownedSlots)];
-              updateData.ownedSlots = deduped;
+      const fillBefore = (slotFill[level] || 0);
+
+      // Show persistent spinner toast while waiting for chain confirmation
+      showToast('\u23f3 Waiting for on-chain confirmation\u2026', 120000);
+
+      // Mark card as confirming for visual feedback
+      const _pollCard = document.querySelector(`[data-level="${level}"]`);
+      if (_pollCard) _pollCard.classList.add('slot-confirming');
+
+      const TONCENTER_TESTNET = 'https://testnet.toncenter.com/api/v2/runGetMethod';
+
+      let _pollAttempts = 0;
+      const MAX_POLL_ATTEMPTS = 36; // 36 × 5 s = 3 minutes max
+
+      const _pollInterval = setInterval(async () => {
+        _pollAttempts++;
+        if (_pollAttempts > MAX_POLL_ATTEMPTS) {
+          clearInterval(_pollInterval);
+          if (_pollCard) _pollCard.classList.remove('slot-confirming');
+          showToast('\u26a0\ufe0f On-chain confirmation timed out. Check your wallet and refresh.', 7000);
+          buySlot._writing = false;
+          return;
+        }
+
+        try {
+          const resp = await fetch(TONCENTER_TESTNET, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            cache: 'no-store',
+            body: JSON.stringify({
+              address: CONTRACT_ADDRESS,
+              method: 'getSlotFillForUser',
+              stack: [
+                ['num', buyerTgId],
+                ['num', String(level)]
+              ]
+            })
+          });
+          if (!resp.ok) return; // transient error — keep polling
+
+          const data = await resp.json();
+
+          // Toncenter returns result.stack as array of [type, value] pairs.
+          // Fill count is the first stack item (type 'num', hex-encoded value).
+          const rawStack = data?.result?.stack;
+          const stackVal = Array.isArray(rawStack) && rawStack[0]
+            ? parseInt(String(rawStack[0][1]), 16)  // hex → decimal
+            : -1;
+
+          const fillOnChain = isNaN(stackVal) ? -1 : stackVal;
+          console.log(`[BuySlot] Poll #${_pollAttempts} \u2014 on-chain fill for L${level}:`, fillOnChain, '| before tx:', fillBefore);
+
+          if (fillOnChain > fillBefore) {
+            // \u2705 Chain confirmed — stop polling and update everything
+            clearInterval(_pollInterval);
+            if (_pollCard) _pollCard.classList.remove('slot-confirming');
+
+            // Update local state with confirmed on-chain value
+            if (!state.ownedSlots.includes(level)) state.ownedSlots.push(level);
+            slotFill[level] = fillOnChain;
+            updateStatsUI();
+            renderSlots();
+            showToast(`Level ${level} confirmed on-chain! \ud83c\udf89`);
+
+            // ── Celebration burst ────────────────────────────────────────────
+            const slotDef = SLOTS.find(s => s.level === level);
+            if (window.burstParticles) burstParticles(_pollCard, slotDef && slotDef.gold);
+            if (_pollCard) {
+              _pollCard.classList.add(slotDef && slotDef.gold ? 'flash-gold' : 'flash-cyan');
+              setTimeout(() => _pollCard.classList.remove('flash-gold','flash-cyan'), 800);
             }
-            // Firestore server-side increment — safe against concurrent writes
-            updateData[sfKey] = _inc ? _inc(1) : ((slotFill[level] || 0));
+            if (_tickerSeeded && state.tgNumericId) {
+              const myUid = String(state.tgNumericId);
+              const tickIdx = _tickerData.findIndex(r => r.tgId === myUid);
+              if (tickIdx === -1) _tickerData.push({ tgId: myUid, earnedTon: state.earnedTon||0 });
+              else                _tickerData[tickIdx].earnedTon = state.earnedTon||0;
+              _tickerData.sort((a,b) => b.earnedTon - a.earnedTon);
+              renderTicker();
+            }
 
-            await _u(_d(_db, 'users', _bsDocId), updateData);
-            console.log('[BuySlot] Firestore updated ✓ docId:', _bsDocId, '| level:', level, '| fill:', slotFill[level]);
-          } catch (fsErr) {
-            console.warn('[BuySlot] Firestore write failed:', fsErr.message);
-            showToast('\u26a0\ufe0f Purchase recorded locally. Will sync on next login.');
-          } finally {
-            buySlot._writing = false;
+            // ── Firestore write — only AFTER on-chain confirmation ─────────────
+            // In-flight guard: prevents duplicate writes if user taps rapidly.
+            if (_bsDocId && !buySlot._writing) {
+              buySlot._writing = true;
+              (async function persistSlotPurchase() {
+                try {
+                  await waitForFirestore();
+                  const { doc: _d, updateDoc: _u, arrayUnion: _au } = window.__fs;
+                  const _db = window.__db;
+
+                  const sfKey = 'slotFill.' + level;
+                  const updateData = {
+                    walletAddress: state.walletAddress || '',
+                  };
+                  // arrayUnion ensures no duplicate level in ownedSlots
+                  if (_au) {
+                    updateData.ownedSlots = _au(level);
+                  } else {
+                    const deduped = [...new Set(state.ownedSlots)];
+                    updateData.ownedSlots = deduped;
+                  }
+                  // Write the exact confirmed on-chain value — not a blind increment
+                  updateData[sfKey] = fillOnChain;
+
+                  await _u(_d(_db, 'users', _bsDocId), updateData);
+                  console.log('[BuySlot] Firestore updated \u2713 docId:', _bsDocId, '| level:', level, '| onChainFill:', fillOnChain);
+                } catch (fsErr) {
+                  console.warn('[BuySlot] Firestore write failed:', fsErr.message);
+                  showToast('\u26a0\ufe0f On-chain confirmed but DB sync failed. Will sync on next login.');
+                } finally {
+                  buySlot._writing = false;
+                }
+              })();
+            } else if (!_bsDocId) {
+              console.warn('[BuySlot] Cannot persist \u2014 no document ID resolved (no TG session, no localStorage session).');
+            }
           }
-        })();
-      } else if (!_bsDocId) {
-        console.warn('[BuySlot] Cannot persist \u2014 no document ID resolved (no TG session, no localStorage session).');
-      }
+        } catch (pollErr) {
+          console.warn('[BuySlot] Poll error (will retry):', pollErr.message);
+          // Non-fatal — keep polling until MAX_POLL_ATTEMPTS
+        }
+      }, 5000); // poll every 5 seconds
     }
   } catch(e) {
     buySlot._writing = false; // always clear guard on any error path
@@ -8403,7 +8480,7 @@ async function loadUserDirectory() {
       const avatarHtml = photoUrl
         ? `<img src="${escAttr(photoUrl)}" alt="" loading="lazy"
                style="width:100%;height:100%;object-fit:cover;display:block;border-radius:10px;"
-               onerror="(function(el){el.style.display='none';var p=el.parentElement;if(p){p.innerHTML='<svg viewBox=\\'0 0 42 42\\' width=\\'42\\' height=\\'42\\' xmlns=\\'http://www.w3.org/2000/svg\\'><rect width=\\'42\\' height=\\'42\\' rx=\\'10\\' fill=\\'rgba(255,255,255,0.06)\\'/><circle cx=\\'21\\' cy=\\'16\\' r=\\'7.5\\' fill=\\'#8aa5c0\\'/><path d=\\'M4 40 Q4 28 21 28 Q38 28 38 40\\' fill=\\'#8aa5c0\\'/></svg>';};})(this);">`
+               onerror="this.onerror=null; this.src='https://i.ibb.co/sv3gKkfx/IPROS3221059704984801090.png';">`
         : silSvgDir;
 
       // Medal colors for top 3 (mirrors leaderboard)
@@ -8569,7 +8646,7 @@ async function loadLeaderboardView() {
         ? `<img src="${escAttr(photoUrl)}" alt="" loading="lazy"
                id="${avatarId}"
                style="width:100%;height:100%;object-fit:cover;display:block;border-radius:11px;"
-               onerror="(function(el){el.style.display='none';var p=el.parentElement;if(p){p.innerHTML='<svg viewBox=\\'0 0 42 42\\' width=\\'42\\' height=\\'42\\' xmlns=\\'http://www.w3.org/2000/svg\\'><rect width=\\'42\\' height=\\'42\\' rx=\\'10\\' fill=\\'rgba(255,255,255,0.06)\\'/><circle cx=\\'21\\' cy=\\'16\\' r=\\'7.5\\' fill=\\'#8aa5c0\\'/><path d=\\'M4 40 Q4 28 21 28 Q38 28 38 40\\' fill=\\'#8aa5c0\\'/></svg>';};})(this);">`
+               onerror="this.onerror=null; this.src='https://i.ibb.co/sv3gKkfx/IPROS3221059704984801090.png';">`
         : `<svg viewBox="0 0 42 42" width="42" height="42" xmlns="http://www.w3.org/2000/svg"><rect width="42" height="42" rx="10" fill="rgba(255,255,255,0.06)"/><circle cx="21" cy="16" r="7.5" fill="#8aa5c0"/><path d="M4 40 Q4 28 21 28 Q38 28 38 40" fill="#8aa5c0"/></svg>`;
 
       const rankColor = medalColors[idx] || 'var(--text-lo)';
