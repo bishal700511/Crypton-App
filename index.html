@@ -4168,8 +4168,9 @@ async function disconnectWallet() {
   buySlot._writing       = false; // clear any in-flight write guard
   Object.keys(slotFill).forEach(k => delete slotFill[k]);
   Object.keys(slotReferrals).forEach(k => delete slotReferrals[k]);
-  // Clear referral deep-link param only (not TG user params — they may be needed on re-connect)
-  sessionStorage.removeItem('ref');
+  // NOTE: intentionally NOT clearing sessionStorage 'ref' here.
+  // If user disconnects and reconnects in the same session, the referrer
+  // should still be credited. 'ref' is only cleared on full logout.
 
   // Step 3: Hide hamburger menu button immediately
   const menuBtn = document.getElementById('header-menu-btn');
@@ -4289,8 +4290,9 @@ function handleWalletConnected(rawAddress) {
     _showDashboardAfterWallet(docId, cryptonId, name);
   } else {
     // Normal wallet connect (returning user / auto-restore)
+    // IMPORTANT: only pass tgNumericId — never userId (which is "USR..." and breaks referral links)
     _showDashboardAfterWallet(
-      state.tgNumericId || state.userId,
+      state.tgNumericId || null,
       state.cryptonId,
       state.tgFirstName || 'User'
     );
@@ -5756,10 +5758,14 @@ function _showDashboardAfterWallet(docId, cryptonId, name) {
   const dashRegEl = document.getElementById('dash-reg-index');
   if (dashRegEl && cryptonId) dashRegEl.textContent = 'ID - #' + cryptonId;
 
-  const refId = (docId && /^\d+$/.test(docId)) ? docId : null;
+  // ── Referral link — MUST use Telegram numeric ID only ──────────────────────
+  // Priority: state.tgNumericId (most reliable) → docId if it's a pure digit string
+  // NEVER use state.userId ("USR...") — it won't match any referredBy in Firestore
+  const tgNum = state.tgNumericId && /^\d+$/.test(state.tgNumericId) ? state.tgNumericId : null;
+  const refId  = tgNum || (docId && /^\d+$/.test(String(docId)) ? String(docId) : null);
   const refLinkVal = refId
     ? `${window.location.origin}${window.location.pathname}?ref=${refId}`
-    : 'Connect wallet to get your referral link';
+    : 'Referral link loading…';
   const refLinkEl    = document.getElementById('ref-link');
   const refLinkNetEl = document.getElementById('ref-link-network');
   if (refLinkEl)    refLinkEl.textContent    = refLinkVal;
@@ -6200,15 +6206,21 @@ async function loginUser(walletAddress) {
     // tgPhotoUrl and other SDK-fresh fields are always kept up-to-date in Firestore.
     // This is what makes the Leaderboard and User Directory always show real avatars.
     const userId = 'USR' + walletAddress.slice(-8).toUpperCase();
-    // Fix Point 10: refId2 must be a real Telegram numeric ID — NOT the wallet-derived userId.
-    // The bot matches deep-link start_param against chat_id (always a pure digit string).
-    // Using a "USR…" string here produces a broken referral link that never resolves.
-    const refId2 = (state.tgNumericId && /^\d+$/.test(state.tgNumericId))
-      ? state.tgNumericId
-      : null;
+    // Referral link MUST use Telegram numeric ID — canonical priority order:
+    //   1. state.tgNumericId (from SDK initDataUnsafe — most reliable)
+    //   2. tgIdFromSDK (raw SDK value captured at function entry)
+    //   3. data.tgId (from Firestore — written by bot at registration)
+    // NEVER use userId ("USR...") — it will never match referredBy in Firestore
+    const canonicalTgId =
+      (state.tgNumericId && /^\d+$/.test(state.tgNumericId) ? state.tgNumericId : null) ||
+      (tgIdFromSDK && /^\d+$/.test(tgIdFromSDK) ? tgIdFromSDK : null) ||
+      (data.tgId && /^\d+$/.test(String(data.tgId)) ? String(data.tgId) : null);
+    const refId2      = canonicalTgId;
     const refLinkVal2 = refId2
       ? `${window.location.origin}${window.location.pathname}?ref=${refId2}`
-      : 'Connect wallet to get your referral link';
+      : 'Referral link loading…';
+    // Sync resolved tgId back to state so copyReferralGold() always has it
+    if (canonicalTgId && !state.tgNumericId) state.tgNumericId = canonicalTgId;
     const mergeFields = { walletAddress, userId };
     // Also refresh any tg fields the SDK may have fresher data for
     if (tgPayload.tgHandle) mergeFields.tgHandle = tgPayload.tgHandle;
@@ -6540,26 +6552,50 @@ function copyReferral() {
 
 // Copy referral from the gold card button — always reads fresh link from state
 function copyReferralGold() {
-  // Use tgNumericId for consistency with bot's start_param matching
-  const refId = state.tgNumericId || state.userId;
-  const link = refId
-    ? `${window.location.origin}${window.location.pathname}?ref=${refId}`
-    : (document.getElementById('ref-link') ? document.getElementById('ref-link').textContent : '');
-  if (!link || link.startsWith('Connect')) { showToast('Connect wallet first'); return; }
-  // Update the display element to keep in sync
+  // MUST use tgNumericId — state.userId is "USR..." which is NOT a valid referral ID
+  // state.userId is wallet-derived and will never match referredBy field in Firestore
+  const refId = (state.tgNumericId && /^\d+$/.test(state.tgNumericId))
+    ? state.tgNumericId
+    : null;
+
+  if (!refId) {
+    // tgNumericId not loaded yet — try reading from the display element as fallback
+    const displayed = document.getElementById('ref-link')?.textContent || '';
+    if (displayed && displayed.includes('?ref=')) {
+      navigator.clipboard.writeText(displayed).then(() => {
+        const btn = document.getElementById('btn-copy-ref');
+        if (btn) { btn.textContent='✓ COPIED'; btn.classList.add('copied'); setTimeout(() => { btn.textContent='COPY'; btn.classList.remove('copied'); }, 2000); }
+        showToast('Referral link copied ✓');
+      }).catch(() => showToast('Could not copy. Try again.'));
+    } else {
+      showToast('Referral link not ready yet. Please wait…');
+    }
+    return;
+  }
+
+  const link = `${window.location.origin}${window.location.pathname}?ref=${refId}`;
+
+  // Keep display element in sync
   const linkEl = document.getElementById('ref-link');
-  if (linkEl && state.userId) linkEl.textContent = link;
+  if (linkEl) linkEl.textContent = link;
+  const linkNetEl = document.getElementById('ref-link-network');
+  if (linkNetEl) linkNetEl.textContent = link;
+
   navigator.clipboard.writeText(link).then(() => {
     const btn = document.getElementById('btn-copy-ref');
     if (btn) { btn.textContent='✓ COPIED'; btn.classList.add('copied'); setTimeout(() => { btn.textContent='COPY'; btn.classList.remove('copied'); }, 2000); }
     showToast('Referral link copied ✓');
   }).catch(() => {
-    // fallback for older browsers
-    const ta = document.createElement('textarea');
-    ta.value = link; ta.style.position = 'fixed'; ta.style.opacity = '0';
-    document.body.appendChild(ta); ta.select();
-    document.execCommand('copy'); document.body.removeChild(ta);
-    showToast('Referral link copied ✓');
+    // Fallback for older browsers / Telegram WebApp clipboard restrictions
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = link; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      showToast('Referral link copied ✓');
+    } catch(_e) {
+      showToast('Copy failed. Long-press the link to copy manually.');
+    }
   });
 }
 
