@@ -5017,7 +5017,7 @@ async function buySlot(level, priceTon) {
   // └─────────────────────────────────────────────────────────────────────────┘
   // ⚠️  REPLACE THIS PLACEHOLDER WITH YOUR ACTUAL CONTRACT ADDRESS:
   // ── LIVE TESTNET CONTRACT — EQBB8BO6wOZChLcJBTKT1DkrThhBb7iilP5934lQvg-SUmoM ──
-  const CONTRACT_ADDRESS = 'EQBB8BO6wOZChLcJBTKT1DkrThhBb7iilP5934lQvg_SUmoM';
+  const CONTRACT_ADDRESS = 'EQBB8BO6wOZChLcJBTKT1DkrThhBb7iilP5934lQvg-SUmoM';
 
   try {
     // ── Amount calculation — full price in nanotons to contract ──────────────
@@ -5090,14 +5090,9 @@ async function buySlot(level, priceTon) {
       return btoa(binary);
     }
 
-    // buyerTgId must be a numeric Telegram/Crypton ID for the smart contract payload.
-    // Priority: Telegram SDK (most reliable) → tgNumericId if numeric → cryptonId (7-digit) → '0'
-    const _rawTgId  = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-    const _numericTgId = (state.tgNumericId && /^\d+$/.test(String(state.tgNumericId)))
-                           ? String(state.tgNumericId) : null;
-    const _cryptonNumId = (state.cryptonId && /^\d+$/.test(String(state.cryptonId)))
-                           ? String(state.cryptonId) : null;
-    const buyerTgId = String(_rawTgId || _numericTgId || _cryptonNumId || '0');
+    const buyerTgId = String(
+      window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || '0'
+    );
 
     const tx = {
       validUntil: Math.floor(Date.now() / 1000) + 600,
@@ -6111,12 +6106,7 @@ async function tryAutoLogin() {
     state.cryptonId   = resolvedCryptonId;
     state.tgFirstName = data.name || data.tgName || null;
     state.tgEmail     = data.email || data.tgEmail || email;
-    // docId for browser (seed-phrase) users is a non-numeric hash (e.g. "CX00IYD107").
-    // Smart contract requires a numeric tgId in the BOC payload.
-    // Use data.cryptonId (7-digit numeric Crypton ID) as the reliable numeric fallback.
-    const _autoLoginNumericId = /^\d+$/.test(String(docId)) ? String(docId)
-      : (data.cryptonId && /^\d+$/.test(String(data.cryptonId)) ? String(data.cryptonId) : null);
-    state.tgNumericId = _autoLoginNumericId || state.tgNumericId || null;
+    state.tgNumericId = docId;
     if (data.tgPhotoUrl) state.tgPhotoUrl = data.tgPhotoUrl;
     state.ownedSlots = Array.isArray(data.ownedSlots) ? data.ownedSlots.map(Number) : [];
     state.earnedTon  = data.earnedTon  || 0;
