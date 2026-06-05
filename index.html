@@ -186,6 +186,8 @@
       background:linear-gradient(135deg,var(--gold) 0%,var(--gold-lt) 50%,var(--cyan) 100%);
       background-size:200% 200%; background-position:0% 50%;
       box-shadow:var(--shadow-gold), 0 4px 24px rgba(0,0,0,0.4);
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
       transition:background-position var(--transition),transform var(--transition),box-shadow var(--transition);
       animation:shimmer-btn 3s ease infinite;
     }
@@ -985,6 +987,8 @@
       box-shadow: var(--shadow-gold), 0 4px 20px rgba(0,0,0,0.35);
       animation: shimmer-btn 3s ease infinite;
       transition: transform var(--transition), box-shadow var(--transition);
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     }
     .btn-gate-connect:hover  { transform: translateY(-2px) scale(1.03); }
     .btn-gate-connect:active { transform: scale(0.97); }
@@ -4123,9 +4127,30 @@ setTimeout(syncPhotoIfLoggedIn, 3500);
       network: ACTIVE_NETWORK,
       buttonRootId: null,
     });
+
+    // FIX (Bug 4): Debounce guard on onStatusChange.
+    // TonConnect can fire the callback multiple times in quick succession on mobile
+    // (e.g. auto-restore + fresh connect). Without a guard, handleWalletConnected
+    // would run twice, causing duplicate loginUser() calls and double Firestore writes.
+    let _lastWalletAddress = null;
+    let _statusChangePending = false;
     state.tonConnectUI.onStatusChange(wallet => {
-      if (wallet) handleWalletConnected(wallet.account.address);
-      else         handleWalletDisconnected();
+      if (wallet) {
+        const addr = wallet.account.address;
+        // Ignore duplicate fires for the same wallet address
+        if (_statusChangePending || addr === _lastWalletAddress) return;
+        _statusChangePending = true;
+        _lastWalletAddress   = addr;
+        // Small microtask delay collapses any near-simultaneous fires into one
+        Promise.resolve().then(() => {
+          _statusChangePending = false;
+          handleWalletConnected(addr);
+        });
+      } else {
+        _lastWalletAddress   = null;
+        _statusChangePending = false;
+        handleWalletDisconnected();
+      }
     });
   } catch(e) {
     console.warn('TonConnect init failed (not in TMA):', e.message);
@@ -4135,9 +4160,23 @@ setTimeout(syncPhotoIfLoggedIn, 3500);
 // ──────────────────────────────────────────────────────────────
 // WALLET CONNECT / DISCONNECT
 // ──────────────────────────────────────────────────────────────
+// ── FIX (Bug 4): Debounce guard — prevents duplicate openModal calls from rapid
+// taps or double-fire touch/click events on mobile.
+// _connectWalletInFlight is reset after the modal resolves or rejects.
+let _connectWalletInFlight = false;
+
 async function connectWallet() {
   if (!state.tonConnectUI) { showToast('TonConnect not available'); return; }
-  try { await state.tonConnectUI.openModal(); } catch(e) { console.error(e); }
+  if (_connectWalletInFlight) return; // debounce: ignore tap while modal is already opening
+  _connectWalletInFlight = true;
+  try {
+    await state.tonConnectUI.openModal();
+  } catch(e) {
+    console.error('[connectWallet]', e);
+  } finally {
+    // Reset after a short delay so rapid re-taps are still debounced
+    setTimeout(() => { _connectWalletInFlight = false; }, 800);
+  }
 }
 
 async function disconnectWallet() {
@@ -4203,6 +4242,22 @@ function handleWalletConnected(rawAddress) {
   const short = rawAddress.length > 12
     ? rawAddress.slice(0,6) + '…' + rawAddress.slice(-4)
     : rawAddress;
+
+  // ── FIX (Bug 1+2): Strict auth gate — wallet connection alone is NOT enough.
+  // The user MUST have a validated session (via Register or Login) stored in
+  // localStorage. If no session exists, disconnect the wallet and show the auth form.
+  // This prevents a wallet-only bypass of the login/register gate.
+  const sessionStr = localStorage.getItem('crypton_session');
+  const hasPendingAuth = !!window.__pendingAuth;
+  if (!sessionStr && !hasPendingAuth) {
+    console.warn('[Auth] Wallet connected but no authenticated session — blocking dashboard access.');
+    showToast('Please register or login first.', 3500);
+    // Disconnect wallet so TonConnect doesn't auto-restore next time
+    if (state.tonConnectUI) {
+      try { state.tonConnectUI.disconnect(); } catch(_e) {}
+    }
+    return;
+  }
 
   state.connected     = true;
   state.walletAddress = rawAddress;
@@ -5838,10 +5893,34 @@ async function tryAutoLogin() {
 
     console.log('[Auth] Auto-login ✓ docId:', docId, 'cryptonId:', resolvedCryptonId);
 
-    // Auto-login: wallet was already connected (TonConnect auto-restores session).
-    // Go straight to dashboard — no need to show wallet connect step again.
-    state.connected = true;
-    _showDashboardAfterWallet(docId, resolvedCryptonId, data.name || data.tgName || email);
+    // ── FIX (Bug 2): Auto-login must NOT bypass wallet check.
+    // Even if a valid session exists in localStorage, the dashboard MUST NOT
+    // open until TonConnect confirms an active wallet connection.
+    // We check the TonConnect wallet state: if wallet is already connected
+    // (TonConnect auto-restored its session), we allow dashboard access.
+    // If wallet is NOT connected, we show the "Account Ready / Connect Wallet"
+    // step so the user must connect their wallet before entering the dashboard.
+    //
+    // This closes the loophole where refreshing the page with a saved session
+    // would skip the wallet connection gate entirely.
+    const walletAlreadyConnected = !!(
+      state.tonConnectUI &&
+      state.tonConnectUI.wallet &&
+      state.tonConnectUI.wallet.account
+    );
+
+    if (walletAlreadyConnected) {
+      // Wallet IS connected — safe to show dashboard
+      state.connected = true;
+      _showDashboardAfterWallet(docId, resolvedCryptonId, data.name || data.tgName || email);
+      console.log('[Auth] Auto-login: wallet already connected → dashboard opened.');
+    } else {
+      // Wallet NOT connected — show wallet connect step
+      // Store pending auth so handleWalletConnected can consume it
+      window.__pendingAuth = { docId, cryptonId: resolvedCryptonId, name: data.name || data.tgName || email };
+      _authSuccess(docId, resolvedCryptonId, data.name || data.tgName || email);
+      console.log('[Auth] Auto-login: wallet not connected → showing wallet connect gate.');
+    }
   } catch(e) {
     console.warn('[Auth] Auto-login failed:', e.message);
   }
@@ -5910,48 +5989,41 @@ async function loginUser(walletAddress) {
     const snap = await getDoc(userDocRef);
 
     if (!snap.exists()) {
-      // ── Document missing: new user — auto-create on first wallet connect ──
-      console.log('[Firebase] No Firestore document for tgId:', tgIdFromSDK, '— creating new user doc.');
-      const tgPayloadNew = typeof window.buildTelegramPayload === 'function'
-        ? window.buildTelegramPayload() : {};
-      const { setDoc, serverTimestamp: sts, collection: col2, query: q2, where: wh2, getDocs: gds2 } = window.__fs;
-      // Generate unique 7-digit Crypton ID (1000000–9999999) — collision-safe
-      let newCryptonId;
-      let idAttempts = 0;
-      while (idAttempts < 10) {
-        const candidate = String(Math.floor(1000000 + Math.random() * 9000000));
-        const idCheck = await gds2(q2(col2(db, 'users'), wh2('cryptonId', '==', candidate)));
-        if (idCheck.empty) { newCryptonId = candidate; break; }
-        idAttempts++;
+      // ── STRICT GATE: No document found — wallet connection is rejected.
+      // Accounts are ONLY created via handleVerifyAndCreate() (Register tab).
+      // A wallet connect by an unregistered user must never produce a dashboard.
+      console.warn('[Firebase] No registered account for identifier:', tgIdFromSDK, '— rejecting wallet connection.');
+
+      // 1. Clear connected state so nothing downstream treats this as authenticated
+      state.connected     = false;
+      state.walletAddress = null;
+      state.userId        = null;
+
+      // 2. Disconnect the TON wallet so the session is not retained
+      if (state.tonConnectUI) {
+        try { state.tonConnectUI.disconnect(); } catch (_e) {}
       }
-      if (!newCryptonId) newCryptonId = String(Date.now()).slice(-7); // absolute fallback
-      await setDoc(userDocRef, {
-        tgId:          tgIdFromSDK,
-        cryptonId:     newCryptonId,
-        tgHandle:      tgPayloadNew.tgHandle   || null,
-        tgName:        tgPayloadNew.tgName     || null,
-        tgEmail:       tgPayloadNew.tgEmail    || null,
-        tgPhotoUrl:    state.tgPhotoUrl        || null,
-        walletAddress: walletAddress           || null,
-        referredBy:    tgPayloadNew.referredBy || null,
-        ownedSlots:    [],
-        earnedTon:     0,
-        workingTon:    0,
-        passiveTon:    0,
-        referrals:     0,
-        teamSize:      0,
-        slotFill:      {},
-        joinedAt:      sts(),
-      });
-      state.cryptonId  = newCryptonId;
-      state.ownedSlots = []; state.earnedTon = 0; state.workingTon = 0;
-      state.passiveTon = 0; state.referrals = 0; state.teamSize = 0;
-      const dashUidNewEl = document.getElementById('dash-uid');
-      if (dashUidNewEl) dashUidNewEl.textContent = 'Crypton ID: ' + newCryptonId;
-      console.log('[Firebase] New user document created ✓ cryptonId:', newCryptonId);
-      updateStatsUI(); renderSlots();
-      showToast('Welcome to Crypton! 🎉');
-      return;
+
+      // 3. Show rejection message to the user
+      showToast('Account not registered. Please sign up first.');
+
+      // 4. Ensure hero/auth screen is visible; dashboard stays hidden
+      const _heroEl = document.getElementById('hero-section');
+      const _dashEl = document.getElementById('dashboard');
+      if (_heroEl) _heroEl.style.display = 'block';
+      if (_dashEl) _dashEl.style.display = 'none';
+
+      // 5. Hide hamburger menu — only shown when fully authenticated
+      const _menuBtn = document.getElementById('header-menu-btn');
+      if (_menuBtn) _menuBtn.style.display = 'none';
+
+      // 6. Re-lock the matrix wallet gate
+      const _gate    = document.getElementById('matrix-wallet-gate');
+      const _content = document.getElementById('matrix-content');
+      if (_gate)    _gate.style.display = 'flex';
+      if (_content) { _content.style.display = 'none'; _content.classList.remove('slots-reveal'); }
+
+      return; // hard stop — no further processing
     }
 
     // ── EXISTING USER — document created by bot, load all fields ─────────
@@ -6956,6 +7028,29 @@ async function pvDoSearch() {
       }
     }
 
+    // FIX (Bug 3): If still not found, try searching by DB registration sequence index.
+    // e.g. searching "5" finds the 5th registered user in the database (ordered by joinedAt).
+    if (!userData && /^\d+$/.test(uid)) {
+      const seqNum = parseInt(uid, 10);
+      if (seqNum >= 1) {
+        try {
+          const allQ  = query(collection(db, 'users'), orderBy('joinedAt', 'asc'));
+          const allSn = await getDocs(allQ);
+          let seqIdx = 1;
+          allSn.forEach(d => {
+            if (seqIdx === seqNum && !userData) {
+              userData      = d.data();
+              docId         = d.id;
+              resolvedDocId = d.id;
+            }
+            seqIdx++;
+          });
+        } catch (_seqErr) {
+          console.warn('[pvDoSearch] Sequence lookup failed:', _seqErr.message);
+        }
+      }
+    }
+
     if (loadEl) loadEl.style.display = 'none';
     if (btn) btn.disabled = false;
 
@@ -7394,6 +7489,29 @@ async function doSearchUser() {
       }
     }
 
+    // FIX (Bug 3): If still not found and uid is a plain integer, treat it as a
+    // DB registration sequence index — e.g. "5" finds the 5th registered user.
+    if (!userData && /^\d+$/.test(uid)) {
+      const seqNum = parseInt(uid, 10);
+      if (seqNum >= 1) {
+        try {
+          const allQ  = query(collection(db, 'users'), orderBy('joinedAt', 'asc'));
+          const allSn = await getDocs(allQ);
+          let seqIdx = 1;
+          allSn.forEach(d => {
+            if (seqIdx === seqNum && !userData) {
+              userData      = d.data();
+              docId         = d.id;
+              resolvedDocId = d.id;
+            }
+            seqIdx++;
+          });
+        } catch (_seqErr) {
+          console.warn('[doSearchUser] Sequence lookup failed:', _seqErr.message);
+        }
+      }
+    }
+
     document.getElementById('srch-loading-state').style.display = 'none';
     if (btn) btn.disabled = false;
 
@@ -7566,49 +7684,63 @@ let _tickerSeeded = false;
 let _tickerAnimId = null;
 
 // Fetch Top-100 earners from Firestore
+// FIX (Bug 3): Each ticker chip now shows the user's DB registration sequence
+// index (#1, #2, #3…) — ordered by joinedAt ascending to assign stable ranks.
+// This replaces the previous display of Telegram IDs and the fake mock usernames.
 async function fetchTickerDataFromFirestore() {
   try {
     await waitForFirestore();
     const { collection, query, orderBy, limit, getDocs } = window.__fs;
+
+    // Fetch top earners ordered by passiveTon for ranking
     const q     = query(collection(window.__db, 'users'), orderBy('passiveTon','desc'), limit(100));
     const snap  = await getDocs(q);
     const users = [];
     snap.forEach(d => {
       const data = d.data();
-      // Show numeric Telegram UID in the rank ticker (not username/handle)
-      const uid = data.tgId || data.userId || d.id || 'Unknown';
-      users.push({ tgId: String(uid), earnedTon: data.earnedTon || 0 });
+      users.push({
+        tgId:      data.tgId || d.id || null,
+        cryptonId: data.cryptonId || null,
+        joinedAt:  data.joinedAt  || null,
+        earnedTon: data.earnedTon || 0,
+      });
     });
+
     if (users.length > 0) {
-      _tickerData   = users;
+      // ── Derive sequence index: fetch all users ordered by joinedAt ascending
+      // to assign a stable "#N" position for each user in the ticker.
+      // We do a second lightweight query: just get all IDs ordered by joinedAt.
+      const allQ    = query(collection(window.__db, 'users'), orderBy('joinedAt', 'asc'));
+      const allSnap = await getDocs(allQ);
+      const seqMap  = {}; // docId → sequence number (1-based)
+      let seqIdx = 1;
+      allSnap.forEach(d => { seqMap[d.id] = seqIdx++; });
+
+      // Map each earner to their sequence index for display
+      _tickerData = users.map(u => ({
+        tgId:     u.tgId,   // internal use only (for _injectLiveUserIntoTicker)
+        seqLabel: '#' + (seqMap[u.tgId] || seqMap[u.cryptonId] || '?'),
+        earnedTon: u.earnedTon,
+      }));
       _tickerSeeded = true;
-      console.log('[Ticker] Loaded', users.length, 'real users from Firestore');
+      console.log('[Ticker] Loaded', users.length, 'real users from Firestore with sequence indexes');
     } else {
-      // Firestore empty — use lightweight fallback
-      _tickerData   = buildDemoTickerData();
+      // Firestore empty — show nothing (no mock data)
+      _tickerData   = [];
       _tickerSeeded = true;
     }
   } catch(e) {
-    console.warn('[Ticker] Firestore fetch failed, using demo data:', e.message);
-    _tickerData   = buildDemoTickerData();
+    console.warn('[Ticker] Firestore fetch failed:', e.message);
+    _tickerData   = [];
     _tickerSeeded = true;
   }
 }
 
 // Minimal fallback data (used only when Firestore is unreachable / empty)
+// FIX (Bug 3): Removed all static mock usernames (@alexk, @tarik99, etc.)
+// The ticker must only show real database users or nothing at all.
 function buildDemoTickerData() {
-  return [
-    { tgId:'@alexk',   earnedTon: 812.5 },
-    { tgId:'@tarik99', earnedTon: 640.0 },
-    { tgId:'@nina_t',  earnedTon: 520.3 },
-    { tgId:'@sami_x',  earnedTon: 480.0 },
-    { tgId:'@vera_d',  earnedTon: 410.8 },
-    { tgId:'@len4ik',  earnedTon: 384.0 },
-    { tgId:'@glen01',  earnedTon: 320.5 },
-    { tgId:'@bora_w',  earnedTon: 296.0 },
-    { tgId:'@cyra88',  earnedTon: 256.4 },
-    { tgId:'@pita_m',  earnedTon: 224.0 },
-  ].sort((a,b) => b.earnedTon - a.earnedTon);
+  return []; // No mock data — ticker stays empty until real DB users exist
 }
 
 function renderTicker() {
@@ -7647,18 +7779,25 @@ function _buildTickerDOM(track) {
   track.classList.remove('running');
   track.style.animationDuration = '';
 
+  // FIX (Bug 3): ticker is empty when no real users exist — show placeholder
+  if (!_tickerData || _tickerData.length === 0) {
+    track.innerHTML = '<span class="ticker-chip"><span class="tc-id" style="color:var(--text-lo)">Leaderboard loading…</span></span>';
+    return;
+  }
+
   const rows = _tickerData.slice(0, 100);
   const makeChip = (r, i) => {
     const rank  = i + 1;
     const rCls  = rank <= 3 ? `r${rank}` : '';
     const medal = rank <= 3 ? `<span class="tc-medal">${MEDALS[rank-1]}</span>` : '';
     const ton   = parseFloat(r.earnedTon).toFixed(1);
-    // Escape tgId to prevent XSS in ticker
-    const safeId = String(r.tgId).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    // FIX (Bug 3): Display the DB sequence index label (#N) — never Telegram IDs or usernames
+    // seqLabel is set by fetchTickerDataFromFirestore; fall back to rank position if missing
+    const displayId = r.seqLabel ? String(r.seqLabel).replace(/</g,'&lt;').replace(/>/g,'&gt;') : ('#' + rank);
     return `<span class="ticker-chip">
       <span class="tc-rank ${rCls}">#${rank}</span>
       ${medal}
-      <span class="tc-id">${safeId}</span>
+      <span class="tc-id">${displayId}</span>
       <span class="tc-ton">${ton} TON</span>
     </span>`;
   };
