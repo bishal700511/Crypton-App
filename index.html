@@ -3792,6 +3792,17 @@
     <span class="fab-menu-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
     <span>Stats</span>
   </button>
+  <!-- ── Disconnect Wallet — always visible when menu is open (menu only shows when connected) ── -->
+  <button class="fab-menu-item" id="fmi-disconnect" onclick="closeFabMenu(); disconnectWallet();" style="border-top:1px solid rgba(255,77,109,0.18); margin-top:6px; padding-top:10px; color:var(--red);">
+    <span class="fab-menu-icon" style="color:var(--red);">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+    </span>
+    <span style="color:var(--red);">Disconnect</span>
+  </button>
   <button class="fab-menu-close" onclick="closeFabMenu()" aria-label="Close">✕</button>
 </div>
 
@@ -4268,6 +4279,23 @@ function handleWalletConnected(rawAddress) {
   });
 
   loginUser(rawAddress);
+
+  // ── If user just completed Register/Login, show dashboard now ──
+  // __pendingAuth is set by _authSuccess() after email/seed-phrase auth completes.
+  // We consume it here (once) so the dashboard reveals at the right moment.
+  if (window.__pendingAuth) {
+    const { docId, cryptonId, name } = window.__pendingAuth;
+    window.__pendingAuth = null;
+    _showDashboardAfterWallet(docId, cryptonId, name);
+  } else {
+    // Normal wallet connect (returning user / auto-restore)
+    _showDashboardAfterWallet(
+      state.tgNumericId || state.userId,
+      state.cryptonId,
+      state.tgFirstName || 'User'
+    );
+  }
+
   showToast('Wallet connected ✓');
   renderTicker();
 
@@ -5515,52 +5543,71 @@ async function handleLogin() {
 // AUTH SUCCESS — show dashboard after register or login
 // ──────────────────────────────────────────────────────────────
 function _authSuccess(docId, cryptonId, name) {
-  state.connected = true;
+  // ── Step 1: Auth (Register/Login) complete — NOW show wallet connect step ──
+  // DO NOT set state.connected = true yet. Wallet must be connected first.
+  // Store auth info so wallet connect can use it after TonConnect fires.
+  state.tgNumericId = state.tgNumericId || docId;
+  state.cryptonId   = cryptonId;
 
+  // ── Show wallet connect prompt — replace auth card with connect button ──
   const heroEl = document.getElementById('hero-section');
-  const dashEl = document.getElementById('dashboard');
-  if (heroEl) heroEl.style.display = 'none';
-  if (dashEl) dashEl.style.display = 'block';
+  if (heroEl) {
+    // Replace auth-card content with wallet connect step
+    const authCard = document.getElementById('auth-card');
+    if (authCard) {
+      authCard.innerHTML = `
+        <div style="
+          display:flex; flex-direction:column; align-items:center;
+          gap:18px; padding:28px 20px 32px; text-align:center;
+        ">
+          <!-- Success indicator -->
+          <div style="
+            width:60px; height:60px; border-radius:50%;
+            background:rgba(34,197,94,0.15);
+            border:2px solid rgba(34,197,94,0.40);
+            display:flex; align-items:center; justify-content:center;
+            font-size:28px;
+          ">✓</div>
 
-  const menuBtn = document.getElementById('header-menu-btn');
-  if (menuBtn) menuBtn.style.display = 'flex';
+          <div>
+            <div style="font-family:var(--font-head);font-size:18px;font-weight:800;color:var(--text-hi);margin-bottom:6px;">
+              Account Ready!
+            </div>
+            <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-mid);line-height:1.7;letter-spacing:0.3px;">
+              Welcome, <strong style="color:var(--cyan);">${name || 'User'}</strong><br>
+              Now connect your TON wallet<br>to activate your account.
+            </div>
+          </div>
 
-  const lvlBar = document.getElementById('level-indicator-bar');
-  if (lvlBar) { lvlBar.style.display = 'flex'; updateLevelBar(); }
+          <!-- TON Wallet Connect Button -->
+          <button
+            onclick="connectWallet()"
+            style="
+              display:inline-flex; align-items:center; gap:10px;
+              padding:16px 32px; border-radius:50px; border:none; cursor:pointer;
+              font-family:var(--font-head); font-size:15px; font-weight:700;
+              color:var(--navy); width:100%;justify-content:center;
+              background:linear-gradient(135deg,var(--gold) 0%,var(--gold-lt) 50%,var(--cyan) 100%);
+              box-shadow:var(--shadow-gold), 0 4px 24px rgba(0,0,0,0.4);
+            "
+          >
+            <svg width="22" height="22" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M28 56C43.464 56 56 43.464 56 28C56 12.536 43.464 0 28 0C12.536 0 0 12.536 0 28C0 43.464 12.536 56 28 56Z" fill="currentColor" fill-opacity="0.15"/>
+              <path d="M37.5603 15.6277H18.4386C14.9191 15.6277 12.6388 19.3888 14.3833 22.4597L26.0929 43.2555C26.9607 44.7984 29.0381 44.7984 29.906 43.2555L41.6156 22.4597C43.3612 19.3888 41.0798 15.6277 37.5603 15.6277ZM26.0929 36.3236L23.2795 31.1978L17.291 20.4529C16.8813 19.7241 17.3993 18.8069 18.4386 18.8069H26.0929V36.3236ZM38.707 20.4529L32.7185 31.1978L29.9051 36.3236V18.8069H37.5594C38.5987 18.8069 39.1167 19.7241 38.707 20.4529Z" fill="#050D1A"/>
+            </svg>
+            Connect TON Wallet
+          </button>
 
-  const dashUidEl = document.getElementById('dash-uid');
-  if (dashUidEl) dashUidEl.textContent = 'Crypton ID: ' + cryptonId;
-
-  const dashRegEl = document.getElementById('dash-reg-index');
-  if (dashRegEl) dashRegEl.textContent = 'ID - #' + cryptonId;
-
-  // Referral link using docId (unique per account)
-  const refLinkVal = `${window.location.origin}${window.location.pathname}?ref=${docId}`;
-  const refLinkEl    = document.getElementById('ref-link');
-  const refLinkNetEl = document.getElementById('ref-link-network');
-  if (refLinkEl)    refLinkEl.textContent    = refLinkVal;
-  if (refLinkNetEl) refLinkNetEl.textContent = refLinkVal;
-
-  // Matrix gate unlock
-  const gate    = document.getElementById('matrix-wallet-gate');
-  const content = document.getElementById('matrix-content');
-  if (gate)    gate.style.display = 'none';
-  if (content) {
-    content.style.display = 'block';
-    content.classList.remove('slots-reveal');
-    void content.offsetWidth;
-    content.classList.add('slots-reveal');
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-lo);letter-spacing:0.5px;">
+            Your dashboard opens after wallet connects
+          </div>
+        </div>
+      `;
+    }
   }
-  const navLock = document.getElementById('fmi-matrix-lock');
-  if (navLock) navLock.style.display = 'none';
 
-  _updateDashAvatar();
-  _updateHeaderCapsule();
-  updateStatsUI();
-  renderSlots();
-  renderTicker();
-
-  showToast('Welcome, ' + (name || 'User') + '! 🎉');
+  // Store docId/cryptonId/name so handleWalletConnected → loginUser can use them
+  window.__pendingAuth = { docId, cryptonId, name };
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -5621,9 +5668,64 @@ function handleLogout() {
   // Reset form fields
   ['reg-name','reg-email','reg-error','login-email','login-phrase','login-error','verify-error'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) { el.value = ''; el.textContent = ''; }
+    if (el) { if (el.tagName==='INPUT'||el.tagName==='TEXTAREA') el.value=''; else el.textContent=''; }
   });
   _regState = { name: '', email: '', seedWords: [], verifyPositions: [], docId: '' };
+  window.__pendingAuth = null;
+
+  // Restore auth card to its original Register/Login state
+  // (it may have been replaced by the "Account Ready / Connect Wallet" screen)
+  const authCard = document.getElementById('auth-card');
+  if (authCard && !authCard.querySelector('#tab-register')) {
+    authCard.innerHTML = `
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-register" onclick="showAuthTab('register')">Register</button>
+        <button class="auth-tab" id="tab-login" onclick="showAuthTab('login')">Login</button>
+      </div>
+      <div class="auth-panel" id="panel-register">
+        <div class="auth-steps">
+          <div class="auth-step-dot active" id="reg-dot-1"></div>
+          <div class="auth-step-line"></div>
+          <div class="auth-step-dot" id="reg-dot-2"></div>
+          <div class="auth-step-line"></div>
+          <div class="auth-step-dot" id="reg-dot-3"></div>
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">YOUR NAME</label>
+          <input class="auth-input" id="reg-name" type="text" placeholder="Enter your name" autocomplete="off" />
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">EMAIL ADDRESS</label>
+          <input class="auth-input" id="reg-email" type="email" placeholder="Enter your email" autocomplete="off" />
+        </div>
+        <div class="auth-error" id="reg-error"></div>
+        <button class="auth-btn" id="reg-btn" onclick="handleRegisterStep1()">
+          <span id="reg-btn-text">Next →</span>
+          <span class="auth-spinner" id="reg-spinner"></span>
+        </button>
+      </div>
+      <div class="auth-panel" id="panel-seed" style="display:none;"></div>
+      <div class="auth-panel" id="panel-verify" style="display:none;"></div>
+      <div class="auth-panel" id="panel-login" style="display:none;">
+        <div class="auth-field">
+          <label class="auth-label">EMAIL ADDRESS</label>
+          <input class="auth-input" id="login-email" type="email" placeholder="Enter your email" autocomplete="off" />
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">YOUR 7-WORD SECRET PHRASE</label>
+          <input class="auth-input" id="login-phrase" type="text"
+            placeholder="word1 word2 word3 word4 word5 word6 word7"
+            autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
+            style="font-family:var(--font-mono);font-size:12px;" />
+        </div>
+        <div class="auth-error" id="login-error"></div>
+        <button class="auth-btn" id="login-btn" onclick="handleLogin()">
+          <span id="login-btn-text">Login</span>
+          <span class="auth-spinner" id="login-spinner"></span>
+        </button>
+      </div>
+    `;
+  }
   showAuthTab('register');
   switchView('home');
   showToast('Logged out successfully');
@@ -5632,6 +5734,58 @@ function handleLogout() {
 // ──────────────────────────────────────────────────────────────
 // AUTO LOGIN — check localStorage session on app start
 // ──────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────
+// SHOW DASHBOARD — called after wallet is confirmed connected
+// Used by: handleWalletConnected, tryAutoLogin (auto-restore)
+// ──────────────────────────────────────────────────────────────
+function _showDashboardAfterWallet(docId, cryptonId, name) {
+  const heroEl = document.getElementById('hero-section');
+  const dashEl = document.getElementById('dashboard');
+  if (heroEl) heroEl.style.display = 'none';
+  if (dashEl) dashEl.style.display = 'block';
+
+  const menuBtn = document.getElementById('header-menu-btn');
+  if (menuBtn) menuBtn.style.display = 'flex';
+
+  const lvlBar = document.getElementById('level-indicator-bar');
+  if (lvlBar) { lvlBar.style.display = 'flex'; updateLevelBar(); }
+
+  const dashUidEl = document.getElementById('dash-uid');
+  if (dashUidEl && cryptonId) dashUidEl.textContent = 'Crypton ID: ' + cryptonId;
+
+  const dashRegEl = document.getElementById('dash-reg-index');
+  if (dashRegEl && cryptonId) dashRegEl.textContent = 'ID - #' + cryptonId;
+
+  const refId = (docId && /^\d+$/.test(docId)) ? docId : null;
+  const refLinkVal = refId
+    ? `${window.location.origin}${window.location.pathname}?ref=${refId}`
+    : 'Connect wallet to get your referral link';
+  const refLinkEl    = document.getElementById('ref-link');
+  const refLinkNetEl = document.getElementById('ref-link-network');
+  if (refLinkEl)    refLinkEl.textContent    = refLinkVal;
+  if (refLinkNetEl) refLinkNetEl.textContent = refLinkVal;
+
+  const gate    = document.getElementById('matrix-wallet-gate');
+  const content = document.getElementById('matrix-content');
+  if (gate)    gate.style.display = 'none';
+  if (content) {
+    content.style.display = 'block';
+    content.classList.remove('slots-reveal');
+    void content.offsetWidth;
+    content.classList.add('slots-reveal');
+  }
+  const navLock = document.getElementById('fmi-matrix-lock');
+  if (navLock) navLock.style.display = 'none';
+
+  _updateDashAvatar();
+  _updateHeaderCapsule();
+  updateStatsUI();
+  renderSlots();
+  renderTicker();
+
+  showToast('Welcome, ' + (name || 'User') + '! 🎉');
+}
+
 async function tryAutoLogin() {
   try {
     const sessionStr = localStorage.getItem('crypton_session');
@@ -5677,7 +5831,11 @@ async function tryAutoLogin() {
     }
 
     console.log('[Auth] Auto-login ✓ docId:', docId, 'cryptonId:', resolvedCryptonId);
-    _authSuccess(docId, resolvedCryptonId, data.name || data.tgName || email);
+
+    // Auto-login: wallet was already connected (TonConnect auto-restores session).
+    // Go straight to dashboard — no need to show wallet connect step again.
+    state.connected = true;
+    _showDashboardAfterWallet(docId, resolvedCryptonId, data.name || data.tgName || email);
   } catch(e) {
     console.warn('[Auth] Auto-login failed:', e.message);
   }
