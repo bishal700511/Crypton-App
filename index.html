@@ -3167,7 +3167,7 @@
 
       <div class="card">
         <div class="profile-fetch-row">
-          <span class="profile-fetch-key">USER ID</span>
+          <span class="profile-fetch-key">CRYPTON ID</span>
           <span class="profile-fetch-val" id="tg-user">
             <span class="fetch-pending">Fetching…</span>
           </span>
@@ -4289,16 +4289,13 @@ function handleWalletConnected(rawAddress) {
   if (dashUidEl)       dashUidEl.textContent       = state.cryptonId ? ('Crypton ID: ' + state.cryptonId) : (state.tgNumericId || state.userId || '—');
   // joinDate filled by loginUser() from Firestore — never overwrite with today's date here
 
-  // Fix Point 10: Only build a referral link when we have a real Telegram numeric ID.
-  // state.tgNumericId comes from initDataUnsafe.user.id (always a digit-only string).
-  // state.userId is a wallet-derived "USR…" string — it does NOT match any chat_id in
-  // Firestore and must NEVER be used as a referral deep-link parameter.
-  const refId = (state.tgNumericId && /^\d+$/.test(state.tgNumericId))
-    ? state.tgNumericId
-    : null;
+  // FIX 1: Referral link must strictly use state.cryptonId (the exact same 7-digit ID
+  // displayed on the Account Card). state.cryptonId is the unified identity for CRYPTON.
+  // tgNumericId is an internal Firestore key — NOT the canonical public referral ID.
+  const refId = state.cryptonId || null;
   const refLinkVal = refId
-    ? `${window.location.origin}${window.location.pathname}?ref=${refId}`
-    : 'Connect wallet to get your referral link';
+    ? `${window.location.origin}/?ref=${refId}`
+    : 'Complete registration to get your referral link';
   if (refLinkEl)       refLinkEl.textContent       = refLinkVal;
   const refLinkNetEl = document.getElementById('ref-link-network');
   if (refLinkNetEl)    refLinkNetEl.textContent    = refLinkVal;
@@ -5177,6 +5174,41 @@ function waitForFirestore(timeout = 8000) {
   });
 }
 
+// FIX 2: Promise race helper — wraps any async op with a hard timeout so loaders
+// never stay permanently stuck if a Firestore or TonConnect promise hangs.
+function withTimeout(promise, ms, fallbackMsg) {
+  const timer = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error(fallbackMsg || 'Operation timed out')), ms)
+  );
+  return Promise.race([promise, timer]);
+}
+
+// FIX 2: Global safety net — if ANY loading spinner is still visible after 15 seconds,
+// dismiss it to prevent an infinite frozen screen. Covers all async init paths.
+(function installGlobalLoaderGuard() {
+  const HARD_TIMEOUT_MS = 15000;
+  const LOADER_IDS = [
+    'srch-loading-state', 'pv-srch-loading',
+    'dir-loading-state',  'dir-loading-state',
+  ];
+  setTimeout(() => {
+    LOADER_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el.style.display !== 'none' && el.offsetParent !== null) {
+        el.style.display = 'none';
+        console.warn('[LoaderGuard] Force-dismissed stuck loader:', id);
+      }
+    });
+    // Also dismiss lb-loading spinners
+    document.querySelectorAll('.lb-loading').forEach(el => {
+      if (el.offsetParent !== null) {
+        el.innerHTML = '<div style="color:var(--red);font-family:var(--font-mono);font-size:11px;text-align:center;padding:24px;">Connection timed out. Tap ↻ to retry.</div>';
+        console.warn('[LoaderGuard] Force-dismissed lb-loading spinner');
+      }
+    });
+  }, HARD_TIMEOUT_MS);
+})();
+
 // ──────────────────────────────────────────────────────────────
 // AUTH: TAB SWITCH
 // ──────────────────────────────────────────────────────────────
@@ -5431,7 +5463,8 @@ async function handleVerifyAndCreate() {
 
   try {
     await waitForFirestore();
-    const { setDoc, doc, serverTimestamp, collection, query, where, getDocs } = window.__fs;
+    const { setDoc, doc, serverTimestamp, collection, query, where, getDocs,
+            updateDoc, increment, arrayUnion } = window.__fs;
     const db = window.__db;
 
     // Final collision check on docId (very rare but safe)
@@ -5447,6 +5480,10 @@ async function handleVerifyAndCreate() {
 
     const tgPayload = typeof window.buildTelegramPayload === 'function'
       ? window.buildTelegramPayload() : {};
+
+    // Resolve referrer: tgPayload (getStoredRef) → state.referrer → "none"
+    // state.referrer is set when user opens the app via ?ref=CRYPTON_ID link
+    const resolvedReferrer = tgPayload.referredBy || state.referrer || 'none';
 
     // Generate cryptonId (7-digit display ID)
     let cryptonId;
@@ -5471,7 +5508,8 @@ async function handleVerifyAndCreate() {
       tgEmail:       _regState.email,
       tgPhotoUrl:    state.tgPhotoUrl     || null,
       walletAddress: null,
-      referredBy:    tgPayload.referredBy || null,
+      // ── REFERRAL FIX: always write referredBy — "none" when no referrer ──
+      referredBy:    resolvedReferrer,
       ownedSlots:    [],
       earnedTon:     0,
       workingTon:    0,
@@ -5481,6 +5519,66 @@ async function handleVerifyAndCreate() {
       slotFill:      {},
       joinedAt:      serverTimestamp(),
     });
+
+    // ── REFERRAL FIX: credit the referrer's document immediately on registration ──
+    // Only runs when a real referrer exists (not "none")
+    if (resolvedReferrer && resolvedReferrer !== 'none') {
+      try {
+        // Step 1: try direct doc lookup by docId (fast path — docId IS the referrer's document ID)
+        const refDocRef = doc(db, 'users', resolvedReferrer);
+        let refUpdated  = false;
+
+        try {
+          await updateDoc(refDocRef, {
+            referrals:   increment(1),
+            teamSize:    increment(1),
+            subscribers: arrayUnion(_regState.docId),   // add new user's docId to referrer's subscribers list
+          });
+          refUpdated = true;
+          console.log('[Referral] Referrer credited (by docId):', resolvedReferrer);
+        } catch (_directErr) {
+          // docId lookup failed — referrer may have used their cryptonId or tgId as the ref param
+          // Fallback: query by cryptonId field
+          try {
+            const qCid  = query(collection(db, 'users'), where('cryptonId', '==', resolvedReferrer));
+            const qSnap = await getDocs(qCid);
+            if (!qSnap.empty) {
+              await updateDoc(qSnap.docs[0].ref, {
+                referrals:   increment(1),
+                teamSize:    increment(1),
+                subscribers: arrayUnion(_regState.docId),
+              });
+              refUpdated = true;
+              console.log('[Referral] Referrer credited (by cryptonId):', resolvedReferrer);
+            }
+          } catch (_cidErr) { /* silent */ }
+
+          // Second fallback: query by tgId field
+          if (!refUpdated) {
+            try {
+              const qTg   = query(collection(db, 'users'), where('tgId', '==', resolvedReferrer));
+              const qSnap2 = await getDocs(qTg);
+              if (!qSnap2.empty) {
+                await updateDoc(qSnap2.docs[0].ref, {
+                  referrals:   increment(1),
+                  teamSize:    increment(1),
+                  subscribers: arrayUnion(_regState.docId),
+                });
+                refUpdated = true;
+                console.log('[Referral] Referrer credited (by tgId):', resolvedReferrer);
+              }
+            } catch (_tgErr) { /* silent */ }
+          }
+        }
+
+        if (!refUpdated) {
+          console.warn('[Referral] Could not locate referrer document for:', resolvedReferrer);
+        }
+      } catch (refErr) {
+        // Non-fatal — new user account was already created successfully above
+        console.warn('[Referral] Referrer update failed (non-fatal):', refErr.message);
+      }
+    }
 
     // Save session (docId + email in localStorage)
     localStorage.setItem('crypton_session', JSON.stringify({
@@ -5494,7 +5592,8 @@ async function handleVerifyAndCreate() {
     state.tgEmail     = _regState.email;
     state.tgNumericId = _regState.docId;
 
-    console.log('[Auth] Account created ✓ docId:', _regState.docId, 'cryptonId:', cryptonId);
+    console.log('[Auth] Account created ✓ docId:', _regState.docId, 'cryptonId:', cryptonId,
+                'referredBy:', resolvedReferrer);
     _authSuccess(_regState.docId, cryptonId, _regState.name);
 
   } catch(e) {
@@ -5813,13 +5912,11 @@ function _showDashboardAfterWallet(docId, cryptonId, name) {
   const dashRegEl = document.getElementById('dash-reg-index');
   if (dashRegEl && cryptonId) dashRegEl.textContent = 'ID - #' + cryptonId;
 
-  // ── Referral link — MUST use Telegram numeric ID only ──────────────────────
-  // Priority: state.tgNumericId (most reliable) → docId if it's a pure digit string
-  // NEVER use state.userId ("USR...") — it won't match any referredBy in Firestore
-  const tgNum = state.tgNumericId && /^\d+$/.test(state.tgNumericId) ? state.tgNumericId : null;
-  const refId  = tgNum || (docId && /^\d+$/.test(String(docId)) ? String(docId) : null);
+  // FIX 1: Referral link — strictly use state.cryptonId (the Crypton ID on the Account Card).
+  // This is the 7-digit public identity that uniquely identifies a user across the platform.
+  const refId  = state.cryptonId || cryptonId || null;
   const refLinkVal = refId
-    ? `${window.location.origin}${window.location.pathname}?ref=${refId}`
+    ? `${window.location.origin}/?ref=${refId}`
     : 'Referral link loading…';
   const refLinkEl    = document.getElementById('ref-link');
   const refLinkNetEl = document.getElementById('ref-link-network');
@@ -6053,19 +6150,12 @@ async function loginUser(walletAddress) {
     if (data.tgPhotoUrl && !state.tgPhotoUrl)  state.tgPhotoUrl  = data.tgPhotoUrl;
 
     // ── Update profile UI elements with bot-supplied data ─────────────────
+    // FIX 1: Profile CRYPTON ID must exactly match the Account Card's Crypton ID.
+    // state.cryptonId is resolved just below from data.cryptonId. We defer setting
+    // tg-user until AFTER state.cryptonId is set (see "Update dashboard UID display" block).
     const userEl  = document.getElementById('tg-user');
     const emailEl = document.getElementById('user-email');
-    if (userEl) {
-      const displayHandle = data.tgHandle || state.tgUsername || null;
-      const displayId     = data.tgId     || tgIdFromSDK       || null;
-      if (displayHandle || displayId) {
-        userEl.innerHTML = `<span class="fetch-loaded">${
-          displayHandle ? displayHandle + (displayId ? ' · ' + displayId : '') : displayId
-        }</span>`;
-      } else {
-        userEl.innerHTML = `<span class="fetch-na">Not available</span>`;
-      }
-    }
+    // userEl populated after state.cryptonId is confirmed — see FIX 1 patch below.
     if (emailEl) {
       const displayEmail = data.tgEmail || state.tgEmail || null;
       emailEl.innerHTML = displayEmail
@@ -6101,6 +6191,15 @@ async function loginUser(walletAddress) {
       }
     } else {
       if (dashUidFromLogin) dashUidFromLogin.textContent = 'Crypton ID: ' + data.cryptonId;
+    }
+
+    // ── FIX 1: Now that state.cryptonId is finalized, update the profile USER ID field ──
+    // This ensures the Profile view CRYPTON ID is always identical to the Account Card Crypton ID.
+    if (userEl) {
+      const finalCryptonId = state.cryptonId || null;
+      userEl.innerHTML = finalCryptonId
+        ? `<span class="fetch-loaded">${finalCryptonId}</span>`
+        : `<span class="fetch-na">Not assigned</span>`;
     }
 
     // ── Bug 11 fix: Registration sequence index — optimized, no full collection fetch ──
@@ -6287,12 +6386,14 @@ async function loginUser(walletAddress) {
       (state.tgNumericId && /^\d+$/.test(state.tgNumericId) ? state.tgNumericId : null) ||
       (tgIdFromSDK && /^\d+$/.test(tgIdFromSDK) ? tgIdFromSDK : null) ||
       (data.tgId && /^\d+$/.test(String(data.tgId)) ? String(data.tgId) : null);
-    const refId2      = canonicalTgId;
-    const refLinkVal2 = refId2
-      ? `${window.location.origin}${window.location.pathname}?ref=${refId2}`
-      : 'Referral link loading…';
-    // Sync resolved tgId back to state so copyReferralGold() always has it
+    // Sync resolved tgId back to state so other logic always has it
     if (canonicalTgId && !state.tgNumericId) state.tgNumericId = canonicalTgId;
+    // FIX 1: Referral link MUST use state.cryptonId — the exact 7-digit Crypton ID
+    // shown on the Account Card. This is the unified canonical identity for CRYPTON.
+    const refId2      = state.cryptonId || null;
+    const refLinkVal2 = refId2
+      ? `${window.location.origin}/?ref=${refId2}`
+      : 'Referral link loading…';
     const mergeFields = { walletAddress, userId };
     // Also refresh any tg fields the SDK may have fresher data for
     if (tgPayload.tgHandle) mergeFields.tgHandle = tgPayload.tgHandle;
@@ -6624,14 +6725,12 @@ function copyReferral() {
 
 // Copy referral from the gold card button — always reads fresh link from state
 function copyReferralGold() {
-  // MUST use tgNumericId — state.userId is "USR..." which is NOT a valid referral ID
-  // state.userId is wallet-derived and will never match referredBy field in Firestore
-  const refId = (state.tgNumericId && /^\d+$/.test(state.tgNumericId))
-    ? state.tgNumericId
-    : null;
+  // FIX 1: MUST use state.cryptonId — the exact 7-digit Crypton ID on the Account Card.
+  // This is the canonical public identity for CRYPTON referral tracking.
+  const refId = state.cryptonId || null;
 
   if (!refId) {
-    // tgNumericId not loaded yet — try reading from the display element as fallback
+    // cryptonId not loaded yet — try reading from the display element as fallback
     const displayed = document.getElementById('ref-link')?.textContent || '';
     if (displayed && displayed.includes('?ref=')) {
       navigator.clipboard.writeText(displayed).then(() => {
@@ -6640,12 +6739,12 @@ function copyReferralGold() {
         showToast('Referral link copied ✓');
       }).catch(() => showToast('Could not copy. Try again.'));
     } else {
-      showToast('Referral link not ready yet. Please wait…');
+      showToast('Referral link not ready. Please wait…');
     }
     return;
   }
 
-  const link = `${window.location.origin}${window.location.pathname}?ref=${refId}`;
+  const link = `${window.location.origin}/?ref=${refId}`;
 
   // Keep display element in sync
   const linkEl = document.getElementById('ref-link');
@@ -6844,14 +6943,30 @@ async function fetchLeaderboard() {
   // Show spinner
   contentEl.innerHTML = '<div class="lb-loading">Fetching top earners…</div>';
 
+  // FIX 2: Safety timeout — dismiss spinner if Firestore hangs
+  const _lbGuard = setTimeout(() => {
+    if (contentEl.querySelector('.lb-loading')) {
+      contentEl.innerHTML = '<div class="lb-error">Request timed out.<br><small style="opacity:0.6;">Check connection and retry.</small></div>';
+    }
+  }, 12000);
+
   try {
-    await waitForFirestore();
-    const { collection, query, orderBy, limit, getDocs } = window.__fs;
+    await withTimeout(waitForFirestore(), 8000, 'Firestore not available');
+    const { collection, query, orderBy, limit, getDocs, where } = window.__fs;
     const db = window.__db;
 
-    // Top 10 users ordered by earnedTon descending
-    const q    = query(collection(db, 'users'), orderBy('passiveTon', 'desc'), limit(10));
-    const snap = await getDocs(q);
+    // FIX 3: Only fetch fully registered users (must have cryptonId, joinedAt, and name fields)
+    // orderBy passiveTon desc; Firestore does NOT support inequality filter on multiple fields
+    // so we filter client-side for the registration check.
+    const q    = query(collection(db, 'users'), orderBy('passiveTon', 'desc'), limit(30));
+    const rawSnap = await getDocs(q);
+    // Client-side strict filter: only include users who completed registration (have cryptonId)
+    const validDocs = rawSnap.docs.filter(d => {
+      const data = d.data();
+      return !!(data.cryptonId && data.joinedAt && (data.tgName || data.tgHandle || data.name));
+    }).slice(0, 10);
+    const snap = { docs: validDocs, empty: validDocs.length === 0 };
+    clearTimeout(_lbGuard);
 
     if (snap.empty) {
       contentEl.innerHTML = '<div class="lb-error">No data found yet.<br>Be the first to earn TON!</div>';
@@ -6876,8 +6991,8 @@ async function fetchLeaderboard() {
         ? rawName.replace(/^@/, '').replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0, 22)
         : ('User…' + String(d.tgId || docSnap.id).slice(-4));
 
-      // UID display
-      const uid      = d.tgId || docSnap.id;
+      // FIX 3: UID display — show Crypton ID (public identity), not internal tgId
+      const uid      = d.cryptonId || d.tgId || docSnap.id;
       const safeUid  = String(uid).replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
       // TON balance
@@ -6912,6 +7027,7 @@ async function fetchLeaderboard() {
     contentEl.innerHTML = html;
 
   } catch (err) {
+    clearTimeout(_lbGuard);
     console.warn('[Leaderboard] Fetch error:', err);
     contentEl.innerHTML =
       '<div class="lb-error">Could not load leaderboard.<br>Check connection and try again.</div>';
@@ -7002,8 +7118,17 @@ async function pvDoSearch() {
   if (loadEl) loadEl.style.display = 'block';
   if (btn) btn.disabled = true;
 
+  // FIX 2: Safety timeout — force-dismiss loader if promise hangs for 12 seconds
+  const _pvLoaderGuard = setTimeout(() => {
+    if (loadEl && loadEl.style.display !== 'none') {
+      loadEl.style.display = 'none';
+      if (btn) btn.disabled = false;
+      if (empEl) { empEl.innerHTML = '<div style="color:var(--red);font-size:12px;font-family:var(--font-mono);">Request timed out. Try again.</div>'; empEl.style.display = 'block'; }
+    }
+  }, 12000);
+
   try {
-    await waitForFirestore();
+    await withTimeout(waitForFirestore(), 8000, 'Firestore not available');
     const { doc, getDoc, collection, query, where, orderBy, getDocs } = window.__fs;
     const db = window.__db;
 
@@ -7037,9 +7162,12 @@ async function pvDoSearch() {
           const allQ  = query(collection(db, 'users'), orderBy('joinedAt', 'asc'));
           const allSn = await getDocs(allQ);
           let seqIdx = 1;
+          // FIX 3: Only count fully registered users in sequence lookup
           allSn.forEach(d => {
+            const dd = d.data();
+            if (!dd.cryptonId || !dd.joinedAt) return; // skip unregistered
             if (seqIdx === seqNum && !userData) {
-              userData      = d.data();
+              userData      = dd;
               docId         = d.id;
               resolvedDocId = d.id;
             }
@@ -7051,14 +7179,18 @@ async function pvDoSearch() {
       }
     }
 
+    clearTimeout(_pvLoaderGuard);
+    clearTimeout(_pvLoaderGuard);
     if (loadEl) loadEl.style.display = 'none';
     if (btn) btn.disabled = false;
 
-    if (!userData) {
+    // FIX 3: Only show fully registered users — no placeholder/unregistered docs
+    const isPvRegistered = !!(userData && userData.cryptonId && userData.joinedAt);
+    if (!userData || !isPvRegistered) {
       if (empEl) {
         empEl.innerHTML =
           '<div style="font-size:28px;margin-bottom:10px;">🚫</div>' +
-          '<div style="color:var(--text-mid);font-size:13px;line-height:1.7;">No user found for UID:<br>' +
+          '<div style="color:var(--text-mid);font-size:13px;line-height:1.7;">No registered user found for:<br>' +
           '<span style="color:var(--cyan);font-family:var(--font-mono);">' + uid + '</span></div>';
         empEl.style.display = 'block';
       }
@@ -7343,13 +7475,27 @@ async function pvFetchLeaderboard() {
   if (!contentEl) return;
   contentEl.innerHTML = '<div class="lb-loading">Fetching top earners…</div>';
 
+  // FIX 2: Safety timeout guard
+  const _pvLbGuard = setTimeout(() => {
+    if (contentEl.querySelector('.lb-loading')) {
+      contentEl.innerHTML = '<div class="lb-error">Request timed out.<br><small>Check connection and retry.</small></div>';
+    }
+  }, 12000);
+
   try {
-    await waitForFirestore();
+    await withTimeout(waitForFirestore(), 8000, 'Firestore not available');
     const { collection, query, orderBy, limit, getDocs } = window.__fs;
     const db = window.__db;
 
-    const q    = query(collection(db, 'users'), orderBy('passiveTon', 'desc'), limit(10));
-    const snap = await getDocs(q);
+    // FIX 3: Fetch extra and filter strictly to registered users
+    const q       = query(collection(db, 'users'), orderBy('passiveTon', 'desc'), limit(30));
+    const rawSnap = await getDocs(q);
+    clearTimeout(_pvLbGuard);
+    const validPvDocs = rawSnap.docs.filter(d => {
+      const dd = d.data();
+      return !!(dd.cryptonId && dd.joinedAt && (dd.tgName || dd.tgHandle || dd.name));
+    }).slice(0, 10);
+    const snap = { docs: validPvDocs, empty: validPvDocs.length === 0 };
 
     if (snap.empty) {
       contentEl.innerHTML = '<div class="lb-error">No data found yet.<br>Be the first to earn TON!</div>';
@@ -7453,8 +7599,19 @@ async function doSearchUser() {
   document.getElementById('srch-loading-state').style.display = 'block';
   if (btn) btn.disabled = true;
 
+  // FIX 2: Safety timeout — force-dismiss loader if promise hangs for 12 seconds
+  const _srchLoaderGuard = setTimeout(() => {
+    const _ls = document.getElementById('srch-loading-state');
+    if (_ls && _ls.style.display !== 'none') {
+      _ls.style.display = 'none';
+      if (btn) btn.disabled = false;
+      const _es = document.getElementById('srch-empty-state');
+      if (_es) { _es.innerHTML = '<div style="color:var(--red);font-size:12px;font-family:var(--font-mono);">Request timed out. Try again.</div>'; _es.style.display = 'block'; }
+    }
+  }, 12000);
+
   try {
-    await waitForFirestore();
+    await withTimeout(waitForFirestore(), 8000, 'Firestore not available');
     const { doc, getDoc, collection, query, where, orderBy, getDocs } = window.__fs;
     const db = window.__db;
 
@@ -7498,9 +7655,12 @@ async function doSearchUser() {
           const allQ  = query(collection(db, 'users'), orderBy('joinedAt', 'asc'));
           const allSn = await getDocs(allQ);
           let seqIdx = 1;
+          // FIX 3: Only count fully registered users in sequence lookup
           allSn.forEach(d => {
+            const dd = d.data();
+            if (!dd.cryptonId || !dd.joinedAt) return; // skip unregistered
             if (seqIdx === seqNum && !userData) {
-              userData      = d.data();
+              userData      = dd;
               docId         = d.id;
               resolvedDocId = d.id;
             }
@@ -7512,13 +7672,16 @@ async function doSearchUser() {
       }
     }
 
+    clearTimeout(_srchLoaderGuard);
     document.getElementById('srch-loading-state').style.display = 'none';
     if (btn) btn.disabled = false;
 
-    if (!userData) {
+    // FIX 3: Strict registered-only gate — unregistered placeholder docs must not be shown
+    const isRegistered = !!(userData && userData.cryptonId && userData.joinedAt);
+    if (!userData || !isRegistered) {
       document.getElementById('srch-empty-state').innerHTML =
         '<div style="font-size:28px;margin-bottom:10px;">🚫</div>' +
-        '<div style="color:var(--text-mid);font-size:13px;line-height:1.7;">No user found for UID:<br><span style="color:var(--cyan);font-family:var(--font-mono);">' + uid + '</span></div>';
+        '<div style="color:var(--text-mid);font-size:13px;line-height:1.7;">No registered user found for:<br><span style="color:var(--cyan);font-family:var(--font-mono);">' + uid + '</span></div>';
       document.getElementById('srch-empty-state').style.display = 'block';
       return;
     }
@@ -7614,6 +7777,7 @@ async function doSearchUser() {
     await renderSearchDownline(String(displayUid));
 
   } catch(e) {
+    clearTimeout(_srchLoaderGuard);
     document.getElementById('srch-loading-state').style.display = 'none';
     if (btn) btn.disabled = false;
     document.getElementById('srch-empty-state').innerHTML =
@@ -7647,11 +7811,14 @@ async function renderSearchDownline(targetUid) {
     let html = '';
     snap.forEach(docSnap => {
       const d        = docSnap.data();
-      const name     = d.tgName || (d.tgHandle ? d.tgHandle.replace(/^@/, '') : null) || 'Unknown'; // FIX: normalize handle
+      // FIX 3: Only render fully registered downline members (must have cryptonId)
+      if (!d.cryptonId || !d.joinedAt) return;
+      const name     = d.tgName || (d.tgHandle ? d.tgHandle.replace(/^@/, '') : null) || 'Unknown';
       const handle   = d.tgHandle ? '@' + d.tgHandle.replace(/^@/, '') : '';
-      const uid      = d.tgId    || docSnap.id;
+      // FIX 3: Show Crypton ID as the public UID, not internal tgId
+      const uid      = d.cryptonId || d.tgId || docSnap.id;
       const photoUrl = d.tgPhotoUrl || null;
-      const uidLine  = handle ? `${handle} · UID: ${uid}` : `UID: ${uid}`;
+      const uidLine  = handle ? `${handle} · ID: ${uid}` : `Crypton ID: ${uid}`;
       const avatar   = photoUrl
         ? `<img src="${photoUrl}" alt="avatar" onerror="this.parentNode.innerHTML='${silSVG.replace(/"/g,"'")}'" />`
         : silSVG;
@@ -7693,11 +7860,14 @@ async function fetchTickerDataFromFirestore() {
     const { collection, query, orderBy, limit, getDocs } = window.__fs;
 
     // Fetch top earners ordered by passiveTon for ranking
-    const q     = query(collection(window.__db, 'users'), orderBy('passiveTon','desc'), limit(100));
+    // FIX 3: Fetch extra results so client-side filter can trim to top 100 registered users
+    const q     = query(collection(window.__db, 'users'), orderBy('passiveTon','desc'), limit(150));
     const snap  = await getDocs(q);
     const users = [];
     snap.forEach(d => {
       const data = d.data();
+      // FIX 3: Strict filter — only include fully registered users (must have cryptonId + joinedAt)
+      if (!data.cryptonId || !data.joinedAt) return;
       users.push({
         tgId:      data.tgId || d.id || null,
         cryptonId: data.cryptonId || null,
@@ -7709,21 +7879,26 @@ async function fetchTickerDataFromFirestore() {
     if (users.length > 0) {
       // ── Derive sequence index: fetch all users ordered by joinedAt ascending
       // to assign a stable "#N" position for each user in the ticker.
-      // We do a second lightweight query: just get all IDs ordered by joinedAt.
       const allQ    = query(collection(window.__db, 'users'), orderBy('joinedAt', 'asc'));
       const allSnap = await getDocs(allQ);
       const seqMap  = {}; // docId → sequence number (1-based)
       let seqIdx = 1;
-      allSnap.forEach(d => { seqMap[d.id] = seqIdx++; });
+      // FIX 3: Only registered users (cryptonId present) get a sequence number in ticker
+      allSnap.forEach(d => {
+        const dd = d.data();
+        if (dd.cryptonId && dd.joinedAt) { seqMap[d.id] = seqIdx++; }
+      });
 
-      // Map each earner to their sequence index for display
-      _tickerData = users.map(u => ({
-        tgId:     u.tgId,   // internal use only (for _injectLiveUserIntoTicker)
-        seqLabel: '#' + (seqMap[u.tgId] || seqMap[u.cryptonId] || '?'),
-        earnedTon: u.earnedTon,
-      }));
+      // Map each earner to their sequence index for display (skip unregistered)
+      _tickerData = users
+        .filter(u => u.cryptonId) // FIX 3: Strict filter — no cryptonId = not registered
+        .map(u => ({
+          tgId:     u.tgId,
+          seqLabel: '#' + (seqMap[u.tgId] || seqMap[u.cryptonId] || '?'),
+          earnedTon: u.earnedTon,
+        }));
       _tickerSeeded = true;
-      console.log('[Ticker] Loaded', users.length, 'real users from Firestore with sequence indexes');
+      console.log('[Ticker] Loaded', _tickerData.length, 'registered users from Firestore');
     } else {
       // Firestore empty — show nothing (no mock data)
       _tickerData   = [];
@@ -8000,16 +8175,24 @@ async function loadUserDirectory() {
   listEl.innerHTML = '<div class="dir-loading" id="dir-loading-state">Loading members…</div>';
   if (countEl) countEl.textContent = '—';
 
+  // FIX 2: Safety timeout guard — dismiss spinner if Firestore hangs
+  const _dirGuard = setTimeout(() => {
+    const spinEl = listEl.querySelector('.dir-loading');
+    if (spinEl) {
+      listEl.innerHTML = '<div class="dir-empty">Request timed out. Tap the back button and retry.</div>';
+    }
+  }, 12000);
+
   try {
     const db = window.__db;
     const fs = window.__fs;
     if (!db || !fs) throw new Error('Firestore not ready');
 
-    // Fetch latest 100 users ordered by joinedAt descending — limit prevents full collection scan.
-    // Client-side sort flips to ascending (chronological) for display.
+    // Fetch latest 150 users (extra for client-side filter) ordered by joinedAt descending.
     const snap = await fs.getDocs(
-      fs.query(fs.collection(db, 'users'), fs.orderBy('joinedAt', 'desc'), fs.limit(100))
+      fs.query(fs.collection(db, 'users'), fs.orderBy('joinedAt', 'desc'), fs.limit(150))
     );
+    clearTimeout(_dirGuard);
     const users = [];
     snap.forEach(doc => users.push({ id: doc.id, ...doc.data() }));
 
@@ -8028,18 +8211,26 @@ async function loadUserDirectory() {
 
     if (countEl) countEl.textContent = users.length;
 
-    if (users.length === 0) {
+    // FIX 3: Filter to only fully registered users (must have cryptonId + joinedAt + name)
+    const registeredUsers = users.filter(u =>
+      u.cryptonId && u.joinedAt && (u.tgName || u.tgHandle || u.name)
+    );
+
+    if (countEl) countEl.textContent = registeredUsers.length;
+
+    if (registeredUsers.length === 0) {
       listEl.innerHTML = '<div class="dir-empty">No registered users found.</div>';
       return;
     }
 
     // Build row HTML — mirrors the Leaderboard card layout exactly:
     // seq badge | avatar DP | TG name + UID | TON balance
-    const rows = users.map((u, idx) => {
+    const rows = registeredUsers.map((u, idx) => {
       const seq       = idx + 1;
       // Use tgName as primary (set by bot), then fallback chain
+      // FIX 3: Show Crypton ID in the UID line — registeredUsers already filtered by cryptonId
       const firstName = escHtml(u.tgName || u.tgHandle || u.firstName || u.first_name || u.name || 'Unknown');
-      const tgId      = escHtml(String(u.tgId || u.userId || u.telegram_id || u.id || '—'));
+      const tgId      = escHtml(String(u.cryptonId || u.tgId || u.id || '—'));
       // Avatar: tgPhotoUrl is the canonical field written by the python bot
       const photoUrl  = u.tgPhotoUrl || '';
       // TON balance — earnedTon primary, fallback to sum of workingTon+passiveTon
@@ -8098,6 +8289,7 @@ async function loadUserDirectory() {
     listEl.innerHTML = `<div>${rows.join('')}</div>`;
 
   } catch (err) {
+    clearTimeout(_dirGuard);
     console.error('[UserDirectory] fetch error:', err);
     listEl.innerHTML = `<div class="dir-empty">⚠ Could not load directory.<br><span style="font-size:10px;opacity:0.6;">${escHtml(err.message)}</span></div>`;
   }
@@ -8149,20 +8341,43 @@ async function loadLeaderboardView() {
       ">↻ REFRESH</button>
     </div>`;
 
+  // FIX 2: Safety timeout guard for loadLeaderboardView
+  const _lbvGuard = setTimeout(() => {
+    if (contentEl.querySelector('.lb-loading') || contentEl.textContent.includes('Fetching')) {
+      contentEl.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:10px;padding:0 2px;">
+          <button onclick="loadLeaderboardView()" style="
+            background:rgba(0,229,255,0.10);border:1px solid rgba(0,229,255,0.25);
+            color:var(--cyan);border-radius:8px;padding:5px 12px;
+            font-family:var(--font-mono);font-size:10px;font-weight:700;
+            letter-spacing:1px;cursor:pointer;
+          ">↻ REFRESH</button>
+        </div>
+        <div class="dir-empty">Request timed out. Tap REFRESH to retry.</div>`;
+    }
+  }, 12000);
+
   try {
     const db = window.__db;
     const fs = window.__fs;
     if (!db || !fs) throw new Error('Firestore not ready');
 
+    // FIX 3: Fetch more records to allow client-side registration filter
     const q = fs.query(
       fs.collection(db, 'users'),
       fs.orderBy('passiveTon', 'desc'),
-      fs.limit(10)
+      fs.limit(30)
     );
 
-    const snap = await fs.getDocs(q);
-    const users = [];
-    snap.forEach(doc => users.push({ id: doc.id, ...doc.data() }));
+    const rawSnap = await fs.getDocs(q);
+    clearTimeout(_lbvGuard);
+
+    // FIX 3: Strict filter — only show fully registered users (cryptonId + joinedAt + name)
+    const allRaw = [];
+    rawSnap.forEach(doc => allRaw.push({ id: doc.id, ...doc.data() }));
+    const users = allRaw.filter(u =>
+      u.cryptonId && u.joinedAt && (u.tgName || u.tgHandle || u.name)
+    ).slice(0, 10);
 
     if (users.length === 0) {
       contentEl.innerHTML = `
@@ -8174,7 +8389,7 @@ async function loadLeaderboardView() {
             letter-spacing:1px;cursor:pointer;
           ">↻ REFRESH</button>
         </div>
-        <div class="dir-empty">No data available yet.</div>`;
+        <div class="dir-empty">No registered users yet.</div>`;
       return;
     }
 
@@ -8184,8 +8399,9 @@ async function loadLeaderboardView() {
     const rows = users.map((u, idx) => {
       const rank      = idx + 1;
       // Use tgName as primary (written by bot), then fallback chain
+      // FIX 3: Show Crypton ID in the UID line — not internal tgId
       const firstName = escHtml(u.tgName || u.tgHandle || u.firstName || u.first_name || u.name || 'Unknown');
-      const tgId      = escHtml(String(u.tgId || u.userId || u.telegram_id || u.id || '—'));
+      const tgId      = escHtml(String(u.cryptonId || u.tgId || u.id || '—'));
       // tgPhotoUrl is the canonical avatar field written by the python bot
       const photoUrl  = u.tgPhotoUrl || '';
       const earned    = typeof u.earnedTon === 'number' ? u.earnedTon.toFixed(2) : '0.00';
@@ -8245,6 +8461,7 @@ async function loadLeaderboardView() {
     contentEl.innerHTML = refreshBar + rows.join('');
 
   } catch (err) {
+    clearTimeout(_lbvGuard);
     console.error('[LeaderboardView] fetch error:', err);
     contentEl.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:10px;padding:0 2px;">
