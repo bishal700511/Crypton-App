@@ -5204,7 +5204,7 @@ async function buySlot(level, priceTon) {
 // ──────────────────────────────────────────────────────────────
 
 // Helper: wait for Firestore to be ready (module loads async)
-function waitForFirestore(timeout = 8000) {
+function waitForFirestore(timeout = 15000) {
   return new Promise((resolve, reject) => {
     if (window.__db && window.__fs) return resolve();
     const start = Date.now();
@@ -5404,8 +5404,14 @@ async function handleRegisterStep1() {
     renderSeedGrid(_regState.seedWords);
 
   } catch(e) {
-    console.error('[Auth] Step1 error:', e);
-    errEl.textContent = 'Something went wrong. Please try again.';
+    console.error('[Auth] Step1 error:', e.code, e.message);
+    if (e.message === 'Firestore timeout') {
+      errEl.textContent = 'Connection slow. Check your internet and try again.';
+    } else if (e.code === 'permission-denied') {
+      errEl.textContent = 'Access denied. Please contact support.';
+    } else {
+      errEl.textContent = 'Something went wrong. Please try again.';
+    }
   } finally {
     btn.disabled = false;
     btnText.style.display = '';
@@ -5637,8 +5643,14 @@ async function handleVerifyAndCreate() {
     _authSuccess(_regState.docId, cryptonId, _regState.name);
 
   } catch(e) {
-    console.error('[Auth] Create account error:', e);
-    errEl.textContent = 'Something went wrong. Please try again.';
+    console.error('[Auth] Create account error:', e.code, e.message);
+    if (e.message === 'Firestore timeout') {
+      errEl.textContent = 'Connection slow. Check your internet and try again.';
+    } else if (e.code === 'permission-denied') {
+      errEl.textContent = 'Access denied. Check Firebase rules.';
+    } else {
+      errEl.textContent = 'Something went wrong. Please try again.';
+    }
   } finally {
     btn.disabled = false;
     btnText.style.display = '';
@@ -5726,8 +5738,14 @@ async function handleLogin() {
     _authSuccess(docId, cryptonId, data.name || data.tgName || email);
 
   } catch(e) {
-    console.error('[Auth] Login error:', e);
-    errEl.textContent = 'Something went wrong. Please try again.';
+    console.error('[Auth] Login error:', e.code, e.message);
+    if (e.message === 'Firestore timeout') {
+      errEl.textContent = 'Connection slow. Check your internet and try again.';
+    } else if (e.code === 'permission-denied') {
+      errEl.textContent = 'Access denied. Contact support.';
+    } else {
+      errEl.textContent = 'Something went wrong. Please try again.';
+    }
   } finally {
     btn.disabled = false;
     btnText.style.display = '';
