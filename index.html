@@ -21,7 +21,8 @@
              updateDoc, increment, collection,
              query, orderBy, where, limit, getDocs,
              addDoc, deleteDoc, serverTimestamp,
-             Timestamp, getCountFromServer }              from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+             Timestamp, getCountFromServer,
+             arrayUnion }              from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     // ⚠️ SECURITY NOTE: Firebase client config is safe to expose in frontend code,
     // BUT you MUST set Firestore Security Rules to restrict reads/writes.
@@ -44,7 +45,7 @@
     window.__fs = { doc, getDoc, setDoc, updateDoc, increment,
                     collection, query, orderBy, where, limit, getDocs,
                     addDoc, deleteDoc, serverTimestamp, Timestamp,
-                    getCountFromServer };
+                    getCountFromServer, arrayUnion };
 
     console.log('[Firebase] Firestore initialized ✓');
   </script>
@@ -2237,6 +2238,275 @@
       letter-spacing: 0.3px;
     }
 
+    /* ─── AUTH CARD (Register / Login) ─────────────────── */
+    .auth-card {
+      margin: 24px auto 0;
+      max-width: 370px;
+      background: rgba(8,20,40,0.82);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: var(--radius-lg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+    }
+    .auth-tabs {
+      display: flex;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .auth-tab {
+      flex: 1;
+      padding: 14px 0;
+      background: transparent;
+      border: none;
+      color: var(--text-mid);
+      font-family: var(--font-head);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+      transition: color 0.2s;
+      border-bottom: 2px solid transparent;
+    }
+    .auth-tab.active {
+      color: var(--gold-lt);
+      border-bottom: 2px solid var(--gold);
+    }
+    .auth-panel {
+      padding: 20px 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .auth-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      text-align: left;
+    }
+    .auth-label {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: var(--text-mid);
+      text-transform: uppercase;
+    }
+    .auth-input {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      color: var(--text-hi);
+      font-family: var(--font-body);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+      -webkit-appearance: none;
+    }
+    .auth-input::placeholder { color: var(--text-lo); }
+    .auth-input:focus {
+      border-color: rgba(212,168,67,0.50);
+      background: rgba(255,255,255,0.08);
+    }
+    .auth-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 50px;
+      border: none;
+      cursor: pointer;
+      font-family: var(--font-head);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--navy);
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-lt) 60%, var(--cyan) 100%);
+      background-size: 200% 200%;
+      background-position: 0% 50%;
+      box-shadow: var(--shadow-gold), 0 4px 18px rgba(0,0,0,0.35);
+      transition: transform 0.18s, box-shadow 0.18s;
+      margin-top: 4px;
+    }
+    .auth-btn:active { transform: scale(0.97); }
+    .auth-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .auth-btn-ghost {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 12px; border-radius: 50px;
+      border: 1.5px solid rgba(255,255,255,0.14);
+      background: transparent;
+      color: var(--text-mid);
+      font-family: var(--font-head); font-size: 14px; font-weight: 600;
+      cursor: pointer; margin-top: 4px;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .auth-btn-ghost:hover { border-color: rgba(255,255,255,0.30); color: var(--text-hi); }
+    .auth-spinner {
+      display: none;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      border: 2.5px solid rgba(5,13,26,0.25);
+      border-top-color: var(--navy);
+      animation: auth-spin 0.7s linear infinite;
+    }
+    .auth-spinner.visible { display: inline-block; }
+    @keyframes auth-spin { to { transform: rotate(360deg); } }
+    .auth-error {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--red);
+      letter-spacing: 0.3px;
+      min-height: 14px;
+      text-align: left;
+    }
+
+    /* ─── STEP INDICATOR ────────────────────────────────── */
+    .auth-steps {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 14px 20px 0;
+    }
+    .auth-step-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      transition: background 0.3s, transform 0.3s;
+    }
+    .auth-step-dot.active {
+      background: var(--gold);
+      transform: scale(1.25);
+    }
+    .auth-step-dot.done {
+      background: var(--green);
+    }
+    .auth-step-line {
+      width: 24px; height: 2px;
+      background: rgba(255,255,255,0.10);
+      border-radius: 2px;
+    }
+
+    /* ─── SEED PHRASE GRID ──────────────────────────────── */
+    .seed-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 4px 0;
+    }
+    .seed-word-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0,229,255,0.06);
+      border: 1px solid rgba(0,229,255,0.18);
+      border-radius: 10px;
+      padding: 10px 12px;
+      transition: border-color 0.2s;
+    }
+    .seed-word-num {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--cyan);
+      opacity: 0.7;
+      min-width: 16px;
+    }
+    .seed-word-text {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-hi);
+      letter-spacing: 0.3px;
+    }
+    .seed-warning {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: rgba(255,77,109,0.08);
+      border: 1px solid rgba(255,77,109,0.22);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+    .seed-warning-icon { font-size: 16px; flex-shrink: 0; line-height: 1.4; }
+    .seed-warning-text {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: rgba(255,120,140,0.90);
+      line-height: 1.6;
+      letter-spacing: 0.2px;
+    }
+    .seed-copy-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 9px 18px;
+      border-radius: 8px;
+      border: 1px solid rgba(0,229,255,0.28);
+      background: rgba(0,229,255,0.07);
+      color: var(--cyan);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      cursor: pointer;
+      align-self: flex-end;
+      transition: background 0.2s;
+    }
+    .seed-copy-btn:hover { background: rgba(0,229,255,0.14); }
+
+    /* ─── VERIFY STEP — 3 word inputs ──────────────────── */
+    .verify-hint {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-mid);
+      line-height: 1.6;
+      text-align: center;
+      padding: 0 4px;
+    }
+    .verify-inputs {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .verify-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .verify-pos-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--cyan);
+      background: rgba(0,229,255,0.10);
+      border: 1px solid rgba(0,229,255,0.22);
+      border-radius: 8px;
+      padding: 8px 10px;
+      min-width: 36px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .verify-word-input {
+      flex: 1;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: var(--radius-sm);
+      padding: 11px 14px;
+      color: var(--text-hi);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+    }
+    .verify-word-input::placeholder { color: var(--text-lo); }
+    .verify-word-input:focus { border-color: rgba(0,229,255,0.45); }
+    .verify-word-input.correct { border-color: rgba(34,197,94,0.60); background: rgba(34,197,94,0.06); }
+    .verify-word-input.wrong   { border-color: rgba(255,77,109,0.60); background: rgba(255,77,109,0.06); }
+
     /* ─── AIRDROP BONUS POOL CARD — dark premium style ── */
     .airdrop-pool-card {
       margin-top: 14px;
@@ -2435,27 +2705,123 @@
   <!-- ══════════ VIEW: HOME ══════════ -->
   <div class="view active" id="view-home">
 
-    <!-- HERO -->
+    <!-- HERO — Auth Gate -->
     <div id="hero-section" class="hero">
       <h1 class="hero-title">Earn on <span>Every<br>Level</span></h1>
       <p class="hero-sub">Activate slots, grow your network, and earn TON automatically across all levels.</p>
 
-      <button class="btn-connect" id="btn-connect" onclick="connectWallet()">
-        <svg class="ton-icon" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M28 56C43.464 56 56 43.464 56 28C56 12.536 43.464 0 28 0C12.536 0 0 12.536 0 28C0 43.464 12.536 56 28 56Z" fill="currentColor" fill-opacity="0.15"/>
-          <path d="M37.5603 15.6277H18.4386C14.9191 15.6277 12.6388 19.3888 14.3833 22.4597L26.0929 43.2555C26.9607 44.7984 29.0381 44.7984 29.906 43.2555L41.6156 22.4597C43.3612 19.3888 41.0798 15.6277 37.5603 15.6277ZM26.0929 36.3236L23.2795 31.1978L17.291 20.4529C16.8813 19.7241 17.3993 18.8069 18.4386 18.8069H26.0929V36.3236ZM38.707 20.4529L32.7185 31.1978L29.9051 36.3236V18.8069H37.5594C38.5987 18.8069 39.1167 19.7241 38.707 20.4529Z" fill="#050D1A"/>
-        </svg>
-        Connect TON Wallet
-      </button>
-      <p class="btn-connect-sub">TonConnect 2.0 · 1 TON = $<span id="rate-info">—</span></p>
+      <!-- ── AUTH CARD ── -->
+      <div class="auth-card" id="auth-card">
+
+        <!-- TAB SWITCHER -->
+        <div class="auth-tabs">
+          <button class="auth-tab active" id="tab-register" onclick="showAuthTab('register')">Register</button>
+          <button class="auth-tab" id="tab-login" onclick="showAuthTab('login')">Login</button>
+        </div>
+
+        <!-- ══ REGISTER: STEP 1 — Name + Email ══ -->
+        <div class="auth-panel" id="panel-register">
+          <!-- Step dots -->
+          <div class="auth-steps">
+            <div class="auth-step-dot active" id="reg-dot-1"></div>
+            <div class="auth-step-line"></div>
+            <div class="auth-step-dot" id="reg-dot-2"></div>
+            <div class="auth-step-line"></div>
+            <div class="auth-step-dot" id="reg-dot-3"></div>
+          </div>
+          <div class="auth-field">
+            <label class="auth-label">YOUR NAME</label>
+            <input class="auth-input" id="reg-name" type="text" placeholder="Enter your name" autocomplete="off" />
+          </div>
+          <div class="auth-field">
+            <label class="auth-label">EMAIL ADDRESS</label>
+            <input class="auth-input" id="reg-email" type="email" placeholder="Enter your email" autocomplete="off" />
+          </div>
+          <div class="auth-error" id="reg-error"></div>
+          <button class="auth-btn" id="reg-btn" onclick="handleRegisterStep1()">
+            <span id="reg-btn-text">Next →</span>
+            <span class="auth-spinner" id="reg-spinner"></span>
+          </button>
+        </div>
+
+        <!-- ══ REGISTER: STEP 2 — Seed Phrase Display ══ -->
+        <div class="auth-panel" id="panel-seed" style="display:none;">
+          <div class="auth-steps">
+            <div class="auth-step-dot done" id="seed-dot-1"></div>
+            <div class="auth-step-line"></div>
+            <div class="auth-step-dot active" id="seed-dot-2"></div>
+            <div class="auth-step-line"></div>
+            <div class="auth-step-dot" id="seed-dot-3"></div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-family:var(--font-head);font-size:15px;font-weight:800;color:var(--text-hi);margin-bottom:4px;">Your Secret Key Phrase</div>
+            <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-mid);letter-spacing:0.5px;">Write these 7 words in order. Keep them safe.</div>
+          </div>
+          <div class="seed-grid" id="seed-phrase-grid">
+            <!-- Injected by JS -->
+          </div>
+          <div class="seed-warning">
+            <span class="seed-warning-icon">⚠️</span>
+            <span class="seed-warning-text">These 7 words are your account key. Anyone with these words can access your account. Never share them.</span>
+          </div>
+          <button class="seed-copy-btn" onclick="copySeedPhrase()">⎘ COPY PHRASE</button>
+          <div class="auth-error" id="seed-error"></div>
+          <button class="auth-btn" onclick="goToVerifyStep()">I've Saved It — Continue →</button>
+        </div>
+
+        <!-- ══ REGISTER: STEP 3 — Verify 3 Words ══ -->
+        <div class="auth-panel" id="panel-verify" style="display:none;">
+          <div class="auth-steps">
+            <div class="auth-step-dot done"></div>
+            <div class="auth-step-line"></div>
+            <div class="auth-step-dot done"></div>
+            <div class="auth-step-line"></div>
+            <div class="auth-step-dot active"></div>
+          </div>
+          <div class="verify-hint" id="verify-hint">
+            Enter the words at positions shown below to confirm you saved them.
+          </div>
+          <div class="verify-inputs" id="verify-inputs">
+            <!-- 3 verify rows injected by JS -->
+          </div>
+          <div class="auth-error" id="verify-error"></div>
+          <button class="auth-btn" id="verify-btn" onclick="handleVerifyAndCreate()">
+            <span id="verify-btn-text">Create Account</span>
+            <span class="auth-spinner" id="verify-spinner"></span>
+          </button>
+          <button class="auth-btn-ghost" onclick="goBackToSeed()">← View Phrase Again</button>
+        </div>
+
+        <!-- ══ LOGIN PANEL ══ -->
+        <div class="auth-panel" id="panel-login" style="display:none;">
+          <div class="auth-field">
+            <label class="auth-label">EMAIL ADDRESS</label>
+            <input class="auth-input" id="login-email" type="email" placeholder="Enter your email" autocomplete="off" />
+          </div>
+          <div class="auth-field">
+            <label class="auth-label">YOUR 7-WORD SECRET PHRASE</label>
+            <input class="auth-input" id="login-phrase" type="text"
+              placeholder="word1 word2 word3 word4 word5 word6 word7"
+              autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
+              style="font-family:var(--font-mono);font-size:12px;" />
+          </div>
+          <div class="auth-error" id="login-error"></div>
+          <button class="auth-btn" id="login-btn" onclick="handleLogin()">
+            <span id="login-btn-text">Login</span>
+            <span class="auth-spinner" id="login-spinner"></span>
+          </button>
+        </div>
+
+      </div><!-- /auth-card -->
 
       <!-- Preview Mode entry -->
-      <div class="btn-preview-wrap">
+      <div class="btn-preview-wrap" style="margin-top:16px;">
         <button class="btn-preview" onclick="enterPreviewMode()">
           <span class="eye-sym" aria-hidden="true"><span class="eye-arc-l">(</span><span class="eye-dot">&#9679;</span><span class="eye-arc-r">)</span></span> Preview Mode
         </button>
-
       </div>
+      <!-- Rate info hidden anchor (still needed by JS) -->
+      <span style="display:none;">1 TON = $<span id="rate-info">—</span></span>
     </div>
 
     <!-- #RANK TICKER — horizontal auto-scroll, below connect button -->
@@ -2745,14 +3111,10 @@
       <div style="font-size:48px; margin-bottom:4px;">⊞</div>
       <div class="wallet-gate-title">Matrix Slots</div>
       <p style="font-family:var(--font-mono);font-size:12px;color:var(--text-mid);line-height:1.7;max-width:260px;text-align:center;">
-        Please Connect Wallet to View Slots
+        Please Register or Login to View Slots
       </p>
-      <button class="btn-gate-connect" onclick="connectWallet()">
-        <svg width="20" height="20" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M28 56C43.464 56 56 43.464 56 28C56 12.536 43.464 0 28 0C12.536 0 0 12.536 0 28C0 43.464 12.536 56 28 56Z" fill="currentColor" fill-opacity="0.15"/>
-          <path d="M37.5603 15.6277H18.4386C14.9191 15.6277 12.6388 19.3888 14.3833 22.4597L26.0929 43.2555C26.9607 44.7984 29.0381 44.7984 29.906 43.2555L41.6156 22.4597C43.3612 19.3888 41.0798 15.6277 37.5603 15.6277ZM26.0929 36.3236L23.2795 31.1978L17.291 20.4529C16.8813 19.7241 17.3993 18.8069 18.4386 18.8069H26.0929V36.3236ZM38.707 20.4529L32.7185 31.1978L29.9051 36.3236V18.8069H37.5594C38.5987 18.8069 39.1167 19.7241 38.707 20.4529Z" fill="#050D1A"/>
-        </svg>
-        Connect Wallet
+      <button class="btn-gate-connect" onclick="switchView('home')">
+        🔐 Register / Login
       </button>
     </div>
 
@@ -2828,13 +3190,13 @@
 
       <div class="card mt-16" style="padding:20px; text-align:center;">
         <button
-          onclick="disconnectWallet()"
+          onclick="handleLogout()"
           style="width:100%; padding:12px; border-radius:10px; background:transparent;
                  border:1px solid rgba(255,60,60,0.3); color:#ff6b6b; font-family:var(--font-mono);
                  font-size:13px; cursor:pointer; transition:background 0.2s;"
           onmouseover="this.style.background='rgba(255,60,60,0.08)'"
           onmouseout="this.style.background='transparent'"
-        >DISCONNECT WALLET</button>
+        >🚪 LOG OUT</button>
       </div>
     </section>
   </div>
@@ -2907,7 +3269,7 @@
         id="srch-uid-input"
         type="text"
         inputmode="numeric"
-        placeholder="Enter Telegram User ID…"
+        placeholder="Enter 7-digit Crypton ID…"
         autocomplete="off"
         autocorrect="off"
         spellcheck="false"
@@ -2922,7 +3284,7 @@
     <!-- Empty / placeholder -->
     <div id="srch-empty-state">
       <div style="margin-bottom:12px;display:flex;justify-content:center;"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-mid)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
-      <div style="color:var(--text-mid); font-size:13px; line-height:1.7;">Enter a Telegram User ID<br>to look up their public profile.</div>
+      <div style="color:var(--text-mid); font-size:13px; line-height:1.7;">Enter a 7-digit Crypton ID<br>to look up their public profile.</div>
     </div>
 
     <!-- Result area — shown after a successful query -->
@@ -3288,7 +3650,7 @@
           id="pv-srch-uid-input"
           type="text"
           inputmode="numeric"
-          placeholder="Enter Telegram User ID…"
+          placeholder="Enter 7-digit Crypton ID…"
           autocomplete="off"
           autocorrect="off"
           spellcheck="false"
@@ -3307,7 +3669,7 @@
         <div style="margin-bottom:12px;display:flex;justify-content:center;">
           <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-mid)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </div>
-        <div style="color:var(--text-mid);font-size:13px;line-height:1.7;">Enter a Telegram User ID<br>to look up their public profile.</div>
+        <div style="color:var(--text-mid);font-size:13px;line-height:1.7;">Enter a 7-digit Crypton ID<br>to look up their public profile.</div>
       </div>
 
       <!-- Result area — full dashboard mirror injected by pvDoSearch() -->
@@ -3455,18 +3817,25 @@ let TON_TO_USD = null; // Fetched live from CoinGecko
 // ──────────────────────────────────────────────────────────────
 async function fetchTonPrice() {
   try {
-    const res  = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd');
-    const data = await res.json();
+    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data  = await res.json();
     const price = data?.['the-open-network']?.usd;
-    if (price && price > 0) {
+    if (price && typeof price === 'number' && price > 0) {
       TON_TO_USD = price;
       updateRateUI();
-      updateStatsUI(); // refresh USD values with live rate
+      updateStatsUI();
       if (typeof refreshLeaderboardUsd === 'function') refreshLeaderboardUsd();
+    } else {
+      throw new Error('Invalid price data');
     }
   } catch(e) {
-    console.warn('CoinGecko fetch failed:', e.message);
-    if (!TON_TO_USD) TON_TO_USD = 5.50; // fallback only if first fetch fails
+    console.warn('[TonPrice] CoinGecko fetch failed:', e.message);
+    // Fallback only if we have no rate yet — avoids overwriting a good cached value
+    if (!TON_TO_USD) {
+      TON_TO_USD = 5.50; // approximate fallback — not used for real transactions
+      console.warn('[TonPrice] Using fallback rate $5.50 — for display only');
+    }
     updateRateUI();
   }
 }
@@ -3493,23 +3862,29 @@ const SLOTS = Array.from({ length: 10 }, (_, i) => {
 });
 
 // ──────────────────────────────────────────────────────────────
-// 50/50 INCOME CALCULATION LOGIC
+// INCOME DISTRIBUTION — mirrors smart contract logic (display only)
 // ──────────────────────────────────────────────────────────────
-
-/**
- * calculateIncomeDistribution(priceTon)
- * Returns the 50/50 split for any slot price.
- * Working = Direct referral (instant to referrer wallet)
- * Passive  = Matrix smart contract (spillover distribution)
- */
+// Smart contract actual distribution per slot purchase:
+//   • Slots 1–4  (Bootstrap): 100% → root/sponsor user wallet
+//   • Slots 5–9  (Normal):    50% direct referrer | 20% upline-1 | 20% upline-2 | 10% drop pool
+//   • Slot 10    (Premium):   Accumulated into Level-10 drop pool, distributed every 10 days
+//
+// This function is DISPLAY ONLY — used to show income split preview in UI cards.
+// Actual on-chain distribution is handled entirely by the smart contract.
+//
+// For display purposes we show the normal split (50/20/20/10):
+//   working = 50% (direct referrer — shown as "Working Income")
+//   passive  = 50% (matrix/upline/pool — shown as "Passive Income")
+// ──────────────────────────────────────────────────────────────
 function calculateIncomeDistribution(priceTon) {
-  const working = priceTon * 0.50;       // 50% → direct referrer
-  const passive = priceTon * 0.50;       // 50% → matrix contract
+  // Display split: 50% direct referrer (working) + 50% matrix spillover (passive)
+  const working = priceTon * 0.50;
+  const passive  = priceTon * 0.50;
   return {
     working,
     passive,
-    workingUsd: working * TON_TO_USD,
-    passiveUsd: passive * TON_TO_USD,
+    workingUsd: TON_TO_USD ? working * TON_TO_USD : 0,
+    passiveUsd: TON_TO_USD ? passive  * TON_TO_USD : 0,
   };
 }
 
@@ -3525,6 +3900,7 @@ let state = {
   tgEmail:       null,   // Telegram email (if shared)
   tgPhotoUrl:    null,   // Telegram profile photo URL
   tgFirstName:   null,   // First name (for avatar fallback)
+  cryptonId:     null,   // 7-digit Crypton App ID
   ownedSlots:    [],
   earnedTon:     0,
   workingTon:    0,
@@ -3675,13 +4051,12 @@ function getStoredRef() {
 })();
 
 // ──────────────────────────────────────────────────────────────
-// BUG #1 FIX: PHOTO SYNC FOR NON-WALLET USERS
+// PHOTO SYNC — tgPhotoUrl ko Firestore mein update karo on app open
 // ──────────────────────────────────────────────────────────────
-// loginUser() only runs on wallet connect. Users who registered via the bot
-// but never connected a wallet would never have tgPhotoUrl written to Firestore.
-// This lightweight function fires at app open: if SDK gave us tgId + photo_url,
-// we do a single blind updateDoc so Leaderboard / User Directory always show
-// real avatars — no extra read, no new collection, bot.py untouched.
+// loginUser() only runs on wallet connect. Users who registered
+// but never connected a wallet would never have tgPhotoUrl in Firestore.
+// This fires at app open: if SDK gave us tgId + photo_url,
+// we do a single updateDoc so avatars always show correctly.
 async function syncPhotoIfLoggedIn() {
   const tgId     = state.tgNumericId;
   const photoUrl = state.tgPhotoUrl;
@@ -3726,9 +4101,15 @@ setTimeout(syncPhotoIfLoggedIn, 3500);
   try {
     // TonConnect manifest — hosted at the Vercel deployment URL.
     // Ensure tonconnect-manifest.json exists at this path with correct name/iconUrl/url fields.
+    // ── NETWORK CONFIG ─────────────────────────────────────────────────────────
+    // STEP 1 of 2 for mainnet launch:
+    //   Change 'testnet' → 'mainnet' below when smart contract is deployed on mainnet
+    // STEP 2 of 2: Update CONTRACT_ADDRESS in buySlot() to mainnet address
+    // ──────────────────────────────────────────────────────────────────────────
+    const ACTIVE_NETWORK = 'testnet'; // ← Change to 'mainnet' for production
     state.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
       manifestUrl: 'https://crypton-app-omega.vercel.app/tonconnect-manifest.json',
-      network: 'testnet', // Switch to 'mainnet' when going live
+      network: ACTIVE_NETWORK,
       buttonRootId: null,
     });
     state.tonConnectUI.onStatusChange(wallet => {
@@ -3773,6 +4154,7 @@ async function disconnectWallet() {
   state.teamSize      = 0;
   state.cachedReferredBy = null;
   state._referrerWallet  = null;
+  buySlot._writing       = false; // clear any in-flight write guard
   Object.keys(slotFill).forEach(k => delete slotFill[k]);
   Object.keys(slotReferrals).forEach(k => delete slotReferrals[k]);
   // Clear referral deep-link param only (not TG user params — they may be needed on re-connect)
@@ -3837,7 +4219,7 @@ function handleWalletConnected(rawAddress) {
 
   if (walletDisplayEl) walletDisplayEl.textContent = short;
   // Avatar set by _updateDashAvatar() after loginUser() loads TG photo from Firestore
-  if (dashUidEl)       dashUidEl.textContent       = state.tgNumericId || state.userId || '—';
+  if (dashUidEl)       dashUidEl.textContent       = state.cryptonId ? ('Crypton ID: ' + state.cryptonId) : (state.tgNumericId || state.userId || '—');
   // joinDate filled by loginUser() from Firestore — never overwrite with today's date here
 
   // Fix Point 10: Only build a referral link when we have a real Telegram numeric ID.
@@ -3848,8 +4230,8 @@ function handleWalletConnected(rawAddress) {
     ? state.tgNumericId
     : null;
   const refLinkVal = refId
-    ? `https://t.me/CryptonOfficialBot/app?startapp=${refId}`
-    : 'Connect via Telegram to get your referral link';
+    ? `${window.location.origin}${window.location.pathname}?ref=${refId}`
+    : 'Connect wallet to get your referral link';
   if (refLinkEl)       refLinkEl.textContent       = refLinkVal;
   const refLinkNetEl = document.getElementById('ref-link-network');
   if (refLinkNetEl)    refLinkNetEl.textContent    = refLinkVal;
@@ -3884,31 +4266,6 @@ function handleWalletConnected(rawAddress) {
     userId: state.userId,
     ...tgPayload,
   });
-
-  // ── Fix: Register wallet with smart contract immediately on connect ──────────
-  // Contract requires walletSet=true before any BuySlot call.
-  // We call /register-wallet NOW so UpdateWallet is sent to contract
-  // BEFORE the user tries to buy their first slot.
-  // Without this, BuySlot always reverts → "Dapp Not Responding" error.
-  (async () => {
-    try {
-      const tgId = state.tgNumericId;
-      if (tgId && /^\d+$/.test(tgId)) {
-        const BACKEND_URL_RW = 'https://crypton-telegram-bot.onrender.com';
-        const resp = await fetch(`${BACKEND_URL_RW}/register-wallet`, {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ tgId: tgId, walletAddress: rawAddress }),
-        });
-        const data = await resp.json().catch(() => ({}));
-        console.log('[register-wallet]', data.message || data);
-      } else {
-        console.warn('[register-wallet] Skipped — tgNumericId not available yet');
-      }
-    } catch (err) {
-      console.warn('[register-wallet] fetch error (non-fatal):', err.message);
-    }
-  })();
 
   loginUser(rawAddress);
   showToast('Wallet connected ✓');
@@ -4488,11 +4845,9 @@ function closeRefNodeModal(event) {
 
 // ──────────────────────────────────────────────────────────────
 // TAP ACTIVE SLOT — navigates to Matrix view for that slot.
-// Fill data comes ONLY from Firestore (written by the bot via webhook).
 // ──────────────────────────────────────────────────────────────
 function simulateFill(level) {
-  // Only navigate — do NOT mutate slotFill locally.
-  // Real fill is tracked in Firestore by the Python bot.
+  // Navigate to the matrix view and scroll to the slot card
   switchView('matrix');
   requestAnimationFrame(function() {
     const card = document.querySelector('[data-level="' + level + '"]');
@@ -4522,43 +4877,38 @@ async function buySlot(level, priceTon) {
 
   if (!state.tonConnectUI) return;
 
-  // ┌─────────────────────────────────────────────────────────┐
-  // │  50/50 INCOME SPLIT — ON EVERY SLOT PURCHASE            │
-  // │  Total: priceTon TON                                     │
-  // │  ├─ 50% (halfNanoTon) → Direct Referrer's wallet        │
-  // │  └─ 50% (halfNanoTon) → Matrix Smart Contract           │
-  // └─────────────────────────────────────────────────────────┘
-  // ── Contract address — replace with your deployed contract ──
-  // ⚠️ CRITICAL: Replace this with your deployed TON smart contract address before going live!
-  // ── CONTRACT ADDRESS — replace with your deployed contract address ──────────
-  // After deploying CryptonMatrix contract: npx blueprint deploy
-  // Copy the deployed address from the output and paste below.
-  // Format: EQ... or UQ... (48 characters, TON mainnet address)
-  // ⚠️ App will NOT work until this is set correctly.
-  const CONTRACT_ADDRESS = 'kQB7qM9C0JFii87JwQfG8GuOVrWU6yrXad3Gjo80oXBGLhuX'; // Testnet deployed
-  if (!CONTRACT_ADDRESS || CONTRACT_ADDRESS.includes('YOUR_CRYPTON') || CONTRACT_ADDRESS.length < 48) {
-    showToast('⚠️ Smart contract not deployed yet. Contact admin to complete setup.');
-    console.error('[CRITICAL] CONTRACT_ADDRESS not configured. Deploy CryptonMatrix contract first:\n  npx blueprint deploy\nThen update CONTRACT_ADDRESS in index.html');
+  // ┌─────────────────────────────────────────────────────────────────────────┐
+  // │  CONTRACT ADDRESS — Set this after deploying your smart contract        │
+  // │                                                                         │
+  // │  HOW TO DEPLOY:                                                         │
+  // │    1. Run: npx blueprint build                                          │
+  // │    2. Run: npx blueprint deploy                                         │
+  // │    3. Copy the deployed address (EQ... or UQ...) and paste below        │
+  // │                                                                         │
+  // │  TESTNET address (for testing only, replace before mainnet launch):     │
+  // │    kQB7qM9C0JFii87JwQfG8GuOVrWU6yrXad3Gjo80oXBGLhuX                  │
+  // │                                                                         │
+  // │  MAINNET address: Paste here after mainnet deploy                       │
+  // └─────────────────────────────────────────────────────────────────────────┘
+  // ⚠️  REPLACE THIS PLACEHOLDER WITH YOUR ACTUAL CONTRACT ADDRESS:
+  const CONTRACT_ADDRESS = 'PASTE_YOUR_CONTRACT_ADDRESS_HERE';
+
+  // ── Validation guard — app will show a clear message if not configured ────
+  if (!CONTRACT_ADDRESS
+      || CONTRACT_ADDRESS === 'PASTE_YOUR_CONTRACT_ADDRESS_HERE'
+      || CONTRACT_ADDRESS.length < 48) {
+    showToast('⚠️ Smart contract not configured yet. Coming soon!', 5000);
+    console.warn('[BuySlot] CONTRACT_ADDRESS not set. Deploy the contract and paste the address in index.html.');
     return;
   }
 
-  // ── Contract handles all distribution internally ──────────────────────────
-  // 100% of payment goes to contract. Contract auto-distributes:
-  //   50% → direct referrer wallet, 20% → upline1, 20% → upline2, 10% → drop pool
-  // No need to look up referrer wallet in frontend.
-
   try {
-    // Use integer arithmetic to avoid floating-point rounding errors
-    const totalNano   = BigInt(Math.round(priceTon * 1e9));
-    const halfNano    = totalNano / 2n;
-    const remNano     = totalNano - halfNano; // handles odd nanotons cleanly
-    const dist        = calculateIncomeDistribution(priceTon);
-
-    // Build safe UTF-8 payload (btoa fails on non-Latin chars — use encodeURIComponent guard)
-    function _safePayload(obj) {
-      try { return btoa(unescape(encodeURIComponent(JSON.stringify(obj)))); }
-      catch(e) { return ''; }
-    }
+    // ── Amount calculation — full price in nanotons to contract ──────────────
+    // Contract internally handles all splits:
+    //   • Slots 1–4:  100% → root user (special bootstrap rule)
+    //   • Slots 5–9:  50% direct referrer | 20% upline1 | 20% upline2 | 10% drop pool
+    //   • Slot 10:    Level 10 drop pool distribution
+    const totalNano = BigInt(Math.round(priceTon * 1e9)); // full amount, no split on frontend
 
     // ── Build BuySlot message body for TON smart contract ──────────────────
     // Contract expects: 32-bit opcode + 64-bit tgId + 8-bit level = 104 bits = 13 bytes
@@ -4644,33 +4994,17 @@ async function buySlot(level, priceTon) {
     const result = await state.tonConnectUI.sendTransaction(tx);
 
     if (result) {
-      // ── Point 4: Pass tx hash/BOC to backend for on-chain verification ──────
-      // The backend (bot.py /verify-tx) will verify via TON Center API and then
-      // write ownedSlots, earnedTon, and slotFill to Firestore authoritatively.
-      // The frontend optimistically updates its local state for instant UX,
-      // but canonical truth comes from the backend write.
-
-      const boc           = result.boc || '';
-      const tgDocId       = String(
+      const boc     = result.boc || '';
+      const tgDocId = String(
         window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || ''
       );
-      // Full amount sent to contract (contract handles distribution internally)
-      const amountNano    = totalNano.toString();
+      const amountNano = totalNano.toString();
 
-      // ── Optimistic local update (immediate UI feedback only) ──────────────
-      // These values are stored in JS memory so the UI reflects the purchase
-      // instantly.  They are intentionally NOT written to Firestore here.
-      // The bot's /verify-tx is the sole Firestore writer for ownedSlots,
-      // earnedTon, workingTon, passiveTon, and slotFill (Fix Points 6 & 7).
-      state.ownedSlots.push(level);
+      // ── Optimistic local update (immediate UI feedback) ───────────────────
+      // Only push level to ownedSlots if not already there (re-buys same level up to 6 fills)
+      if (!state.ownedSlots.includes(level)) state.ownedSlots.push(level);
       if (slotFill[level] === undefined) slotFill[level] = 0;
-      // INCOME FIX: Buyer's workingTon and passiveTon do NOT increase when they
-      // buy a slot. Their income cards only grow when THEIR OWN REFERRALS buy.
-      // workingTon = earned when your direct referral buys (bot credits referrer)
-      // passiveTon = earned as upline1/upline2 when downline buys (bot credits uplines)
-      // DO NOT update state.workingTon or state.passiveTon here — backend will
-      // return authoritative values from Firestore (which are unchanged for buyer).
-      // earnedTon also NOT incremented — contract pays referrers directly on-chain.
+      slotFill[level]++;
       updateStatsUI();
       renderSlots();
       showToast(`Level ${level} activated! 🎉`);
@@ -4692,202 +5026,53 @@ async function buySlot(level, priceTon) {
         renderTicker();
       }
 
-      // ── Backend verification (async, with retry) ───────────────────────────
-      // The backend will verify on-chain and authoritatively write Firestore.
-      // We retry up to 5 times (every 6 s) to handle TON propagation delay.
-      if (tgDocId && boc) {
-        const BACKEND_URL = 'https://crypton-telegram-bot.onrender.com';
+      // ── Direct Firestore write — frontend is the canonical writer ────────────
+      // In-flight guard: prevents duplicate writes if user taps rapidly
+      if (tgDocId && !buySlot._writing) {
+        buySlot._writing = true;
+        (async function persistSlotPurchase() {
+          try {
+            await waitForFirestore();
+            const { doc: _d, updateDoc: _u, increment: _inc, arrayUnion: _au } = window.__fs;
+            const _db = window.__db;
 
-        // ── Bug 3 fix: HMAC-SHA256 signature — secret never exposed in browser ──
-        // The frontend does NOT hold the secret. Instead we ask our own backend
-        // to produce the signature via GET /request-sig?tgId=…&level=…&boc20=…
-        // The backend signs with VERIFY_TX_SECRET (env var, server-only) and
-        // returns only the hex digest. This endpoint must:
-        //   • Validate that tgId belongs to a registered user (Firestore check), AND
-        //   • Be rate-limited / idempotent to prevent abuse.
-        // If the endpoint is unavailable we send sig="" and the backend logs a
-        // warning but still processes the tx (graceful degradation, same as before).
-        let sig = '';
-        try {
-          const sigResp = await fetch(
-            `${BACKEND_URL}/request-sig?tgId=${encodeURIComponent(tgDocId)}&level=${encodeURIComponent(level)}&boc20=${encodeURIComponent(boc.slice(0, 20))}`,
-            { method: 'GET' }
-          );
-          if (sigResp.ok) {
-            const sigData = await sigResp.json().catch(() => ({}));
-            sig = sigData.sig || '';
-          } else {
-            console.warn('[BuySlot] /request-sig returned', sigResp.status);
-          }
-        } catch (_sigErr) {
-          console.warn('[BuySlot] /request-sig fetch failed:', _sigErr.message);
-        }
-
-        const verifyPayload = {
-          tgId:            tgDocId,
-          boc:             boc,
-          walletAddress:   state.walletAddress || '',
-          // Bug #5 fix: pass the contract address as receiverAddress so the
-          // backend checks INCOMING payments on the contract, not outgoing from buyer.
-          receiverAddress: CONTRACT_ADDRESS || '',
-          level:           level,
-          amountNano:      amountNano,
-          sig:             sig,
-        };
-
-        (async function pollVerify(retries, delay) {
-          for (let i = 0; i < retries; i++) {
-            try {
-              if (i > 0) await new Promise(r => setTimeout(r, delay));
-              const vResp = await fetch(`${BACKEND_URL}/verify-tx`, {
-                method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify(verifyPayload),
-              });
-              const vData = await vResp.json().catch(() => ({}));
-              if (vResp.ok && vData.ok) {
-                // ── Backend confirmed — sync ONLY authoritative values from bot ──
-                // The bot is sole owner of ownedSlots, earnedTon, workingTon,
-                // passiveTon, and slotFill (Fix Points 6 & 7).
-                // We overwrite the in-memory optimistic values here.
-                if (Array.isArray(vData.ownedSlots)) {
-                  state.ownedSlots = vData.ownedSlots.map(Number);
-                }
-                if (typeof vData.earnedTon === 'number') {
-                  state.earnedTon = vData.earnedTon;
-                }
-                // Bug B fix: bot now returns workingTon and passiveTon in the
-                // /verify-tx response so the frontend can sync all three balance
-                // fields without an extra Firestore read.
-                if (typeof vData.workingTon === 'number') {
-                  state.workingTon = vData.workingTon;
-                }
-                if (typeof vData.passiveTon === 'number') {
-                  state.passiveTon = vData.passiveTon;
-                }
-                if (vData.slotFill && typeof vData.slotFill === 'object') {
-                  // Fix Point 13: merge bot-authoritative slotFill using integer keys.
-                  // Bot returns string keys (Firestore map); convert to int to match
-                  // the getFilledCount(level) access pattern used everywhere.
-                  Object.entries(vData.slotFill).forEach(([k, v]) => {
-                    const levelNum = parseInt(k, 10);
-                    if (!isNaN(levelNum) && levelNum > 0) {
-                      slotFill[levelNum] = parseInt(v, 10) || 0;
-                    }
-                  });
-                }
-                // Merge slotReferrals from bot response if present
-                if (vData.slotReferrals && typeof vData.slotReferrals === 'object') {
-                  Object.entries(vData.slotReferrals).forEach(([k, v]) => {
-                    const levelNum = parseInt(k, 10);
-                    if (!isNaN(levelNum) && levelNum > 0 && Array.isArray(v)) {
-                      slotReferrals[levelNum] = v.map(String);
-                    }
-                  });
-                  // Prefetch photos for any newly added tgIds in slotReferrals
-                  if (!window.__photoCache) window.__photoCache = {};
-                  const newIds = new Set();
-                  Object.values(slotReferrals).forEach(arr => {
-                    if (Array.isArray(arr)) arr.forEach(id => {
-                      if (id && window.__photoCache[String(id)] === undefined) newIds.add(String(id));
-                    });
-                  });
-                  if (newIds.size > 0) {
-                    waitForFirestore().then(() => {
-                      const { doc: _d, getDoc: _g } = window.__fs;
-                      const _db = window.__db;
-                      Promise.all([...newIds].map(async id => {
-                        try {
-                          const s = await _g(_d(_db, 'users', id));
-                          window.__photoCache[id] = (s.exists() && s.data().tgPhotoUrl) ? s.data().tgPhotoUrl : '';
-                        } catch(_) { window.__photoCache[id] = ''; }
-                      })).then(() => renderSlots());
-                    }).catch(() => {});
-                  }
-                }
-                updateStatsUI();
-                renderSlots();
-                console.log('[BuySlot] Backend verification ✓ (bot-authoritative state applied)', vData);
-                return; // done
-              }
-              if (vData.retry === false) {
-                // Hard failure — no point retrying
-                console.warn('[BuySlot] Backend hard rejection:', vData.message);
-                return;
-              }
-              console.log(`[BuySlot] verify-tx pending (attempt ${i+1}/${retries}):`, vData.message);
-            } catch (fetchErr) {
-              console.warn(`[BuySlot] verify-tx fetch error (attempt ${i+1}):`, fetchErr.message);
-            }
-          }
-          // ── Fix Point 3: Direct Firestore fallback REMOVED ─────────────────
-          // The old code wrote ownedSlots/earnedTon directly to Firestore when
-          // the backend was unreachable after retries.  This was a security hole:
-          // a user could block network calls to /verify-tx and their unverified
-          // local state would be persisted as if the on-chain purchase were real.
-          //
-          // CORRECT BEHAVIOUR: if the backend cannot confirm the tx, we leave the
-          // optimistic UI in place (so the user sees their purchase) but do NOT
-          // persist anything.  We show a persistent warning so they know to wait
-          // or contact support.  The backend will process the tx as soon as it is
-          // reachable again (they can reload the app at that point).
-          console.warn('[BuySlot] Backend unreachable after all retries — NOT writing to Firestore. User must reload once backend is reachable.');
-          // Fix 5: Show a persistent re-verify button so user does not have to manually reload.
-          // Button stores verifyPayload in closure and re-triggers pollVerify(3, 8000) on tap.
-          showToast('⚠️ Purchase sent but server unreachable. Tap to retry verification.', 12000);
-          (function showReVerifyButton(payload) {
-            const toastEl = document.getElementById('toast');
-            if (!toastEl) return;
-            // Reuse toast element — replace text with clickable retry UI
-            toastEl.innerHTML = '⚠️ Server unreachable &nbsp;<button id="btn-reverify" style="margin-left:8px;padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.50);background:rgba(255,255,255,0.18);color:#fff;font-family:var(--font-mono);font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.5px;" onclick="window.__retryVerify && window.__retryVerify()">RETRY</button>';
-            toastEl.classList.add('show');
-            window.__retryVerify = function() {
-              toastEl.textContent = '🔄 Retrying verification…';
-              window.__retryVerify = null;
-              const BACKEND_URL_RETRY = 'https://crypton-telegram-bot.onrender.com';
-              (async function pollVerifyRetry(retries, delay) {
-                for (let i = 0; i < retries; i++) {
-                  try {
-                    if (i > 0) await new Promise(r => setTimeout(r, delay));
-                    const vResp = await fetch(BACKEND_URL_RETRY + '/verify-tx', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify(payload),
-                    });
-                    const vData = await vResp.json().catch(() => ({}));
-                    if (vResp.ok && vData.ok) {
-                      if (Array.isArray(vData.ownedSlots)) state.ownedSlots = vData.ownedSlots.map(Number);
-                      if (typeof vData.earnedTon  === 'number') state.earnedTon  = vData.earnedTon;
-                      if (typeof vData.workingTon === 'number') state.workingTon = vData.workingTon;
-                      if (typeof vData.passiveTon === 'number') state.passiveTon = vData.passiveTon;
-                      if (vData.slotFill && typeof vData.slotFill === 'object') {
-                        Object.entries(vData.slotFill).forEach(([k, v]) => {
-                          const ln = parseInt(k, 10);
-                          if (!isNaN(ln) && ln > 0) slotFill[ln] = parseInt(v, 10) || 0;
-                        });
-                      }
-                      updateStatsUI(); renderSlots();
-                      showToast('✅ Purchase verified successfully!', 4000);
-                      return;
-                    }
-                    if (vData.retry === false) { showToast('❌ Verification failed: ' + (vData.message || 'Contact support'), 6000); return; }
-                  } catch (e) { console.warn('[ReVerify] attempt', i+1, 'error:', e.message); }
-                }
-                showToast('⚠️ Still unreachable. Please reload the app later.', 8000);
-              })(3, 8000);
+            const sfKey = 'slotFill.' + level;
+            const updateData = {
+              walletAddress: state.walletAddress || '',
             };
-          })(verifyPayload);
-        })(5, 6000); // 5 retries, 6 s apart
-      } else {
-        // No tgDocId or BOC — cannot verify on-chain at all.
-        // Do NOT write unverified data to Firestore.
-        console.warn('[BuySlot] Missing tgDocId or BOC — skipping Firestore write. Transaction cannot be verified.');
-        showToast('⚠️ Purchase sent but could not be verified. Contact support if slots do not update.');
+            // arrayUnion ensures no duplicate level in ownedSlots even if called twice
+            if (_au) {
+              updateData.ownedSlots = _au(level);
+            } else {
+              // Fallback: deduplicate manually
+              const deduped = [...new Set(state.ownedSlots)];
+              updateData.ownedSlots = deduped;
+            }
+            // Firestore server-side increment — safe against concurrent writes
+            updateData[sfKey] = _inc ? _inc(1) : ((slotFill[level] || 0));
+
+            await _u(_d(_db, 'users', tgDocId), updateData);
+            console.log('[BuySlot] Firestore updated ✓ level:', level, '| fill:', slotFill[level]);
+          } catch (fsErr) {
+            console.warn('[BuySlot] Firestore write failed:', fsErr.message);
+            showToast('⚠️ Purchase recorded locally. Will sync on next login.');
+          } finally {
+            buySlot._writing = false;
+          }
+        })();
       }
     }
   } catch(e) {
-    if (e.message !== 'User closed the modal') showToast('Transaction failed');
-    console.error('buySlot error:', e);
+    buySlot._writing = false; // always clear guard on any error path
+    const msg = e?.message || '';
+    if (msg === 'User closed the modal' || msg.includes('User declined')) {
+      // Silent — user cancelled, no toast needed
+    } else if (msg.includes('Insufficient')) {
+      showToast('⚠️ Insufficient TON balance in wallet');
+    } else {
+      showToast('Transaction failed. Please try again.');
+    }
+    console.error('[BuySlot] Error:', e);
   }
 }
 
@@ -4907,9 +5092,602 @@ function waitForFirestore(timeout = 8000) {
   });
 }
 
+// ──────────────────────────────────────────────────────────────
+// AUTH: TAB SWITCH
+// ──────────────────────────────────────────────────────────────
+function showAuthTab(tab) {
+  const tabReg  = document.getElementById('tab-register');
+  const tabLog  = document.getElementById('tab-login');
+  const panReg  = document.getElementById('panel-register');
+  const panLog  = document.getElementById('panel-login');
+  const panSeed = document.getElementById('panel-seed');
+  const panVer  = document.getElementById('panel-verify');
+  if (tab === 'register') {
+    tabReg.classList.add('active');   tabLog.classList.remove('active');
+    panReg.style.display  = 'flex';
+    panLog.style.display  = 'none';
+    panSeed.style.display = 'none';
+    panVer.style.display  = 'none';
+  } else {
+    tabLog.classList.add('active');   tabReg.classList.remove('active');
+    panLog.style.display  = 'flex';
+    panReg.style.display  = 'none';
+    panSeed.style.display = 'none';
+    panVer.style.display  = 'none';
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// SEED PHRASE WORDLIST — 200 unique crypto-style words
+// ──────────────────────────────────────────────────────────────
+const SEED_WORDLIST = [
+  'alpha','brave','cloud','delta','eagle','flame','grace','haven','ivory','jade',
+  'karma','lunar','magic','noble','orbit','pearl','quest','realm','solar','tiger',
+  'ultra','valor','whale','xenon','yield','zonal','amber','blaze','coral','drift',
+  'ember','frost','gleam','harsh','indie','jewel','knack','laser','misty','nexus',
+  'onyx','pivot','quark','ridge','stern','tempo','unity','vault','wilds','xeric',
+  'yucca','zippy','agile','brief','crisp','dusty','elite','flair','glint','hover',
+  'infer','joint','kiosk','latch','mantle','nerve','oxide','prism','quirk','roast',
+  'swift','thorn','untie','viola','wrath','xylem','yearn','zesty','abyss','bloom',
+  'crane','dwell','expel','forge','guild','hinge','index','joust','kneel','lumen',
+  'marsh','notch','ounce','plume','quill','rivet','shelf','thyme','umbra','verge',
+  'weave','xenial','yawl','zircon','atlas','burst','chasm','dense','epoch','fjord',
+  'glyph','hulk','ingot','jubilee','krypt','lance','mantle','nullify','obelisk','pixel',
+  'quorum','relic','shard','titan','unlock','vortex','warden','xanadu','yarn','zenith',
+  'acorn','bison','cedar','dunes','elfin','finch','grove','hedge','inlet','jumble',
+  'kelp','lapis','maple','newt','oaken','poplar','quince','raven','sedge','topaz',
+  'umber','venom','wyvern','xerus','yarrow','zilch','agate','basalt','cobalt','diorite',
+  'ermine','flint','garnet','heron','impala','jasper','kyanite','lignite','minium','nickel',
+  'osmium','pyrite','quartz','rutile','sphene','talc','ulexite','virid','wulfite','xonotlite'
+];
+
+// ── State for register multi-step ──────────────────────────────────
+let _regState = {
+  name:       '',
+  email:      '',
+  seedWords:  [],   // the 7 generated words
+  verifyPositions: [], // 3 random 1-based positions to verify
+  docId:      '',   // will be sha-derived key from seed
+};
+
+// ── Generate a unique seed-based doc ID from 7 words ──────────────
+// Simple deterministic hash: join words → djb2 → hex string
+function seedToDocId(words) {
+  const str = words.join('-');
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash) ^ str.charCodeAt(i);
+    hash = hash >>> 0; // keep unsigned 32-bit
+  }
+  // Convert to base36 and pad to 10 chars for a clean doc ID
+  return 'CX' + hash.toString(36).toUpperCase().padStart(8, '0');
+}
+
+// ── Generate 7 unique random words ────────────────────────────────
+function generateSeedPhrase() {
+  const shuffled = [...SEED_WORDLIST].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, 7);
+}
+
+// ── Render seed grid ───────────────────────────────────────────────
+function renderSeedGrid(words) {
+  const grid = document.getElementById('seed-phrase-grid');
+  if (!grid) return;
+  grid.innerHTML = words.map((w, i) => `
+    <div class="seed-word-chip">
+      <span class="seed-word-num">${i + 1}</span>
+      <span class="seed-word-text">${w}</span>
+    </div>
+  `).join('');
+}
+
+// ── Copy seed phrase ───────────────────────────────────────────────
+function copySeedPhrase() {
+  const text = _regState.seedWords.join(' ');
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => showToast('Phrase copied ✓'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); ta.remove();
+    showToast('Phrase copied ✓');
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// REGISTER STEP 1 — validate name + email, generate seed
+// ──────────────────────────────────────────────────────────────
+async function handleRegisterStep1() {
+  const nameEl  = document.getElementById('reg-name');
+  const emailEl = document.getElementById('reg-email');
+  const errEl   = document.getElementById('reg-error');
+  const btn     = document.getElementById('reg-btn');
+  const spinner = document.getElementById('reg-spinner');
+  const btnText = document.getElementById('reg-btn-text');
+
+  const name  = (nameEl.value  || '').trim();
+  const email = (emailEl.value || '').trim().toLowerCase();
+  errEl.textContent = '';
+
+  if (!name)  { errEl.textContent = 'Please enter your name.'; return; }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errEl.textContent = 'Please enter a valid email address.'; return;
+  }
+
+  btn.disabled = true;
+  btnText.style.display = 'none';
+  spinner.classList.add('visible');
+
+  try {
+    await waitForFirestore();
+    const { collection, query, where, getDocs } = window.__fs;
+    const db = window.__db;
+
+    // Check email uniqueness
+    const emailCheck = await getDocs(query(collection(db, 'users'), where('email', '==', email)));
+    if (!emailCheck.empty) {
+      errEl.textContent = 'This email is already registered. Please login.';
+      showAuthTab('login');
+      document.getElementById('login-email').value = email;
+      return;
+    }
+
+    // Store step 1 data
+    _regState.name  = name;
+    _regState.email = email;
+
+    // Generate seed phrase
+    _regState.seedWords = generateSeedPhrase();
+    _regState.docId     = seedToDocId(_regState.seedWords);
+
+    // Show seed step
+    document.getElementById('panel-register').style.display = 'none';
+    document.getElementById('panel-seed').style.display     = 'flex';
+    renderSeedGrid(_regState.seedWords);
+
+  } catch(e) {
+    console.error('[Auth] Step1 error:', e);
+    errEl.textContent = 'Something went wrong. Please try again.';
+  } finally {
+    btn.disabled = false;
+    btnText.style.display = '';
+    spinner.classList.remove('visible');
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// GO TO VERIFY STEP — pick 3 random positions to test
+// ──────────────────────────────────────────────────────────────
+function goToVerifyStep() {
+  // Pick 3 distinct random positions (1-based)
+  const positions = [];
+  while (positions.length < 3) {
+    const p = Math.floor(Math.random() * 7) + 1;
+    if (!positions.includes(p)) positions.push(p);
+  }
+  positions.sort((a, b) => a - b);
+  _regState.verifyPositions = positions;
+
+  // Build verify inputs
+  const container = document.getElementById('verify-inputs');
+  container.innerHTML = positions.map(p => `
+    <div class="verify-input-wrap">
+      <div class="verify-pos-badge">W${p}</div>
+      <input
+        class="verify-word-input"
+        id="vword-${p}"
+        type="text"
+        placeholder="Word ${p}..."
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="none"
+        spellcheck="false"
+        oninput="checkVerifyInput(${p})"
+      />
+    </div>
+  `).join('');
+
+  document.getElementById('verify-error').textContent = '';
+  document.getElementById('panel-seed').style.display   = 'none';
+  document.getElementById('panel-verify').style.display = 'flex';
+}
+
+// ── Live check each verify input ──────────────────────────────
+function checkVerifyInput(pos) {
+  const input = document.getElementById('vword-' + pos);
+  if (!input) return;
+  const val = input.value.trim().toLowerCase();
+  const correct = _regState.seedWords[pos - 1];
+  input.classList.remove('correct', 'wrong');
+  if (val.length > 0) {
+    if (val === correct) input.classList.add('correct');
+    else if (correct.startsWith(val)) { /* typing — neutral */ }
+    else input.classList.add('wrong');
+  }
+}
+
+// ── Go back to seed display ────────────────────────────────────
+function goBackToSeed() {
+  document.getElementById('panel-verify').style.display = 'none';
+  document.getElementById('panel-seed').style.display   = 'flex';
+}
+
+// ──────────────────────────────────────────────────────────────
+// VERIFY + CREATE ACCOUNT
+// ──────────────────────────────────────────────────────────────
+async function handleVerifyAndCreate() {
+  const errEl   = document.getElementById('verify-error');
+  const btn     = document.getElementById('verify-btn');
+  const spinner = document.getElementById('verify-spinner');
+  const btnText = document.getElementById('verify-btn-text');
+  errEl.textContent = '';
+
+  // Check all 3 inputs
+  const positions = _regState.verifyPositions;
+  let allCorrect = true;
+  for (const p of positions) {
+    const input = document.getElementById('vword-' + p);
+    const val = (input?.value || '').trim().toLowerCase();
+    const correct = _regState.seedWords[p - 1];
+    if (val !== correct) {
+      allCorrect = false;
+      if (input) { input.classList.remove('correct'); input.classList.add('wrong'); }
+    }
+  }
+
+  if (!allCorrect) {
+    errEl.textContent = 'One or more words are incorrect. Check your phrase.';
+    return;
+  }
+
+  btn.disabled = true;
+  btnText.style.display = 'none';
+  spinner.classList.add('visible');
+
+  try {
+    await waitForFirestore();
+    const { setDoc, doc, serverTimestamp, collection, query, where, getDocs } = window.__fs;
+    const db = window.__db;
+
+    // Final collision check on docId (very rare but safe)
+    const snap = await (async () => {
+      try { return await window.__fs.getDoc(doc(db, 'users', _regState.docId)); }
+      catch(e) { return { exists: () => false }; }
+    })();
+    if (snap.exists && snap.exists()) {
+      // Regenerate seed if collision
+      _regState.seedWords = generateSeedPhrase();
+      _regState.docId     = seedToDocId(_regState.seedWords);
+    }
+
+    const tgPayload = typeof window.buildTelegramPayload === 'function'
+      ? window.buildTelegramPayload() : {};
+
+    // Generate cryptonId (7-digit display ID)
+    let cryptonId;
+    let cidAttempts = 0;
+    while (cidAttempts < 10) {
+      const candidate = String(Math.floor(1000000 + Math.random() * 9000000));
+      const idCheck = await getDocs(query(collection(db, 'users'), where('cryptonId', '==', candidate)));
+      if (idCheck.empty) { cryptonId = candidate; break; }
+      cidAttempts++;
+    }
+    if (!cryptonId) cryptonId = String(Date.now()).slice(-7);
+
+    await setDoc(doc(db, 'users', _regState.docId), {
+      docId:         _regState.docId,
+      cryptonId,
+      name:          _regState.name,
+      email:         _regState.email,
+      seedPhrase:    _regState.seedWords.join(' '), // stored for recovery (hash in docId)
+      tgId:          (window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '').toString() || null,
+      tgHandle:      tgPayload.tgHandle   || null,
+      tgName:        _regState.name,
+      tgEmail:       _regState.email,
+      tgPhotoUrl:    state.tgPhotoUrl     || null,
+      walletAddress: null,
+      referredBy:    tgPayload.referredBy || null,
+      ownedSlots:    [],
+      earnedTon:     0,
+      workingTon:    0,
+      passiveTon:    0,
+      referrals:     0,
+      teamSize:      0,
+      slotFill:      {},
+      joinedAt:      serverTimestamp(),
+    });
+
+    // Save session (docId + email in localStorage)
+    localStorage.setItem('crypton_session', JSON.stringify({
+      docId:      _regState.docId,
+      cryptonId,
+      email:      _regState.email,
+    }));
+
+    state.cryptonId   = cryptonId;
+    state.tgFirstName = _regState.name;
+    state.tgEmail     = _regState.email;
+    state.tgNumericId = _regState.docId;
+
+    console.log('[Auth] Account created ✓ docId:', _regState.docId, 'cryptonId:', cryptonId);
+    _authSuccess(_regState.docId, cryptonId, _regState.name);
+
+  } catch(e) {
+    console.error('[Auth] Create account error:', e);
+    errEl.textContent = 'Something went wrong. Please try again.';
+  } finally {
+    btn.disabled = false;
+    btnText.style.display = '';
+    spinner.classList.remove('visible');
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// AUTH: LOGIN — email + 7 words
+// ──────────────────────────────────────────────────────────────
+async function handleLogin() {
+  const emailEl  = document.getElementById('login-email');
+  const phraseEl = document.getElementById('login-phrase');
+  const errEl    = document.getElementById('login-error');
+  const btn      = document.getElementById('login-btn');
+  const spinner  = document.getElementById('login-spinner');
+  const btnText  = document.getElementById('login-btn-text');
+
+  const email  = (emailEl.value  || '').trim().toLowerCase();
+  const phrase = (phraseEl.value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  errEl.textContent = '';
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errEl.textContent = 'Please enter a valid email address.'; return;
+  }
+  const words = phrase.split(' ').filter(Boolean);
+  if (words.length !== 7) {
+    errEl.textContent = 'Please enter all 7 words of your secret phrase.'; return;
+  }
+
+  btn.disabled = true;
+  btnText.style.display = 'none';
+  spinner.classList.add('visible');
+
+  try {
+    await waitForFirestore();
+    const { doc, getDoc } = window.__fs;
+    const db = window.__db;
+
+    // Derive docId from seed phrase
+    const docId = seedToDocId(words);
+    const snap  = await getDoc(doc(db, 'users', docId));
+
+    if (!snap.exists()) {
+      errEl.textContent = 'Incorrect phrase or email. Check your secret words.';
+      return;
+    }
+
+    const data = snap.data();
+
+    // Verify email matches
+    if ((data.email || data.tgEmail || '').toLowerCase() !== email) {
+      errEl.textContent = 'Email does not match this account.';
+      return;
+    }
+
+    const cryptonId = data.cryptonId || docId;
+
+    // Save session
+    localStorage.setItem('crypton_session', JSON.stringify({ docId, cryptonId, email }));
+
+    // Hydrate state
+    state.cryptonId   = cryptonId;
+    state.tgFirstName = data.name || data.tgName || null;
+    state.tgEmail     = data.email || data.tgEmail || email;
+    state.tgNumericId = docId;
+    if (data.tgPhotoUrl) state.tgPhotoUrl = data.tgPhotoUrl;
+
+    state.ownedSlots = Array.isArray(data.ownedSlots) ? data.ownedSlots.map(Number) : [];
+    state.earnedTon  = data.earnedTon  || 0;
+    state.workingTon = data.workingTon || 0;
+    state.passiveTon = data.passiveTon || 0;
+    state.referrals  = data.referrals  || 0;
+    state.teamSize   = data.teamSize   || 0;
+
+    Object.keys(slotFill).forEach(k => delete slotFill[k]);
+    if (data.slotFill && typeof data.slotFill === 'object') {
+      Object.entries(data.slotFill).forEach(([k, v]) => {
+        const ln = parseInt(k, 10);
+        if (!isNaN(ln) && ln > 0) slotFill[ln] = parseInt(v, 10) || 0;
+      });
+    }
+
+    console.log('[Auth] Login success ✓ docId:', docId, 'cryptonId:', cryptonId);
+    _authSuccess(docId, cryptonId, data.name || data.tgName || email);
+
+  } catch(e) {
+    console.error('[Auth] Login error:', e);
+    errEl.textContent = 'Something went wrong. Please try again.';
+  } finally {
+    btn.disabled = false;
+    btnText.style.display = '';
+    spinner.classList.remove('visible');
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// AUTH SUCCESS — show dashboard after register or login
+// ──────────────────────────────────────────────────────────────
+function _authSuccess(docId, cryptonId, name) {
+  state.connected = true;
+
+  const heroEl = document.getElementById('hero-section');
+  const dashEl = document.getElementById('dashboard');
+  if (heroEl) heroEl.style.display = 'none';
+  if (dashEl) dashEl.style.display = 'block';
+
+  const menuBtn = document.getElementById('header-menu-btn');
+  if (menuBtn) menuBtn.style.display = 'flex';
+
+  const lvlBar = document.getElementById('level-indicator-bar');
+  if (lvlBar) { lvlBar.style.display = 'flex'; updateLevelBar(); }
+
+  const dashUidEl = document.getElementById('dash-uid');
+  if (dashUidEl) dashUidEl.textContent = 'Crypton ID: ' + cryptonId;
+
+  const dashRegEl = document.getElementById('dash-reg-index');
+  if (dashRegEl) dashRegEl.textContent = 'ID - #' + cryptonId;
+
+  // Referral link using docId (unique per account)
+  const refLinkVal = `${window.location.origin}${window.location.pathname}?ref=${docId}`;
+  const refLinkEl    = document.getElementById('ref-link');
+  const refLinkNetEl = document.getElementById('ref-link-network');
+  if (refLinkEl)    refLinkEl.textContent    = refLinkVal;
+  if (refLinkNetEl) refLinkNetEl.textContent = refLinkVal;
+
+  // Matrix gate unlock
+  const gate    = document.getElementById('matrix-wallet-gate');
+  const content = document.getElementById('matrix-content');
+  if (gate)    gate.style.display = 'none';
+  if (content) {
+    content.style.display = 'block';
+    content.classList.remove('slots-reveal');
+    void content.offsetWidth;
+    content.classList.add('slots-reveal');
+  }
+  const navLock = document.getElementById('fmi-matrix-lock');
+  if (navLock) navLock.style.display = 'none';
+
+  _updateDashAvatar();
+  _updateHeaderCapsule();
+  updateStatsUI();
+  renderSlots();
+  renderTicker();
+
+  showToast('Welcome, ' + (name || 'User') + '! 🎉');
+}
+
+// ──────────────────────────────────────────────────────────────
+// AUTH: LOG OUT
+// ──────────────────────────────────────────────────────────────
+function handleLogout() {
+  localStorage.removeItem('crypton_session');
+
+  state.connected          = false;
+  state.walletAddress      = null;
+  state.userId             = null;
+  state.cryptonId          = null;
+  state.tgNumericId        = null;
+  state.tgFirstName        = null;
+  state.tgEmail            = null;
+  state.tgUsername         = null;
+  state.tgPhotoUrl         = null;
+  state.cachedReferredBy   = null;
+  state._referrerWallet    = null;
+  state.ownedSlots         = [];
+  state.earnedTon          = 0;
+  state.workingTon         = 0;
+  state.passiveTon         = 0;
+  state.referrals          = 0;
+  state.teamSize           = 0;
+  Object.keys(slotFill).forEach(k => delete slotFill[k]);
+  Object.keys(slotReferrals).forEach(k => delete slotReferrals[k]);
+  sessionStorage.removeItem('ref');
+  // Clear in-flight write guard
+  buySlot._writing = false;
+
+  const heroEl = document.getElementById('hero-section');
+  const dashEl = document.getElementById('dashboard');
+  if (heroEl) heroEl.style.display = 'block';
+  if (dashEl) dashEl.style.display = 'none';
+
+  const menuBtn = document.getElementById('header-menu-btn');
+  if (menuBtn) menuBtn.style.display = 'none';
+
+  const logoIdCapsule = document.getElementById('logo-id-capsule');
+  if (logoIdCapsule) logoIdCapsule.style.display = 'none';
+
+  const gate    = document.getElementById('matrix-wallet-gate');
+  const content = document.getElementById('matrix-content');
+  if (gate)    gate.style.display = 'flex';
+  if (content) { content.style.display = 'none'; content.classList.remove('slots-reveal'); }
+
+  const navLock = document.getElementById('fmi-matrix-lock');
+  if (navLock) navLock.style.display = '';
+
+  const dashAv = document.getElementById('dash-avatar');
+  if (dashAv) dashAv.innerHTML = '';
+
+  resetStats();
+  // Note: slotFill, slotReferrals, ownedSlots already cleared above — no duplicate needed
+  renderSlots();
+
+  // Reset form fields
+  ['reg-name','reg-email','reg-error','login-email','login-phrase','login-error','verify-error'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.value = ''; el.textContent = ''; }
+  });
+  _regState = { name: '', email: '', seedWords: [], verifyPositions: [], docId: '' };
+  showAuthTab('register');
+  switchView('home');
+  showToast('Logged out successfully');
+}
+
+// ──────────────────────────────────────────────────────────────
+// AUTO LOGIN — check localStorage session on app start
+// ──────────────────────────────────────────────────────────────
+async function tryAutoLogin() {
+  try {
+    const sessionStr = localStorage.getItem('crypton_session');
+    if (!sessionStr) return;
+    const session = JSON.parse(sessionStr);
+    // Support both old (cryptonId) and new (docId) session formats
+    const docId     = session.docId || session.cryptonId;
+    const email     = session.email;
+    const cryptonId = session.cryptonId;
+    if (!docId || !email) return;
+
+    await waitForFirestore();
+    const { doc, getDoc } = window.__fs;
+    const db = window.__db;
+    const snap = await getDoc(doc(db, 'users', docId));
+    if (!snap.exists()) { localStorage.removeItem('crypton_session'); return; }
+
+    const data = snap.data();
+    if ((data.email || data.tgEmail || '').toLowerCase() !== email) {
+      localStorage.removeItem('crypton_session'); return;
+    }
+
+    const resolvedCryptonId = data.cryptonId || cryptonId || docId;
+
+    // Restore full state
+    state.cryptonId   = resolvedCryptonId;
+    state.tgFirstName = data.name || data.tgName || null;
+    state.tgEmail     = data.email || data.tgEmail || email;
+    state.tgNumericId = docId;
+    if (data.tgPhotoUrl) state.tgPhotoUrl = data.tgPhotoUrl;
+    state.ownedSlots = Array.isArray(data.ownedSlots) ? data.ownedSlots.map(Number) : [];
+    state.earnedTon  = data.earnedTon  || 0;
+    state.workingTon = data.workingTon || 0;
+    state.passiveTon = data.passiveTon || 0;
+    state.referrals  = data.referrals  || 0;
+    state.teamSize   = data.teamSize   || 0;
+    Object.keys(slotFill).forEach(k => delete slotFill[k]);
+    if (data.slotFill && typeof data.slotFill === 'object') {
+      Object.entries(data.slotFill).forEach(([k, v]) => {
+        const ln = parseInt(k, 10);
+        if (!isNaN(ln) && ln > 0) slotFill[ln] = parseInt(v, 10) || 0;
+      });
+    }
+
+    console.log('[Auth] Auto-login ✓ docId:', docId, 'cryptonId:', resolvedCryptonId);
+    _authSuccess(docId, resolvedCryptonId, data.name || data.tgName || email);
+  } catch(e) {
+    console.warn('[Auth] Auto-login failed:', e.message);
+  }
+}
+
+// Trigger auto-login after Firestore is ready
+setTimeout(tryAutoLogin, 2000);
+
 async function loginUser(walletAddress) {
-  // ── Guard: we must have a Telegram numeric ID to locate the single user doc ──
-  // The document ID in Firestore is always String(chat_id) — set by the bot.
+  // ── Guard: Telegram numeric ID se user doc locate karo ──
   // FIX: If tgId is not ready yet (SDK init async), retry up to 3 times with a
   // 500ms delay. This prevents "No Telegram ID" on app reopen when TonConnect
   // auto-restores the wallet session before Telegram SDK fires initDataUnsafe.
@@ -4932,8 +5710,15 @@ async function loginUser(walletAddress) {
   }
 
   if (!tgIdFromSDK) {
-    console.warn('[Firebase] No Telegram ID available — cannot locate user document.');
-    showToast('Open this app from the Telegram bot to load your profile.');
+    // No Telegram context — use wallet address as the user identifier (browser-only mode)
+    tgIdFromSDK = walletAddress ? 'W_' + walletAddress.slice(-12) : '';
+    if (tgIdFromSDK) {
+      console.log('[Firebase] No Telegram ID — using wallet-derived ID:', tgIdFromSDK);
+    }
+  }
+
+  if (!tgIdFromSDK) {
+    console.warn('[Firebase] No Telegram ID or wallet address available — cannot identify user.');
     updateStatsUI(); renderSlots(); return;
   }
 
@@ -4961,15 +5746,48 @@ async function loginUser(walletAddress) {
     const snap = await getDoc(userDocRef);
 
     if (!snap.exists()) {
-      // ── Document missing: user skipped bot registration ──────────────────
-      // We do NOT silently create a new document here — that would defeat the
-      // single-document model.  Instead, show a clear prompt to register first.
-      console.warn('[Firebase] No Firestore document found for tgId:', tgIdFromSDK,
-        '— user must complete bot registration first.');
-      showToast('Please register via the CRYPTON bot first, then reconnect your wallet.');
+      // ── Document missing: new user — auto-create on first wallet connect ──
+      console.log('[Firebase] No Firestore document for tgId:', tgIdFromSDK, '— creating new user doc.');
+      const tgPayloadNew = typeof window.buildTelegramPayload === 'function'
+        ? window.buildTelegramPayload() : {};
+      const { setDoc, serverTimestamp: sts, collection: col2, query: q2, where: wh2, getDocs: gds2 } = window.__fs;
+      // Generate unique 7-digit Crypton ID (1000000–9999999) — collision-safe
+      let newCryptonId;
+      let idAttempts = 0;
+      while (idAttempts < 10) {
+        const candidate = String(Math.floor(1000000 + Math.random() * 9000000));
+        const idCheck = await gds2(q2(col2(db, 'users'), wh2('cryptonId', '==', candidate)));
+        if (idCheck.empty) { newCryptonId = candidate; break; }
+        idAttempts++;
+      }
+      if (!newCryptonId) newCryptonId = String(Date.now()).slice(-7); // absolute fallback
+      await setDoc(userDocRef, {
+        tgId:          tgIdFromSDK,
+        cryptonId:     newCryptonId,
+        tgHandle:      tgPayloadNew.tgHandle   || null,
+        tgName:        tgPayloadNew.tgName     || null,
+        tgEmail:       tgPayloadNew.tgEmail    || null,
+        tgPhotoUrl:    state.tgPhotoUrl        || null,
+        walletAddress: walletAddress           || null,
+        referredBy:    tgPayloadNew.referredBy || null,
+        ownedSlots:    [],
+        earnedTon:     0,
+        workingTon:    0,
+        passiveTon:    0,
+        referrals:     0,
+        teamSize:      0,
+        slotFill:      {},
+        joinedAt:      sts(),
+      });
+      state.cryptonId  = newCryptonId;
       state.ownedSlots = []; state.earnedTon = 0; state.workingTon = 0;
       state.passiveTon = 0; state.referrals = 0; state.teamSize = 0;
-      updateStatsUI(); renderSlots(); return;
+      const dashUidNewEl = document.getElementById('dash-uid');
+      if (dashUidNewEl) dashUidNewEl.textContent = 'Crypton ID: ' + newCryptonId;
+      console.log('[Firebase] New user document created ✓ cryptonId:', newCryptonId);
+      updateStatsUI(); renderSlots();
+      showToast('Welcome to Crypton! 🎉');
+      return;
     }
 
     // ── EXISTING USER — document created by bot, load all fields ─────────
@@ -5019,10 +5837,34 @@ async function loginUser(walletAddress) {
         : `<span class="fetch-na">Not shared</span>`;
     }
 
-    // ── Update dashboard UID display (dash-name is static "id:" label) ────
+    // ── Update dashboard UID display — show Crypton ID (7-digit) ────────
+    state.cryptonId = data.cryptonId || null;
     const dashUidFromLogin = document.getElementById('dash-uid');
-    if (dashUidFromLogin && (data.tgId || tgIdFromSDK)) {
-      dashUidFromLogin.textContent = data.tgId || tgIdFromSDK;
+
+    if (!data.cryptonId) {
+      // ── Legacy user — no cryptonId yet: generate one, ensure uniqueness, save to Firestore ──
+      console.log('[Firebase] Legacy user — generating cryptonId for:', tgIdFromSDK);
+      try {
+        const { updateDoc: _upd, collection: _col, query: _q, where: _wh, getDocs: _gds } = window.__fs;
+        let legacyCryptonId;
+        let legacyAttempts = 0;
+        while (legacyAttempts < 10) {
+          const candidate = String(Math.floor(1000000 + Math.random() * 9000000));
+          const idCheck = await _gds(_q(_col(db, 'users'), _wh('cryptonId', '==', candidate)));
+          if (idCheck.empty) { legacyCryptonId = candidate; break; }
+          legacyAttempts++;
+        }
+        if (!legacyCryptonId) legacyCryptonId = String(Date.now()).slice(-7);
+        await _upd(userDocRef, { cryptonId: legacyCryptonId });
+        state.cryptonId = legacyCryptonId;
+        if (dashUidFromLogin) dashUidFromLogin.textContent = 'Crypton ID: ' + legacyCryptonId;
+        console.log('[Firebase] Legacy user — cryptonId assigned:', legacyCryptonId);
+      } catch (legacyErr) {
+        console.warn('[Firebase] Could not assign cryptonId to legacy user:', legacyErr.message);
+        if (dashUidFromLogin) dashUidFromLogin.textContent = (data.tgId || tgIdFromSDK) || '—';
+      }
+    } else {
+      if (dashUidFromLogin) dashUidFromLogin.textContent = 'Crypton ID: ' + data.cryptonId;
     }
 
     // ── Bug 11 fix: Registration sequence index — optimized, no full collection fetch ──
@@ -5207,8 +6049,8 @@ async function loginUser(walletAddress) {
       ? state.tgNumericId
       : null;
     const refLinkVal2 = refId2
-      ? `https://t.me/CryptonOfficialBot/app?startapp=${refId2}`
-      : 'Connect via Telegram to get your referral link';
+      ? `${window.location.origin}${window.location.pathname}?ref=${refId2}`
+      : 'Connect wallet to get your referral link';
     const mergeFields = { walletAddress, userId };
     // Also refresh any tg fields the SDK may have fresher data for
     if (tgPayload.tgHandle) mergeFields.tgHandle = tgPayload.tgHandle;
@@ -5238,7 +6080,7 @@ async function loginUser(walletAddress) {
     const _dashUidEl    = document.getElementById('dash-uid');
     if (_refLinkEl)    _refLinkEl.textContent    = refLinkVal2;
     if (_refLinkNetEl) _refLinkNetEl.textContent = refLinkVal2;
-    if (_dashUidEl)    _dashUidEl.textContent    = 'TG ID: ' + (state.tgNumericId || userId);
+    if (_dashUidEl)    _dashUidEl.textContent    = state.cryptonId ? ('Crypton ID: ' + state.cryptonId) : ('ID: ' + (state.tgNumericId || userId));
 
     // FIX: Update avatar AFTER tgPhotoUrl is hydrated from Firestore
     _updateDashAvatar();
@@ -5256,26 +6098,13 @@ async function loginUser(walletAddress) {
 }
 
 async function saveUserData(updates) {
-  // Doc is always keyed by tgId — walletAddress is just a field inside it.
   const tgDocId = String(
     window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || ''
   );
   if (!tgDocId) return;
 
-  // ── Fix Points 6 & 7: Strip fields that are exclusively owned by the bot ──
-  // bot.py is the canonical writer for slotFill, earnedTon, workingTon, and
-  // passiveTon.  If the frontend overwrites these it creates the dual-update bug:
-  //   • Point 6: slotFill written by both bot (atomic FieldTransform) and
-  //              frontend (full-map PATCH) → last-write wins, increments lost.
-  //   • Point 7: earnedTon written by both → double-credit possible when the
-  //              frontend fallback path fires after the bot already updated it.
-  // Solution: remove these keys from any payload before it reaches Firestore.
-  const BOT_OWNED_FIELDS = ['slotFill', 'earnedTon', 'workingTon', 'passiveTon'];
-  const safeUpdates = { ...updates };
-  BOT_OWNED_FIELDS.forEach(f => delete safeUpdates[f]);
-
-  if (Object.keys(safeUpdates).length === 0) {
-    console.log('[Firebase] saveUserData: nothing to write after stripping bot-owned fields.');
+  if (Object.keys(updates).length === 0) {
+    console.log('[Firebase] saveUserData: nothing to write.');
     return;
   }
 
@@ -5283,8 +6112,8 @@ async function saveUserData(updates) {
     await waitForFirestore();
     const { doc, updateDoc } = window.__fs;
     const userDocRef = doc(window.__db, 'users', tgDocId);
-    await updateDoc(userDocRef, safeUpdates);
-    console.log('[Firebase] saveUserData ✓', safeUpdates);
+    await updateDoc(userDocRef, updates);
+    console.log('[Firebase] saveUserData ✓', updates);
   } catch(e) {
     console.error('[Firebase] saveUserData error:', e);
   }
@@ -5337,9 +6166,9 @@ async function renderReferralList() {
   const myTgId   = String(sdkId || state.tgNumericId || '').trim();
 
   if (!myTgId || myTgId === 'null' || myTgId === 'undefined') {
-    // Guard: no tgId available yet — happens if loginUser hasn't finished.
+    // Guard: no tgId available yet
     if (loading) loading.textContent = '';
-    inner.innerHTML = '<div class="ref-list-empty">Open via Telegram bot to load referrals.</div>';
+    inner.innerHTML = '<div class="ref-list-empty">No referrals yet.<br>Share your referral link to invite friends!</div>';
     console.warn('[Referral] Cannot render list — tgId not resolved yet.');
     return;
   }
@@ -5556,7 +6385,7 @@ function copyReferralGold() {
   // Use tgNumericId for consistency with bot's start_param matching
   const refId = state.tgNumericId || state.userId;
   const link = refId
-    ? `https://t.me/CryptonOfficialBot/app?startapp=${refId}`
+    ? `${window.location.origin}${window.location.pathname}?ref=${refId}`
     : (document.getElementById('ref-link') ? document.getElementById('ref-link').textContent : '');
   if (!link || link.startsWith('Connect')) { showToast('Connect wallet first'); return; }
   // Update the display element to keep in sync
@@ -5896,7 +6725,7 @@ async function pvDoSearch() {
   const input = document.getElementById('pv-srch-uid-input');
   const uid   = input ? input.value.trim() : '';
   const btn   = document.getElementById('pv-btn-search');
-  if (!uid) { showToast('Enter a Telegram User ID'); return; }
+  if (!uid) { showToast('Enter Crypton ID to search'); return; }
 
   const resEl  = document.getElementById('pv-srch-result');
   const empEl  = document.getElementById('pv-srch-empty');
@@ -5916,14 +6745,21 @@ async function pvDoSearch() {
     let docId    = uid;
     let resolvedDocId = uid;
 
-    const snap = await getDoc(doc(db, 'users', uid));
-    if (snap.exists()) {
-      userData = snap.data();
-      resolvedDocId = uid;
+    // Primary: search by cryptonId field (7-digit Crypton App ID)
+    const cq2  = query(collection(db, 'users'), where('cryptonId', '==', uid));
+    const cres2 = await getDocs(cq2);
+    if (!cres2.empty) {
+      userData = cres2.docs[0].data(); docId = cres2.docs[0].id; resolvedDocId = cres2.docs[0].id;
     } else {
-      const q   = query(collection(db, 'users'), where('tgId', '==', uid));
-      const res = await getDocs(q);
-      if (!res.empty) { userData = res.docs[0].data(); docId = res.docs[0].id; resolvedDocId = res.docs[0].id; }
+      const snap = await getDoc(doc(db, 'users', uid));
+      if (snap.exists()) {
+        userData = snap.data();
+        resolvedDocId = uid;
+      } else {
+        const q   = query(collection(db, 'users'), where('tgId', '==', uid));
+        const res = await getDocs(q);
+        if (!res.empty) { userData = res.docs[0].data(); docId = res.docs[0].id; resolvedDocId = res.docs[0].id; }
+      }
     }
 
     if (loadEl) loadEl.style.display = 'none';
@@ -5942,7 +6778,7 @@ async function pvDoSearch() {
 
     // ── Build full dashboard-mirror result HTML (same structure as doSearchUser) ──
     const displayName = userData.tgName || userData.tgHandle || 'Unknown User';
-    const displayUid  = userData.tgId   || docId;
+    const displayUid  = userData.cryptonId || userData.tgId || docId;
     const photoUrl    = userData.tgPhotoUrl || null;
 
     const silSVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width:26px;height:26px;fill:#8aa5c0;"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>`;
@@ -5990,7 +6826,7 @@ async function pvDoSearch() {
           <div class="srch-avatar" id="pv-srch-avatar-box">${avatarHtml}</div>
           <div style="flex:1; min-width:0;">
             <div id="pv-srch-reg-index" style="font-family:var(--font-mono);font-size:10px;font-weight:700;color:rgba(5,13,26,0.52);-webkit-text-fill-color:rgba(5,13,26,0.52);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:3px;">ID - #…</div>
-            <div class="srch-uid">TG ID: ${String(displayUid).replace(/</g,'&lt;')}</div>
+            <div class="srch-uid">${userData.cryptonId ? 'Crypton ID: ' : 'ID: '}${String(displayUid).replace(/</g,'&lt;')}</div>
             <div class="srch-name">${String(displayName).replace(/</g,'&lt;').substring(0,30)}</div>
           </div>
           <div class="srch-account-ton-corner">
@@ -6320,7 +7156,7 @@ async function doSearchUser() {
   const input   = document.getElementById('srch-uid-input');
   const uid     = (input ? input.value.trim() : '');
   const btn     = document.getElementById('btn-search');
-  if (!uid) { showToast('Enter a Telegram User ID'); return; }
+  if (!uid) { showToast('Enter Crypton ID to search'); return; }
 
   // UI: show loading
   document.getElementById('srch-empty-state').style.display   = 'none';
@@ -6333,24 +7169,34 @@ async function doSearchUser() {
     const { doc, getDoc, collection, query, where, orderBy, getDocs } = window.__fs;
     const db = window.__db;
 
-    // Primary lookup: document keyed by tgId
+    // Primary lookup: query by cryptonId field (7-digit Crypton App ID)
     let userData = null;
     let docId    = uid;
-    let resolvedDocId = uid; // the Firestore document ID (used for regIndex query)
+    let resolvedDocId = uid;
 
-    const snap = await getDoc(doc(db, 'users', uid));
-    if (snap.exists()) {
-      userData = snap.data();
-      resolvedDocId = uid;
+    const cq  = query(collection(db, 'users'), where('cryptonId', '==', uid));
+    const cres = await getDocs(cq);
+    if (!cres.empty) {
+      const first = cres.docs[0];
+      userData     = first.data();
+      docId        = first.id;
+      resolvedDocId = first.id;
     } else {
-      // Fallback: query by tgId field (some docs may use numeric field)
-      const q   = query(collection(db, 'users'), where('tgId', '==', uid));
-      const res = await getDocs(q);
-      if (!res.empty) {
-        const first = res.docs[0];
-        userData     = first.data();
-        docId        = first.id;
-        resolvedDocId = first.id;
+      // Fallback: try direct doc lookup (legacy tgId-keyed docs)
+      const snap = await getDoc(doc(db, 'users', uid));
+      if (snap.exists()) {
+        userData = snap.data();
+        resolvedDocId = uid;
+      } else {
+        // Last fallback: query by tgId field
+        const q   = query(collection(db, 'users'), where('tgId', '==', uid));
+        const res = await getDocs(q);
+        if (!res.empty) {
+          const first = res.docs[0];
+          userData     = first.data();
+          docId        = first.id;
+          resolvedDocId = first.id;
+        }
       }
     }
 
@@ -6367,11 +7213,11 @@ async function doSearchUser() {
 
     // ── Populate profile card ──────────────────────────────────
     const displayName = userData.tgName || userData.tgHandle || 'Unknown User';
-    const displayUid  = userData.tgId   || docId;
+    const displayUid  = userData.cryptonId || userData.tgId || docId;
     const photoUrl    = userData.tgPhotoUrl || null;
 
     document.getElementById('srch-name').textContent        = displayName;
-    document.getElementById('srch-uid-display').textContent = 'TG ID: ' + displayUid;
+    document.getElementById('srch-uid-display').textContent = (userData.cryptonId ? 'Crypton ID: ' : 'ID: ') + displayUid;
 
     // ── Registration sequence index — fetch ordered list, find position ──
     // ── Registration sequence index — use getCountFromServer (Bug 13 fix) ──
@@ -7091,13 +7937,10 @@ async function loadLeaderboardView() {
   //   • startDate is stored ONCE in Firestore → config/airdrop → startDate
   //   • ALL users read the same startDate → timer is identical for everyone
   //   • App open/close does NOT affect timer — it's always derived from startDate
-  //   • When timer hits 0 → backend /distribute-drop is called automatically
-  //     → contract sends TON to Level 4, 8, 10 eligible users
-  //   • Then startDate is updated in Firestore for next 10-day cycle
+  //   • When timer hits 0 → startDate resets in Firestore for next 10-day cycle
   // ────────────────────────────────────────────────────────────────────────────
 
   const CYCLE_MS       = 10 * 24 * 60 * 60 * 1000; // 10 days in ms
-  const BACKEND_URL    = 'https://crypton-telegram-bot.onrender.com';
   let   _timerInterval = null;
   let   _cycleEndMs    = null;   // absolute epoch ms when current cycle ends
   let   _distributing  = false;  // prevent double-trigger
@@ -7131,46 +7974,26 @@ async function loadLeaderboardView() {
   }
 
   // ── Called when timer hits zero ─────────────────────────────────────────────
-  // 1. Calls backend /distribute-drop → triggers DistributeDrop on smart contract
-  //    → Contract pays TON to all Level 4, 8, 10 eligible user wallets
-  // 2. Updates Firestore startDate to now → starts fresh 10-day cycle for all users
+  // Updates Firestore startDate to now → starts fresh 10-day cycle for all users
   async function onCycleComplete() {
     if (_distributing) return;
     _distributing = true;
     clearInterval(_timerInterval);
     showLiveNow();
-    console.log('[Airdrop] Cycle complete — triggering DistributeDrop');
+    console.log('[Airdrop] Cycle complete — resetting timer');
 
-    // ── Step 1: Call backend to send DistributeDrop to smart contract ──
-    // Contract will auto-distribute TON to all eligible wallets (Level 4, 8, 10)
-    try {
-      // VERIFY_TX_SECRET is needed — store it as a JS constant or fetch from env
-      // For security, the secret should be injected server-side or via a signed token.
-      // Here we use a lightweight approach: bot.py /get-drop-token returns a time-limited token.
-      const tokenResp = await fetch(`${BACKEND_URL}/get-drop-token`);
-      const tokenData = await tokenResp.json().catch(() => ({}));
-      const secret    = tokenData.token || '';
-
-      const dropResp  = await fetch(`${BACKEND_URL}/distribute-drop`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ secret }),
-      });
-      const dropData  = await dropResp.json().catch(() => ({}));
-      console.log('[Airdrop] distribute-drop response:', dropData.message || dropData);
-    } catch(err) {
-      console.warn('[Airdrop] distribute-drop call failed (non-fatal):', err.message);
-    }
-
-    // ── Step 2: Update Firestore startDate to now — resets timer for all users ──
+    // ── Update Firestore startDate to now — resets timer for all users ──
     try {
       await waitForFirestore();
-      const { doc, setDoc, Timestamp } = window.__fs;
+      const { doc, setDoc, Timestamp, increment: _inc } = window.__fs;
       const db = window.__db;
       const nowMs = Date.now();
+      // merge:true → preserves resetCount and any other fields; only startDate is overwritten
       await setDoc(doc(db, 'config', 'airdrop'), {
-        startDate: Timestamp.fromMillis(nowMs),
-      });
+        startDate:  Timestamp.fromMillis(nowMs),
+        resetCount: _inc ? _inc(1) : 1,   // track how many cycles have completed
+        lastReset:  Timestamp.fromMillis(nowMs),
+      }, { merge: true });
       console.log('[Airdrop] Firestore startDate updated — new cycle begins');
       // Restart timer with new cycle
       _cycleEndMs    = nowMs + CYCLE_MS;
@@ -7226,8 +8049,13 @@ async function loadLeaderboardView() {
         console.log('[Airdrop] Global startDate loaded from Firebase:', new Date(startMs).toISOString());
       } else {
         // First run — create the global timer document
+        // merge:true used so that if document partially exists, fields are merged not overwritten
         startMs = Date.now();
-        await setDoc(ref, { startDate: Timestamp.fromMillis(startMs) });
+        await setDoc(ref, {
+          startDate:  Timestamp.fromMillis(startMs),
+          resetCount: 0,
+          createdAt:  Timestamp.fromMillis(startMs),
+        }, { merge: true });
         console.log('[Airdrop] config/airdrop created with startDate:', new Date(startMs).toISOString());
       }
 
