@@ -4272,8 +4272,6 @@ async function buySlot(level, priceTon) {
               } catch(_e) { directRefId && console.warn('[BuySlot] Upline resolve failed:', _e.message); }
             }
 
-              '| upline1:', upline1Id, '| upline2:', upline2Id);
-
             const batch = writeBatch(_db);
 
             const sfKey      = 'slotProgress.' + level;
@@ -4300,7 +4298,6 @@ async function buySlot(level, priceTon) {
                   workingIncome: _inc(split50),
                   totalTon:      _inc(split50),
                 });
-                  '| amount:', split50, 'TON (workingIncome)');
               } catch(e) { console.warn('[BuySlot] Direct ref credit failed:', e); }
             }
 
@@ -4310,7 +4307,6 @@ async function buySlot(level, priceTon) {
                   nonWorkingIncome: _inc(split20),
                   totalTon:         _inc(split20),
                 });
-                  '| amount:', split20, 'TON (nonWorkingIncome)');
               } catch(e) { console.warn('[BuySlot] Upline1 credit failed:', e); }
             }
 
@@ -4320,7 +4316,6 @@ async function buySlot(level, priceTon) {
                   nonWorkingIncome: _inc(split20),
                   totalTon:         _inc(split20),
                 });
-                  '| amount:', split20, 'TON (nonWorkingIncome)');
               } catch(e) { console.warn('[BuySlot] Upline2 credit failed:', e); }
             }
 
@@ -4332,8 +4327,6 @@ async function buySlot(level, priceTon) {
             } catch(e) { console.warn('[BuySlot] AirdropPool increment failed:', e); }
 
             await batch.commit();
-              '| level:', level, '| fill:', newFill,
-              '| split: 50%→direct, 20%→up1, 20%→up2, 10%→pool');
 
           } catch (fsErr) {
             showToast('⚠️ Slot activated but DB sync failed. Will sync on next login.');
@@ -5290,6 +5283,7 @@ async function loginUser(walletAddress) {
       ? `${window.location.origin}/?ref=${refId2}`
       : 'Referral link loading…';
     await updateDoc(activeDocRef, { walletAddress }).catch(err =>
+      console.warn('[loginUser] walletAddress update failed:', err)
     );
 
     const _refLinkEl    = document.getElementById('ref-link');
