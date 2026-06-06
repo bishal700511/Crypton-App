@@ -2198,6 +2198,47 @@
   </div>
 </div>
 
+<script>
+/* ── Splash dismiss — standalone, no external deps ── */
+(function () {
+  var SPLASH_MS = 4000;
+  var FADE_MS   = 600;
+
+  function removeSplash() {
+    var el = document.getElementById('splash-screen');
+    if (!el || el._gone) return;
+    el._gone = true;
+    el.style.transition = 'opacity ' + (FADE_MS / 1000) + 's ease';
+    el.style.opacity    = '0';
+    setTimeout(function () {
+      el.style.display = 'none';
+      if (el.parentNode) el.parentNode.removeChild(el);
+
+      /* Show register page if no active session */
+      var heroEl = document.getElementById('hero-section');
+      var dashEl = document.getElementById('dashboard');
+      var hasSession = !!(
+        (window.__pendingAuth) ||
+        (window.state && window.state.cryptonId)
+      );
+      if (!hasSession) {
+        if (dashEl) dashEl.style.display = 'none';
+        if (heroEl) {
+          heroEl.style.opacity    = '0';
+          heroEl.style.display    = 'block';
+          heroEl.style.transition = 'opacity 0.4s ease';
+          setTimeout(function () { heroEl.style.opacity = '1'; }, 30);
+        }
+      } else {
+        if (heroEl) heroEl.style.display = 'none';
+      }
+    }, FADE_MS);
+  }
+
+  setTimeout(removeSplash, SPLASH_MS);
+}());
+</script>
+
 <div class="bg-canvas"></div>
 <div class="orb orb-1"></div>
 <div class="orb orb-2"></div>
@@ -2257,7 +2298,7 @@
 
   <div class="view active" id="view-home">
 
-    <div id="hero-section" class="hero">
+    <div id="hero-section" class="hero" style="display:none;">
       <h1 class="hero-title">Earn on <span>Every<br>Level</span></h1>
       <p class="hero-sub">Activate slots, grow your network, and earn TON automatically across all levels.</p>
 
@@ -7096,24 +7137,6 @@ async function loadLeaderboardView() {
   }
 
   setTimeout(loadAndStart, 1500);
-})();
-
-(function initSplash() {
-  var splash = document.getElementById('splash-screen');
-  if (!splash) return;
-
-  function dismissSplash() {
-    if (!splash || splash._dismissed) return;
-    splash._dismissed = true;
-    splash.classList.add('fade-out');
-    setTimeout(function () {
-      splash.style.display = 'none';
-      if (splash.parentNode) splash.parentNode.removeChild(splash);
-      splash = null;
-    }, 650);
-  }
-
-  setTimeout(dismissSplash, 4000);
 })();
 
 </script>
