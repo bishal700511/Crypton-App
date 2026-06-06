@@ -2309,13 +2309,14 @@
           <button class="auth-tab" id="tab-login" onclick="showAuthTab('login')">Login</button>
         </div>
 
+        <!-- STEP 1: Name + Email -->
         <div class="auth-panel" id="panel-register">
           <div class="auth-steps">
-            <div class="auth-step-dot active" id="reg-dot-1"></div>
+            <div class="auth-step-dot active"></div>
             <div class="auth-step-line"></div>
-            <div class="auth-step-dot" id="reg-dot-2"></div>
+            <div class="auth-step-dot"></div>
             <div class="auth-step-line"></div>
-            <div class="auth-step-dot" id="reg-dot-3"></div>
+            <div class="auth-step-dot"></div>
           </div>
           <div class="auth-field">
             <label class="auth-label">YOUR NAME</label>
@@ -2332,30 +2333,59 @@
           </button>
         </div>
 
-        <div class="auth-panel" id="panel-seed" style="display:none;">
+        <!-- STEP 2: Show generated @ton key -->
+        <div class="auth-panel" id="panel-key" style="display:none;">
           <div class="auth-steps">
-            <div class="auth-step-dot done" id="seed-dot-1"></div>
+            <div class="auth-step-dot done"></div>
             <div class="auth-step-line"></div>
-            <div class="auth-step-dot active" id="seed-dot-2"></div>
+            <div class="auth-step-dot active"></div>
             <div class="auth-step-line"></div>
-            <div class="auth-step-dot" id="seed-dot-3"></div>
+            <div class="auth-step-dot"></div>
           </div>
           <div style="text-align:center;">
-            <div style="font-family:var(--font-head);font-size:15px;font-weight:800;color:var(--text-hi);margin-bottom:4px;">Your Secret Key Phrase</div>
-            <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-mid);letter-spacing:0.5px;">Write these 7 words in order. Keep them safe.</div>
+            <div style="font-family:var(--font-head);font-size:15px;font-weight:800;color:var(--text-hi);margin-bottom:4px;">Your Secret Key</div>
+            <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-mid);letter-spacing:0.5px;line-height:1.6;">This is your unique 10-character key.<br>Copy it and keep it safe — you'll need it to log in.</div>
           </div>
-          <div class="seed-grid" id="seed-phrase-grid">
+
+          <!-- Big key display box -->
+          <div id="gen-key-box" style="
+            background: linear-gradient(135deg, rgba(0,229,255,0.08) 0%, rgba(212,168,67,0.08) 100%);
+            border: 1.5px solid rgba(0,229,255,0.35);
+            border-radius: 14px;
+            padding: 20px 16px;
+            text-align: center;
+            position: relative;
+          ">
+            <div style="font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-lo);margin-bottom:10px;">YOUR ACCESS KEY</div>
+            <div id="gen-key-value" style="
+              font-family: var(--font-mono);
+              font-size: 26px;
+              font-weight: 700;
+              letter-spacing: 2px;
+              background: linear-gradient(90deg, var(--cyan), var(--gold-lt));
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              word-break: break-all;
+              line-height: 1.3;
+            ">@ton——————</div>
+            <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-lo);margin-top:8px;letter-spacing:0.5px;">10 characters · unique to you</div>
           </div>
+
+          <!-- Warning -->
           <div class="seed-warning">
             <span class="seed-warning-icon">⚠️</span>
-            <span class="seed-warning-text">These 7 words are your account key. Anyone with these words can access your account. Never share them.</span>
+            <span class="seed-warning-text">Anyone with this key + your email can access your account. Never share it with anyone.</span>
           </div>
-          <button class="seed-copy-btn" onclick="copySeedPhrase()">⎘ COPY PHRASE</button>
-          <div class="auth-error" id="seed-error"></div>
-          <button class="auth-btn" onclick="goToVerifyStep()">I've Saved It — Continue →</button>
+
+          <!-- Copy button -->
+          <button class="seed-copy-btn" id="copy-key-btn" onclick="copyGeneratedKey()">⎘ COPY KEY</button>
+
+          <div class="auth-error" id="key-error"></div>
+          <button class="auth-btn" onclick="goToConfirmKeyStep()">I've Copied It — Continue →</button>
         </div>
 
-        <div class="auth-panel" id="panel-verify" style="display:none;">
+        <!-- STEP 3: Re-enter key to confirm -->
+        <div class="auth-panel" id="panel-confirm-key" style="display:none;">
           <div class="auth-steps">
             <div class="auth-step-dot done"></div>
             <div class="auth-step-line"></div>
@@ -2363,30 +2393,38 @@
             <div class="auth-step-line"></div>
             <div class="auth-step-dot active"></div>
           </div>
-          <div class="verify-hint" id="verify-hint">
-            Enter the words at positions shown below to confirm you saved them.
+          <div style="text-align:center;padding:0 4px;">
+            <div style="font-family:var(--font-head);font-size:14px;font-weight:800;color:var(--text-hi);margin-bottom:4px;">Confirm Your Key</div>
+            <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-mid);letter-spacing:0.3px;line-height:1.6;">Enter your 10-character key to confirm you saved it.</div>
           </div>
-          <div class="verify-inputs" id="verify-inputs">
+          <div class="auth-field">
+            <label class="auth-label">ENTER YOUR KEY</label>
+            <input class="auth-input" id="confirm-key-input" type="text"
+              placeholder="@ton..."
+              autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
+              style="font-family:var(--font-mono);font-size:16px;letter-spacing:1.5px;text-align:center;"
+              oninput="checkKeyInput()" />
           </div>
-          <div class="auth-error" id="verify-error"></div>
-          <button class="auth-btn" id="verify-btn" onclick="handleVerifyAndCreate()">
-            <span id="verify-btn-text">Create Account</span>
-            <span class="auth-spinner" id="verify-spinner"></span>
+          <div class="auth-error" id="confirm-key-error"></div>
+          <button class="auth-btn" id="confirm-key-btn" onclick="handleVerifyAndCreate()">
+            <span id="confirm-key-btn-text">Create Account</span>
+            <span class="auth-spinner" id="confirm-key-spinner"></span>
           </button>
-          <button class="auth-btn-ghost" onclick="goBackToSeed()">← View Phrase Again</button>
+          <button class="auth-btn-ghost" onclick="goBackToKeyStep()">← See Key Again</button>
         </div>
 
+        <!-- LOGIN PANEL -->
         <div class="auth-panel" id="panel-login" style="display:none;">
           <div class="auth-field">
             <label class="auth-label">EMAIL ADDRESS</label>
             <input class="auth-input" id="login-email" type="email" placeholder="Enter your email" autocomplete="off" />
           </div>
           <div class="auth-field">
-            <label class="auth-label">YOUR 7-WORD SECRET PHRASE</label>
+            <label class="auth-label">YOUR 10-CHARACTER KEY</label>
             <input class="auth-input" id="login-phrase" type="text"
-              placeholder="word1 word2 word3 word4 word5 word6 word7"
+              placeholder="@ton..."
               autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
-              style="font-family:var(--font-mono);font-size:12px;" />
+              style="font-family:var(--font-mono);font-size:16px;letter-spacing:1.5px;text-align:center;" />
           </div>
           <div class="auth-error" id="login-error"></div>
           <button class="auth-btn" id="login-btn" onclick="handleLogin()">
@@ -3633,9 +3671,6 @@ function handleWalletConnected(rawAddress) {
   const tgPayload = typeof window.buildTelegramPayload === 'function'
     ? window.buildTelegramPayload()
     : {};
-    walletAddress: rawAddress,
-    ...tgPayload,
-  });
 
   loginUser(rawAddress);
 
@@ -4394,89 +4429,102 @@ function showAuthTab(tab) {
   const tabLog  = document.getElementById('tab-login');
   const panReg  = document.getElementById('panel-register');
   const panLog  = document.getElementById('panel-login');
-  const panSeed = document.getElementById('panel-seed');
-  const panVer  = document.getElementById('panel-verify');
+  const panKey  = document.getElementById('panel-key');
+  const panConf = document.getElementById('panel-confirm-key');
   if (tab === 'register') {
     tabReg.classList.add('active');   tabLog.classList.remove('active');
     panReg.style.display  = 'flex';
     panLog.style.display  = 'none';
-    panSeed.style.display = 'none';
-    panVer.style.display  = 'none';
+    if (panKey)  panKey.style.display  = 'none';
+    if (panConf) panConf.style.display = 'none';
   } else {
     tabLog.classList.add('active');   tabReg.classList.remove('active');
     panLog.style.display  = 'flex';
     panReg.style.display  = 'none';
-    panSeed.style.display = 'none';
-    panVer.style.display  = 'none';
+    if (panKey)  panKey.style.display  = 'none';
+    if (panConf) panConf.style.display = 'none';
   }
 }
 
-const SEED_WORDLIST = [
-  'alpha','brave','cloud','delta','eagle','flame','grace','haven','ivory','jade',
-  'karma','lunar','magic','noble','orbit','pearl','quest','realm','solar','tiger',
-  'ultra','valor','whale','xenon','yield','zonal','amber','blaze','coral','drift',
-  'ember','frost','gleam','harsh','indie','jewel','knack','laser','misty','nexus',
-  'onyx','pivot','quark','ridge','stern','tempo','unity','vault','wilds','xeric',
-  'yucca','zippy','agile','brief','crisp','dusty','elite','flair','glint','hover',
-  'infer','joint','kiosk','latch','mantle','nerve','oxide','prism','quirk','roast',
-  'swift','thorn','untie','viola','wrath','xylem','yearn','zesty','abyss','bloom',
-  'crane','dwell','expel','forge','guild','hinge','index','joust','kneel','lumen',
-  'marsh','notch','ounce','plume','quill','rivet','shelf','thyme','umbra','verge',
-  'weave','xenial','yawl','zircon','atlas','burst','chasm','dense','epoch','fjord',
-  'glyph','hulk','ingot','jubilee','krypt','lance','mantle','nullify','obelisk','pixel',
-  'quorum','relic','shard','titan','unlock','vortex','warden','xanadu','yarn','zenith',
-  'acorn','bison','cedar','dunes','elfin','finch','grove','hedge','inlet','jumble',
-  'kelp','lapis','maple','newt','oaken','poplar','quince','raven','sedge','topaz',
-  'umber','venom','wyvern','xerus','yarrow','zilch','agate','basalt','cobalt','diorite',
-  'ermine','flint','garnet','heron','impala','jasper','kyanite','lignite','minium','nickel',
-  'osmium','pyrite','quartz','rutile','sphene','talc','ulexite','virid','wulfite','xonotlite'
-];
+/* ── Auth state ── */
 
 let _regState = {
   name:       '',
   email:      '',
-  seedWords:  [],   // the 7 generated words
-  verifyPositions: [], // 3 random 1-based positions to verify
-  docId:      '',   // will be sha-derived key from seed
+  generatedKey: '',  // the @ton... 10-char key
 };
 
-function seedToDocId(words) {
-  const str = words.join('-');
-  let hash = 5381;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) + hash) ^ str.charCodeAt(i);
-    hash = hash >>> 0; // keep unsigned 32-bit
+/* ── Generate unique @ton key ── */
+function generateTonKey() {
+  const CHARS = 'abcdefghjkmnpqrstuvwxyz23456789'; // no i,l,o,1,0 to avoid confusion
+  let suffix = '';
+  for (let i = 0; i < 6; i++) {
+    suffix += CHARS[Math.floor(Math.random() * CHARS.length)];
   }
-  return 'CX' + hash.toString(36).toUpperCase().padStart(8, '0');
+  return '@ton' + suffix; // total 10 chars
 }
 
-function generateSeedPhrase() {
-  const shuffled = [...SEED_WORDLIST].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, 7);
-}
-
-function renderSeedGrid(words) {
-  const grid = document.getElementById('seed-phrase-grid');
-  if (!grid) return;
-  grid.innerHTML = words.map((w, i) => `
-    <div class="seed-word-chip">
-      <span class="seed-word-num">${i + 1}</span>
-      <span class="seed-word-text">${w}</span>
-    </div>
-  `).join('');
-}
-
-function copySeedPhrase() {
-  const text = _regState.seedWords.join(' ');
+/* ── Copy generated key ── */
+function copyGeneratedKey() {
+  const key = _regState.generatedKey;
+  if (!key) return;
+  const btn = document.getElementById('copy-key-btn');
+  const doCopy = () => {
+    if (btn) { btn.textContent = '✓ COPIED!'; btn.style.color = 'var(--green)'; btn.style.borderColor = 'rgba(34,197,94,0.50)'; }
+    showToast('Key copied ✓');
+    setTimeout(() => {
+      if (btn) { btn.textContent = '⎘ COPY KEY'; btn.style.color = ''; btn.style.borderColor = ''; }
+    }, 2200);
+  };
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).then(() => showToast('Phrase copied ✓'));
+    navigator.clipboard.writeText(key).then(doCopy).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = key; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove(); doCopy();
+    });
   } else {
     const ta = document.createElement('textarea');
-    ta.value = text; document.body.appendChild(ta);
-    ta.select(); document.execCommand('copy'); ta.remove();
-    showToast('Phrase copied ✓');
+    ta.value = key; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove(); doCopy();
   }
 }
+
+/* ── Move from key display to confirm step ── */
+function goToConfirmKeyStep() {
+  const errEl = document.getElementById('key-error');
+  if (errEl) errEl.textContent = '';
+  document.getElementById('panel-key').style.display         = 'none';
+  document.getElementById('panel-confirm-key').style.display = 'flex';
+  const inp = document.getElementById('confirm-key-input');
+  if (inp) { inp.value = ''; inp.classList.remove('correct','wrong'); setTimeout(() => inp.focus(), 80); }
+}
+
+/* ── Go back from confirm to key display ── */
+function goBackToKeyStep() {
+  document.getElementById('panel-confirm-key').style.display = 'none';
+  document.getElementById('panel-key').style.display         = 'flex';
+}
+
+/* ── Live input check in confirm step ── */
+function checkKeyInput() {
+  const inp = document.getElementById('confirm-key-input');
+  if (!inp) return;
+  const val = (inp.value || '').trim().toLowerCase();
+  const correct = (_regState.generatedKey || '').toLowerCase();
+  inp.classList.remove('correct','wrong');
+  if (val.length >= 4) {
+    if (val === correct) inp.classList.add('correct');
+    else if (correct.startsWith(val)) { /* still typing */ }
+    else inp.classList.add('wrong');
+  }
+}
+
+/* ── Backward compat stubs (old verify/seed functions no longer needed) ── */
+function goToVerifyStep()  { goToConfirmKeyStep(); }
+function goBackToSeed()    { goBackToKeyStep(); }
+function copySeedPhrase()  { copyGeneratedKey(); }
+function renderSeedGrid()  {}
+function checkVerifyInput() {}
 
 async function handleRegisterStep1() {
   const nameEl  = document.getElementById('reg-name');
@@ -4515,12 +4563,30 @@ async function handleRegisterStep1() {
     _regState.name  = name;
     _regState.email = email;
 
-    _regState.seedWords = generateSeedPhrase();
-    _regState.docId     = seedToDocId(_regState.seedWords);
+    // Generate unique @ton key — ensure no collision
+    let tonKey;
+    let attempts = 0;
+    while (attempts < 15) {
+      const candidate = generateTonKey();
+      const keyCheck = await getDocs(query(collection(db, 'users'), where('accessKey', '==', candidate)));
+      if (keyCheck.empty) { tonKey = candidate; break; }
+      attempts++;
+    }
+    if (!tonKey) tonKey = generateTonKey(); // fallback (collision extremely unlikely)
 
+    _regState.generatedKey = tonKey;
+
+    // Show key panel
     document.getElementById('panel-register').style.display = 'none';
-    document.getElementById('panel-seed').style.display     = 'flex';
-    renderSeedGrid(_regState.seedWords);
+    document.getElementById('panel-key').style.display      = 'flex';
+
+    // Render key in box
+    const keyValEl = document.getElementById('gen-key-value');
+    if (keyValEl) keyValEl.textContent = tonKey;
+
+    // Reset copy button state
+    const copyBtn = document.getElementById('copy-key-btn');
+    if (copyBtn) { copyBtn.textContent = '⎘ COPY KEY'; copyBtn.style.color = ''; copyBtn.style.borderColor = ''; }
 
   } catch(e) {
     if (e.message === 'Firestore timeout') {
@@ -4537,77 +4603,24 @@ async function handleRegisterStep1() {
   }
 }
 
-function goToVerifyStep() {
-  const positions = [];
-  while (positions.length < 3) {
-    const p = Math.floor(Math.random() * 7) + 1;
-    if (!positions.includes(p)) positions.push(p);
-  }
-  positions.sort((a, b) => a - b);
-  _regState.verifyPositions = positions;
-
-  const container = document.getElementById('verify-inputs');
-  container.innerHTML = positions.map(p => `
-    <div class="verify-input-wrap">
-      <div class="verify-pos-badge">W${p}</div>
-      <input
-        class="verify-word-input"
-        id="vword-${p}"
-        type="text"
-        placeholder="Word ${p}..."
-        autocomplete="off"
-        autocorrect="off"
-        autocapitalize="none"
-        spellcheck="false"
-        oninput="checkVerifyInput(${p})"
-      />
-    </div>
-  `).join('');
-
-  document.getElementById('verify-error').textContent = '';
-  document.getElementById('panel-seed').style.display   = 'none';
-  document.getElementById('panel-verify').style.display = 'flex';
-}
-
-function checkVerifyInput(pos) {
-  const input = document.getElementById('vword-' + pos);
-  if (!input) return;
-  const val = input.value.trim().toLowerCase();
-  const correct = _regState.seedWords[pos - 1];
-  input.classList.remove('correct', 'wrong');
-  if (val.length > 0) {
-    if (val === correct) input.classList.add('correct');
-    else if (correct.startsWith(val)) { /* typing — neutral */ }
-    else input.classList.add('wrong');
-  }
-}
-
-function goBackToSeed() {
-  document.getElementById('panel-verify').style.display = 'none';
-  document.getElementById('panel-seed').style.display   = 'flex';
-}
 
 async function handleVerifyAndCreate() {
-  const errEl   = document.getElementById('verify-error');
-  const btn     = document.getElementById('verify-btn');
-  const spinner = document.getElementById('verify-spinner');
-  const btnText = document.getElementById('verify-btn-text');
-  errEl.textContent = '';
+  const errEl   = document.getElementById('confirm-key-error');
+  const btn     = document.getElementById('confirm-key-btn');
+  const spinner = document.getElementById('confirm-key-spinner');
+  const btnText = document.getElementById('confirm-key-btn-text');
+  if (errEl) errEl.textContent = '';
 
-  const positions = _regState.verifyPositions;
-  let allCorrect = true;
-  for (const p of positions) {
-    const input = document.getElementById('vword-' + p);
-    const val = (input?.value || '').trim().toLowerCase();
-    const correct = _regState.seedWords[p - 1];
-    if (val !== correct) {
-      allCorrect = false;
-      if (input) { input.classList.remove('correct'); input.classList.add('wrong'); }
-    }
+  const inp = document.getElementById('confirm-key-input');
+  const enteredKey = ((inp?.value || '').trim()).toLowerCase();
+  const correctKey = (_regState.generatedKey || '').toLowerCase();
+
+  if (!enteredKey) {
+    if (errEl) errEl.textContent = 'Please enter your key.'; return;
   }
-
-  if (!allCorrect) {
-    errEl.textContent = 'One or more words are incorrect. Check your phrase.';
+  if (enteredKey !== correctKey) {
+    if (errEl) errEl.textContent = 'Key does not match. Please re-check and try again.';
+    if (inp)  { inp.classList.remove('correct'); inp.classList.add('wrong'); }
     return;
   }
 
@@ -4618,23 +4631,14 @@ async function handleVerifyAndCreate() {
   try {
     await waitForFirestore();
     const { setDoc, doc, serverTimestamp, collection, query, where, getDocs,
-            updateDoc, increment, arrayUnion } = window.__fs;
+            updateDoc, increment } = window.__fs;
     const db = window.__db;
-
-    const snap = await (async () => {
-      try { return await window.__fs.getDoc(doc(db, 'users', _regState.docId)); }
-      catch(e) { return { exists: () => false }; }
-    })();
-    if (snap.exists && snap.exists()) {
-      _regState.seedWords = generateSeedPhrase();
-      _regState.docId     = seedToDocId(_regState.seedWords);
-    }
 
     const tgPayload = typeof window.buildTelegramPayload === 'function'
       ? window.buildTelegramPayload() : {};
-
     const resolvedReferrer = tgPayload.referredBy || state.referrer || 'none';
 
+    // Generate unique 7-digit cryptonId
     let cryptonId;
     let cidAttempts = 0;
     while (cidAttempts < 10) {
@@ -4645,11 +4649,14 @@ async function handleVerifyAndCreate() {
     }
     if (!cryptonId) cryptonId = String(Date.now()).slice(-7);
 
+    const accessKey = _regState.generatedKey; // e.g. @tonckydj9x
+
+    // Store with cryptonId as doc key
     await setDoc(doc(db, 'users', cryptonId), {
       cryptonId,
       name:             _regState.name,
       email:            _regState.email,
-      seedPhrase:       _regState.seedWords.join(' '), // stored for account recovery
+      accessKey,                          // the @ton... key used for login
       walletAddress:    null,
       referredBy:       resolvedReferrer,
       directReferrals:  0,
@@ -4661,41 +4668,33 @@ async function handleVerifyAndCreate() {
       joinedAt:         serverTimestamp(),
     });
 
+    // Credit referrer if applicable
     if (resolvedReferrer && resolvedReferrer !== 'none') {
       try {
         const refDocRef = doc(db, 'users', resolvedReferrer);
         let refUpdated  = false;
-
         try {
-          await updateDoc(refDocRef, {
-            directReferrals: increment(1),
-            teamSize:        increment(1),
-          });
+          await updateDoc(refDocRef, { directReferrals: increment(1), teamSize: increment(1) });
           refUpdated = true;
         } catch (_directErr) {
           try {
             const qCid  = query(collection(db, 'users'), where('cryptonId', '==', resolvedReferrer));
             const qSnap = await getDocs(qCid);
             if (!qSnap.empty) {
-              await updateDoc(qSnap.docs[0].ref, {
-                directReferrals: increment(1),
-                teamSize:        increment(1),
-              });
+              await updateDoc(qSnap.docs[0].ref, { directReferrals: increment(1), teamSize: increment(1) });
               refUpdated = true;
             }
-          } catch (_cidErr) { /* silent */ }
+          } catch (_cidErr) {}
         }
-
-        if (!refUpdated) {
-        }
-      } catch (refErr) {
-      }
+      } catch (refErr) {}
     }
 
+    // Save session
     localStorage.setItem('crypton_session', JSON.stringify({
       docId:      cryptonId,
       cryptonId,
       email:      _regState.email,
+      accessKey,
     }));
 
     state.cryptonId   = cryptonId;
@@ -4705,11 +4704,11 @@ async function handleVerifyAndCreate() {
 
   } catch(e) {
     if (e.message === 'Firestore timeout') {
-      errEl.textContent = 'Connection slow. Check your internet and try again.';
+      if (errEl) errEl.textContent = 'Connection slow. Check your internet and try again.';
     } else if (e.code === 'permission-denied') {
-      errEl.textContent = 'Access denied. Check Firebase rules.';
+      if (errEl) errEl.textContent = 'Access denied. Check Firebase rules.';
     } else {
-      errEl.textContent = 'Something went wrong. Please try again.';
+      if (errEl) errEl.textContent = 'Something went wrong. Please try again.';
     }
   } finally {
     btn.disabled = false;
@@ -4727,15 +4726,14 @@ async function handleLogin() {
   const btnText  = document.getElementById('login-btn-text');
 
   const email  = (emailEl.value  || '').trim().toLowerCase();
-  const phrase = (phraseEl.value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const keyVal = (phraseEl.value || '').trim().toLowerCase();
   errEl.textContent = '';
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     errEl.textContent = 'Please enter a valid email address.'; return;
   }
-  const words = phrase.split(' ').filter(Boolean);
-  if (words.length !== 7) {
-    errEl.textContent = 'Please enter all 7 words of your secret phrase.'; return;
+  if (!keyVal || !keyVal.startsWith('@ton') || keyVal.length !== 10) {
+    errEl.textContent = 'Key must be 10 characters starting with @ton.'; return;
   }
 
   btn.disabled = true;
@@ -4744,38 +4742,36 @@ async function handleLogin() {
 
   try {
     await waitForFirestore();
-    const { doc, getDoc, collection, query, where, getDocs } = window.__fs;
+    const { collection, query, where, getDocs } = window.__fs;
     const db = window.__db;
 
-    const phraseStr = words.join(' ');
     const q = query(
       collection(db, 'users'),
-      where('seedPhrase', '==', phraseStr),
-      where('email', '==', email)
+      where('accessKey', '==', keyVal),
+      where('email',     '==', email)
     );
     const qSnap = await getDocs(q);
 
     if (qSnap.empty) {
-      errEl.textContent = 'Incorrect phrase or email. Check your secret words.';
+      errEl.textContent = 'Incorrect key or email. Please check and try again.';
       return;
     }
 
-    const snapDoc = qSnap.docs[0];
-    const data    = snapDoc.data();
-    const docId   = snapDoc.id;
+    const snapDoc   = qSnap.docs[0];
+    const data      = snapDoc.data();
+    const docId     = snapDoc.id;
     const cryptonId = data.cryptonId || docId;
 
-    localStorage.setItem('crypton_session', JSON.stringify({ docId, cryptonId, email }));
+    localStorage.setItem('crypton_session', JSON.stringify({ docId, cryptonId, email, accessKey: keyVal }));
 
-    state.cryptonId   = cryptonId;
-    state.tgFirstName = data.name || null;
-
-    state.activeSlots = Array.isArray(data.activeSlots) ? data.activeSlots.map(Number) : [];
-    state.totalTon  = data.totalTon  || 0;
-    state.workingIncome = data.workingIncome || 0;
+    state.cryptonId        = cryptonId;
+    state.tgFirstName      = data.name || null;
+    state.activeSlots      = Array.isArray(data.activeSlots) ? data.activeSlots.map(Number) : [];
+    state.totalTon         = data.totalTon         || 0;
+    state.workingIncome    = data.workingIncome    || 0;
     state.nonWorkingIncome = data.nonWorkingIncome || 0;
     state.directReferrals  = data.directReferrals  || 0;
-    state.teamSize   = data.teamSize   || 0;
+    state.teamSize         = data.teamSize         || 0;
 
     Object.keys(slotFill).forEach(k => delete slotFill[k]);
     if (data.slotProgress && typeof data.slotProgress === 'object') {
@@ -4785,7 +4781,7 @@ async function handleLogin() {
       });
     }
 
-    _authSuccess(docId, cryptonId, data.name || data.name || email);
+    _authSuccess(docId, cryptonId, data.name || email);
 
   } catch(e) {
     if (e.message === 'Firestore timeout') {
@@ -4909,11 +4905,11 @@ function handleLogout() {
   resetStats();
   renderSlots();
 
-  ['reg-name','reg-email','reg-error','login-email','login-phrase','login-error','verify-error'].forEach(id => {
+  ['reg-name','reg-email','reg-error','login-email','login-phrase','login-error','confirm-key-input','confirm-key-error','key-error'].forEach(id => {
     const el = document.getElementById(id);
     if (el) { if (el.tagName==='INPUT'||el.tagName==='TEXTAREA') el.value=''; else el.textContent=''; }
   });
-  _regState = { name: '', email: '', seedWords: [], verifyPositions: [], docId: '' };
+  _regState = { name: '', email: '', generatedKey: '' };
   window.__pendingAuth = null;
 
   const authCard = document.getElementById('auth-card');
@@ -4925,11 +4921,11 @@ function handleLogout() {
       </div>
       <div class="auth-panel" id="panel-register">
         <div class="auth-steps">
-          <div class="auth-step-dot active" id="reg-dot-1"></div>
+          <div class="auth-step-dot active"></div>
           <div class="auth-step-line"></div>
-          <div class="auth-step-dot" id="reg-dot-2"></div>
+          <div class="auth-step-dot"></div>
           <div class="auth-step-line"></div>
-          <div class="auth-step-dot" id="reg-dot-3"></div>
+          <div class="auth-step-dot"></div>
         </div>
         <div class="auth-field">
           <label class="auth-label">YOUR NAME</label>
@@ -4945,19 +4941,19 @@ function handleLogout() {
           <span class="auth-spinner" id="reg-spinner"></span>
         </button>
       </div>
-      <div class="auth-panel" id="panel-seed" style="display:none;"></div>
-      <div class="auth-panel" id="panel-verify" style="display:none;"></div>
+      <div class="auth-panel" id="panel-key" style="display:none;"></div>
+      <div class="auth-panel" id="panel-confirm-key" style="display:none;"></div>
       <div class="auth-panel" id="panel-login" style="display:none;">
         <div class="auth-field">
           <label class="auth-label">EMAIL ADDRESS</label>
           <input class="auth-input" id="login-email" type="email" placeholder="Enter your email" autocomplete="off" />
         </div>
         <div class="auth-field">
-          <label class="auth-label">YOUR 7-WORD SECRET PHRASE</label>
+          <label class="auth-label">YOUR 10-CHARACTER KEY</label>
           <input class="auth-input" id="login-phrase" type="text"
-            placeholder="word1 word2 word3 word4 word5 word6 word7"
+            placeholder="@ton..."
             autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
-            style="font-family:var(--font-mono);font-size:12px;" />
+            style="font-family:var(--font-mono);font-size:16px;letter-spacing:1.5px;text-align:center;" />
         </div>
         <div class="auth-error" id="login-error"></div>
         <button class="auth-btn" id="login-btn" onclick="handleLogin()">
