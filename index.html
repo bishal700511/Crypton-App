@@ -22,7 +22,7 @@
              query, orderBy, where, limit, getDocs,
              addDoc, deleteDoc, serverTimestamp,
              Timestamp, getCountFromServer,
-             arrayUnion }              from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+             arrayUnion, writeBatch }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     // ⚠️ SECURITY NOTE: Firebase client config is safe to expose in frontend code,
     // BUT you MUST set Firestore Security Rules to restrict reads/writes.
@@ -45,7 +45,7 @@
     window.__fs = { doc, getDoc, setDoc, updateDoc, increment,
                     collection, query, orderBy, where, limit, getDocs,
                     addDoc, deleteDoc, serverTimestamp, Timestamp,
-                    getCountFromServer, arrayUnion };
+                    getCountFromServer, arrayUnion, writeBatch };
 
     console.log('[Firebase] Firestore initialized ✓');
   </script>
@@ -53,21 +53,46 @@
   <style>
     /* ─── SPLASH SCREEN ────────────────────────────────────────── */
     #splash-screen {
-      position: fixed; inset: 0; z-index: 9999;
-      background: var(--navy);
-      display: flex; align-items: center; justify-content: center;
-      transition: opacity 0.72s ease, transform 0.72s ease;
+      position: fixed; inset: 0; z-index: 99998;
+      background: #050d1a;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 24px;
+      opacity: 1;
+      transition: opacity 0.6s ease;
     }
     #splash-screen.fade-out {
       opacity: 0;
-      pointer-events: none;
     }
     .splash-logo {
-      width: 160px; height: auto;
-      animation: splash-pulse 1.5s ease-in-out infinite alternate;
+      width: 140px; height: auto;
+      animation: splash-pulse 1.8s ease-in-out infinite alternate;
+    }
+    .splash-tagline {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: rgba(212,168,67,0.7);
+      text-transform: uppercase;
+      animation: splash-pulse 1.8s ease-in-out infinite alternate;
+    }
+    .splash-bar-wrap {
+      width: 120px; height: 2px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .splash-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #d4a843, #00e5ff);
+      border-radius: 2px;
+      animation: splash-load 4s linear forwards;
+    }
+    @keyframes splash-load {
+      from { width: 0%; }
+      to   { width: 100%; }
     }
     @keyframes splash-pulse {
-      from { opacity: 0.7; transform: scale(0.97); }
+      from { opacity: 0.6; transform: scale(0.97); }
       to   { opacity: 1;   transform: scale(1.03); }
     }
 
@@ -2661,6 +2686,10 @@
     alt="Crypton"
     draggable="false"
   />
+  <div class="splash-tagline">Decentralized Network</div>
+  <div class="splash-bar-wrap">
+    <div class="splash-bar"></div>
+  </div>
 </div>
 
 <div class="bg-canvas"></div>
@@ -3905,19 +3934,8 @@ const SLOTS = Array.from({ length: 10 }, (_, i) => {
 });
 
 // ──────────────────────────────────────────────────────────────
-// INCOME DISTRIBUTION — mirrors smart contract logic (display only)
-// ──────────────────────────────────────────────────────────────
-// Smart contract actual distribution per slot purchase:
-//   • Slots 1–4  (Bootstrap): 100% → root/sponsor user wallet
-//   • Slots 5–9  (Normal):    50% direct referrer | 20% upline-1 | 20% upline-2 | 10% drop pool
-//   • Slot 10    (Premium):   Accumulated into Level-10 drop pool, distributed every 10 days
-//
-// This function is DISPLAY ONLY — used to show income split preview in UI cards.
-// Actual on-chain distribution is handled entirely by the smart contract.
-//
-// For display purposes we show the normal split (50/20/20/10):
-//   working = 50% (direct referrer — shown as "Working Income")
-//   passive  = 50% (matrix/upline/pool — shown as "Passive Income")
+// INCOME DISTRIBUTION — Centralized Hybrid P2P display preview
+// Split: 50% Direct Referrer (working) | 40% Uplines (passive) | 10% Airdrop Pool
 // ──────────────────────────────────────────────────────────────
 function calculateIncomeDistribution(priceTon) {
   // Display split: 50% direct referrer (working) + 50% matrix spillover (passive)
@@ -3935,21 +3953,19 @@ function calculateIncomeDistribution(priceTon) {
 // APP STATE
 // ──────────────────────────────────────────────────────────────
 let state = {
-  connected:     false,
-  walletAddress: null,
-  tgUsername:    null,   // Telegram @username — used in ticker
-  tgNumericId:   null,   // Telegram numeric user ID
-  tgEmail:       null,   // Telegram email (if shared)
-  tgPhotoUrl:    null,   // Telegram profile photo URL
-  tgFirstName:   null,   // First name (for avatar fallback)
-  cryptonId:     null,   // 7-digit Crypton App ID
-  ownedSlots:    [],
-  earnedTon:     0,
-  workingTon:    0,
-  passiveTon:    0,
-  referrals:     0,
-  teamSize:      0,
-  tonConnectUI:  null,
+  connected:        false,
+  walletAddress:    null,
+  tgUsername:       null,   // Telegram @username — used in ticker
+  tgNumericId:      null,   // Telegram numeric user ID
+  tgFirstName:      null,   // First name (for avatar fallback)
+  cryptonId:        null,   // 7-digit Crypton App ID (also Firestore doc key)
+  activeSlots:      [],
+  workingIncome:    0,
+  nonWorkingIncome: 0,
+  totalTon:         0,
+  directReferrals:  0,
+  teamSize:         0,
+  tonConnectUI:     null,
 };
 
 // slotFill — tracks how many of the 6 matrix positions are filled per level
@@ -4083,55 +4099,15 @@ function getStoredRef() {
   // Call this when writing to Firestore on wallet connect
   window.buildTelegramPayload = function() {
     return {
-      tgHandle:    state.tgUsername  || null,
-      tgName:      state.tgFirstName || null,
+      // tgHandle/tgName removed — not stored in new schema
       tgId:        state.tgNumericId || null,
-      tgEmail:     state.tgEmail     || null,
+      // tgEmail removed — not stored in new schema
       referredBy:  getStoredRef()    || null,
     };
   };
 })();
 
-// ──────────────────────────────────────────────────────────────
-// PHOTO SYNC — tgPhotoUrl ko Firestore mein update karo on app open
-// ──────────────────────────────────────────────────────────────
-// loginUser() only runs on wallet connect. Users who registered
-// but never connected a wallet would never have tgPhotoUrl in Firestore.
-// This fires at app open: if SDK gave us tgId + photo_url,
-// we do a single updateDoc so avatars always show correctly.
-async function syncPhotoIfLoggedIn() {
-  const tgId     = state.tgNumericId;
-  const photoUrl = state.tgPhotoUrl;
-  if (!photoUrl) return;
-
-  // FIX BUG 1: New users are keyed by seed-hash docId, NOT tgNumericId.
-  // Always try session docId first, then fall back to tgNumericId.
-  const session = (() => {
-    try { return JSON.parse(localStorage.getItem('crypton_session') || 'null'); }
-    catch(_) { return null; }
-  })();
-  const docIdToUse = session?.docId || (tgId ? String(tgId) : null);
-  if (!docIdToUse) return;
-
-  try {
-    await waitForFirestore();
-    const { doc, getDoc, updateDoc } = window.__fs;
-    const db = window.__db;
-    if (!db || !doc || !getDoc || !updateDoc) return;
-    const userDocRef = doc(db, 'users', docIdToUse);
-    const snap = await getDoc(userDocRef);
-    if (!snap.exists()) {
-      console.log('[PhotoSync] Doc does not exist yet for id:', docIdToUse, '— skipping.');
-      return;
-    }
-    await updateDoc(userDocRef, { tgPhotoUrl: photoUrl });
-    console.log('[PhotoSync] tgPhotoUrl synced for docId:', docIdToUse);
-  } catch(e) {
-    console.log('[PhotoSync] Skipped:', e.message);
-  }
-}
-// Delay ensures Firestore module is fully loaded before the write attempt.
-setTimeout(syncPhotoIfLoggedIn, 3500);
+// Photo sync removed — tgPhotoUrl not stored in new schema.
 
 // ──────────────────────────────────────────────────────────────
 // TON CONNECT INIT
@@ -4140,11 +4116,9 @@ setTimeout(syncPhotoIfLoggedIn, 3500);
   try {
     // TonConnect manifest — hosted at the Vercel deployment URL.
     // Ensure tonconnect-manifest.json exists at this path with correct name/iconUrl/url fields.
-    // ── NETWORK CONFIG ─────────────────────────────────────────────────────────
-    // STEP 1 of 2 for mainnet launch:
-    //   Change 'testnet' → 'mainnet' below when smart contract is deployed on mainnet
-    // STEP 2 of 2: Update CONTRACT_ADDRESS in buySlot() to mainnet address
-    // ──────────────────────────────────────────────────────────────────────────
+    // ── NETWORK CONFIG ──────────────────────────────────────────────────────────
+    // Set 'testnet' for testing, 'mainnet' for production deployment.
+    // ───────────────────────────────────────────────────────────────────────────
     const ACTIVE_NETWORK = 'testnet'; // ← Locked to testnet for live on-chain verification
     state.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
       manifestUrl: 'https://crypton-app-omega.vercel.app/tonconnect-manifest.json',
@@ -4242,11 +4216,11 @@ async function disconnectWallet() {
   // ── Bug 13 fix: do NOT null out TG identity fields ──
   // state.tgUsername, state.tgNumericId, state.tgEmail,
   // state.tgFirstName, state.tgPhotoUrl are intentionally preserved.
-  state.ownedSlots    = [];
-  state.earnedTon     = 0;
-  state.workingTon    = 0;
-  state.passiveTon    = 0;
-  state.referrals     = 0;
+  state.activeSlots    = [];
+  state.totalTon     = 0;
+  state.workingIncome    = 0;
+  state.nonWorkingIncome    = 0;
+  state.directReferrals     = 0;
   state.teamSize      = 0;
   state.cachedReferredBy = null;
   state._referrerWallet  = null;
@@ -4454,11 +4428,11 @@ function handleWalletDisconnected() {
   resetStats();
   Object.keys(slotFill).forEach(k => delete slotFill[k]);
   Object.keys(slotReferrals).forEach(k => delete slotReferrals[k]);
-  state.ownedSlots    = [];
-  state.earnedTon     = 0;
-  state.workingTon    = 0;
-  state.passiveTon    = 0;
-  state.referrals     = 0;
+  state.activeSlots    = [];
+  state.totalTon     = 0;
+  state.workingIncome    = 0;
+  state.nonWorkingIncome    = 0;
+  state.directReferrals     = 0;
   state.teamSize      = 0;
   renderSlots();
 }
@@ -4503,7 +4477,7 @@ function updateLevelBar() {
   for (let i = 1; i <= 10; i++) {
     const cell = document.getElementById('lvl-' + i);
     if (!cell) continue;
-    const owned = state.ownedSlots.includes(i);
+    const owned = state.activeSlots.includes(i);
     if (owned) {
       cell.classList.add('active');
     } else {
@@ -4530,7 +4504,7 @@ function updateLevelBar() {
 }
 
 function updateStatsUI() {
-  const totalUsd = tonToUsd(state.earnedTon || 0);
+  const totalUsd = tonToUsd(state.totalTon || 0);
 
   // ── Dashboard stats ──
   const se  = document.getElementById('stat-earned');
@@ -4539,15 +4513,15 @@ function updateStatsUI() {
   const sr  = document.getElementById('stat-refs');
   const st  = document.getElementById('stat-team');
   if (se)  se.textContent  = '$' + totalUsd;
-  if (set) set.textContent = fmtTon(state.earnedTon || 0) + ' TON';
-  if (ss)  ss.textContent  = state.ownedSlots.length;
-  if (sr)  sr.textContent  = state.referrals;
+  if (set) set.textContent = fmtTon(state.totalTon || 0) + ' TON';
+  if (ss)  ss.textContent  = state.activeSlots.length;
+  if (sr)  sr.textContent  = state.directReferrals;
   if (st)  st.textContent  = state.teamSize;
 
-  const wi  = '$' + tonToUsd(state.workingTon || 0);
-  const pi  = '$' + tonToUsd(state.passiveTon || 0);
-  const wiT = fmtTon(state.workingTon || 0) + ' TON';
-  const piT = fmtTon(state.passiveTon || 0) + ' TON';
+  const wi  = '$' + tonToUsd(state.workingIncome || 0);
+  const pi  = '$' + tonToUsd(state.nonWorkingIncome || 0);
+  const wiT = fmtTon(state.workingIncome || 0) + ' TON';
+  const piT = fmtTon(state.nonWorkingIncome || 0) + ' TON';
 
   const wiEl  = document.getElementById('working-income-val');
   const piEl  = document.getElementById('passive-income-val');
@@ -4566,9 +4540,9 @@ function updateStatsUI() {
   const rdEl = document.getElementById('ref-direct');
   const rtEl = document.getElementById('ref-total');
   const riEl = document.getElementById('ref-income');
-  if (rdEl) rdEl.textContent = state.referrals;
+  if (rdEl) rdEl.textContent = state.directReferrals;
   if (rtEl) rtEl.textContent = state.teamSize;
-  if (riEl) riEl.textContent = fmtTon(state.earnedTon || 0);
+  if (riEl) riEl.textContent = fmtTon(state.totalTon || 0);
 
   // ── Level indicator bar ──
   updateLevelBar();
@@ -4578,7 +4552,7 @@ function updateStatsUI() {
 // MATRIX SVG BUILDER — bold 6-circle tree matching reference design
 // ──────────────────────────────────────────────────────────────
 function buildMatrixSVG(level, isGold, filled, referralIds) {
-  const isOwned  = state.ownedSlots.includes(level);
+  const isOwned  = state.activeSlots.includes(level);
   const isFull   = isOwned && filled >= 6;
   // referralIds: array of tgId strings in fill order, may be undefined for locked slots
   const rIds = Array.isArray(referralIds) ? referralIds : [];
@@ -4727,12 +4701,12 @@ function renderSlots() {
   grid.innerHTML = '';
 
   SLOTS.forEach(slot => {
-    const owned   = state.ownedSlots.includes(slot.level);
+    const owned   = state.activeSlots.includes(slot.level);
     const filled  = getFilledCount(slot.level);
     const isFull  = owned && filled >= 6;  // All 6 slots purchased — recycle time
 
     // SEQUENTIAL LOCK: hard-locked if previous level not yet owned (not yet activated)
-    const hardLocked = !owned && (slot.level > 1 && !state.ownedSlots.includes(slot.level - 1));
+    const hardLocked = !owned && (slot.level > 1 && !state.activeSlots.includes(slot.level - 1));
     const locked     = !owned; // every unowned slot shows LOCKED status visually
     const dist    = calculateIncomeDistribution(slot.price);
     const usdPrice= TON_TO_USD ? (slot.price * TON_TO_USD).toFixed(0) : '—';
@@ -4868,18 +4842,18 @@ async function showRefNodeModal(tgId, level) {
     const { collection, query, where, getDocs } = window.__fs;
     const db = window.__db;
 
-    // Query by tgId field (bot stores as string)
-    const q    = query(collection(db, 'users'), where('tgId', '==', String(tgId)));
-    const snap = await getDocs(q);
-
+    // Query by cryptonId field (new schema — doc ID = cryptonId)
+    const { doc, getDoc } = window.__fs;
     let d = null;
-    if (!snap.empty) {
-      d = snap.docs[0].data();
+    // Try direct doc lookup first (fast path — tgId passed here is the cryptonId in new schema)
+    const dSnap = await getDoc(doc(db, 'users', String(tgId)));
+    if (dSnap.exists()) {
+      d = dSnap.data();
     } else {
-      // Fallback: try doc ID directly
-      const { doc, getDoc } = window.__fs;
-      const dSnap = await getDoc(doc(db, 'users', String(tgId)));
-      if (dSnap.exists()) d = dSnap.data();
+      // Fallback: query by cryptonId field
+      const q    = query(collection(db, 'users'), where('cryptonId', '==', String(tgId)));
+      const snap = await getDocs(q);
+      if (!snap.empty) d = snap.docs[0].data();
     }
 
     if (!d) {
@@ -4888,7 +4862,7 @@ async function showRefNodeModal(tgId, level) {
           <div class="ref-node-avatar"><svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg></div>
           <div>
             <div class="ref-node-name">Unknown User</div>
-            <div class="ref-node-id">TG ID: ${tgId}</div>
+            <div class="ref-node-id">Crypton ID: ${tgId}</div>
           </div>
         </div>
         <div class="ref-node-rows">
@@ -4900,28 +4874,18 @@ async function showRefNodeModal(tgId, level) {
       return;
     }
 
-    const rawName   = d.tgName || '';
-    const rawHandle = d.tgHandle ? d.tgHandle.replace(/^@+/, '') : '';
-    const name      = rawName.trim() || rawHandle || 'Unknown';
-    const handle    = rawHandle ? '@' + rawHandle : '';
-    const photoUrl  = d.tgPhotoUrl || null;
+    const name = (d.name || '').trim() || 'Unknown';
 
-    // ── Update photo cache so circle shows DP on next renderSlots ────────────
-    if (!window.__photoCache) window.__photoCache = {};
-    window.__photoCache[String(tgId)] = photoUrl || '';
-
-    const passiveTon  = typeof d.passiveTon  === 'number' ? d.passiveTon  : 0;
-    const earnedTon   = typeof d.earnedTon   === 'number' ? d.earnedTon   : 0;
-    const workingTon  = typeof d.workingTon  === 'number' ? d.workingTon  : 0;
-    const slotCount   = Array.isArray(d.ownedSlots) ? d.ownedSlots.length : 0;
+    const nonWorkingIncome = typeof d.nonWorkingIncome === 'number' ? d.nonWorkingIncome : 0;
+    const totalTon         = typeof d.totalTon         === 'number' ? d.totalTon         : 0;
+    const workingIncome    = typeof d.workingIncome    === 'number' ? d.workingIncome    : 0;
+    const slotCount        = Array.isArray(d.activeSlots) ? d.activeSlots.length : 0;
 
     const fmtTon = (v) => v >= 1000
       ? (v / 1000).toFixed(2) + 'K TON'
       : v.toFixed(3) + ' TON';
 
-    const avatarHtml = photoUrl
-      ? `<img src="${photoUrl}" alt="avatar" onerror="this.parentNode.innerHTML='<svg viewBox=\\'0 0 24 24\\'><path d=\\'M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z\\'/></svg>'">`
-      : `<svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>`;
+    const avatarHtml = `<svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>`;
 
     body.innerHTML = `
       <div class="ref-node-header">
@@ -4929,22 +4893,22 @@ async function showRefNodeModal(tgId, level) {
         <div>
           <div class="ref-node-name">${name}</div>
           <div class="ref-node-id">
-            TG ID: ${tgId}${handle ? ' · ' + handle : ''}
+            Crypton ID: ${d.cryptonId || tgId}
           </div>
         </div>
       </div>
       <div class="ref-node-rows">
         <div class="ref-node-row">
           <span class="ref-node-row-label">🏆 Total Income</span>
-          <span class="ref-node-row-val gold">${fmtTon(earnedTon + workingTon + passiveTon)}</span>
+          <span class="ref-node-row-val gold">${fmtTon(totalTon)}</span>
         </div>
         <div class="ref-node-row">
           <span class="ref-node-row-label">⚡ Working Income</span>
-          <span class="ref-node-row-val cyan">${fmtTon(workingTon)}</span>
+          <span class="ref-node-row-val cyan">${fmtTon(workingIncome)}</span>
         </div>
         <div class="ref-node-row">
-          <span class="ref-node-row-label">♾ Passive Income</span>
-          <span class="ref-node-row-val green">${fmtTon(passiveTon)}</span>
+          <span class="ref-node-row-label">♾ Non-Working Income</span>
+          <span class="ref-node-row-val green">${fmtTon(nonWorkingIncome)}</span>
         </div>
       </div>`;
 
@@ -4981,19 +4945,30 @@ function simulateFill(level) {
 }
 
 // ──────────────────────────────────────────────────────────────
-// BUY SLOT — 50/50 Distribution Transaction
+// BUY SLOT — Centralized/Hybrid P2P Architecture
+// Architecture: Direct P2P TON transfer → Admin wallet
+// On sendTransaction success: immediate optimistic Firestore write
 // ──────────────────────────────────────────────────────────────
+
+// ┌─────────────────────────────────────────────────────────────┐
+// │  ADMIN WALLET ADDRESS                                       │
+// │  TESTNET:  0QAyWRljtSjBqPGeKkBhDRo5v6foXKz81L3Yo79UuCzg6zqy│
+// │  All slot purchase payments are routed here directly.       │
+// │  Payout distribution is handled manually via Admin Panel.   │
+// │                                                             │
+// │  Switch to mainnet address + ACTIVE_NETWORK='mainnet'       │
+// │  before production deployment.                              │
+// └─────────────────────────────────────────────────────────────┘
+const ADMIN_WALLET_ADDRESS = '0QAyWRljtSjBqPGeKkBhDRo5v6foXKz81L3Yo79UuCzg6zqy'; // testnet
+
 async function buySlot(level, priceTon) {
   if (!state.connected)    { showToast('Connect wallet first'); return; }
 
   // Sequential lock validation — cannot skip levels
-  if (level > 1 && !state.ownedSlots.includes(level - 1)) {
+  if (level > 1 && !state.activeSlots.includes(level - 1)) {
     showToast(`Unlock Level ${level - 1} first!`);
     return;
   }
-  // Bug Fix: A level is "full" when all 6 slots are filled (slotFill[level] >= 6)
-  // ownedSlots.includes(level) only means "ever activated" — same level can be
-  // bought up to 6 times total. Block only when fully filled.
   const currentFill = getFilledCount(level);
   if (currentFill >= 6) {
     showToast(`Level ${level} fully filled (6/6) ♻️`);
@@ -5002,107 +4977,20 @@ async function buySlot(level, priceTon) {
 
   if (!state.tonConnectUI) return;
 
-  // ┌─────────────────────────────────────────────────────────────────────────┐
-  // │  CONTRACT ADDRESS — Set this after deploying your smart contract        │
-  // │                                                                         │
-  // │  HOW TO DEPLOY:                                                         │
-  // │    1. Run: npx blueprint build                                          │
-  // │    2. Run: npx blueprint deploy                                         │
-  // │    3. Copy the deployed address (EQ... or UQ...) and paste below        │
-  // │                                                                         │
-  // │  TESTNET address (for testing only, replace before mainnet launch):     │
-  // │    kQB7qM9C0JFii87JwQfG8GuOVrWU6yrXad3Gjo80oXBGLhuX                  │
-  // │                                                                         │
-  // │  MAINNET address: Paste here after mainnet deploy                       │
-  // └─────────────────────────────────────────────────────────────────────────┘
-  // ⚠️  REPLACE THIS PLACEHOLDER WITH YOUR ACTUAL CONTRACT ADDRESS:
-  // ── LIVE TESTNET CONTRACT — EQBB8BO6wOZChLcJBTKT1DkrThhBb7iilP5934lQvg-SUmoM ──
-  const CONTRACT_ADDRESS = 'EQBB8BO6wOZChLcJBTKT1DkrThhBb7iilP5934lQvg-SUmoM';
+  // In-flight guard — prevents duplicate writes if user taps rapidly
+  if (buySlot._writing) return;
 
   try {
-    // ── Amount calculation — full price in nanotons to contract ──────────────
-    // Contract internally handles all splits:
-    //   • Slots 1–4:  100% → root user (special bootstrap rule)
-    //   • Slots 5–9:  50% direct referrer | 20% upline1 | 20% upline2 | 10% drop pool
-    //   • Slot 10:    Level 10 drop pool distribution
-    const totalNano = BigInt(Math.round(priceTon * 1e9)); // full amount, no split on frontend
-
-    // ── Build BuySlot message body for TON smart contract ──────────────────
-    // Contract expects: 32-bit opcode + 64-bit tgId + 8-bit level = 104 bits = 13 bytes
-    const BUYSLOT_OPCODE = 0xccadf5a7; // CRC32("BuySlot") — Tact message opcode
-
-    function buildBuySlotPayload(tgIdStr, levelNum) {
-      // ── Correct TON BOC (Bag of Cells) — 26 bytes total ───────────────────
-      // Cell data layout: d1(1) + d2(1) + opcode(4) + tgId(8) + level(1) = 15 bytes
-      //
-      // d1 = 0x00  (0 refs, not exotic)
-      // d2 = 0x1A  (26 = 13*2, byte-aligned 104-bit payload, no augmentation bit)
-      //
-      // BOC header (size=1 format — all count fields are 1 byte each):
-      //   B5 EE 9C 72 = magic
-      //   01 = flags byte (size=1)
-      //   01 = off_size (1 byte offsets)
-      //   01 = cell_count
-      //   01 = root_count
-      //   00 = absent_count
-      //   0F = tot_cells_size (15 bytes)
-      //   00 = root_idx
-      //   [15 bytes cell data]
-      // Total: 4+1+1+1+1+1+1+1+15 = 26 bytes
-
-      const tgBig = BigInt(tgIdStr || '0');
-      const tgHi  = Number(tgBig >> 32n) >>> 0;
-      const tgLo  = Number(tgBig & 0xFFFFFFFFn) >>> 0;
-      const lvl   = levelNum & 0xFF;
-
-      const cell = new Uint8Array(15);
-      cell[0]  = 0x00;                            // d1
-      cell[1]  = 0x1A;                            // d2 = 26
-      cell[2]  = (BUYSLOT_OPCODE >>> 24) & 0xFF;  // opcode byte 1
-      cell[3]  = (BUYSLOT_OPCODE >>> 16) & 0xFF;  // opcode byte 2
-      cell[4]  = (BUYSLOT_OPCODE >>>  8) & 0xFF;  // opcode byte 3
-      cell[5]  =  BUYSLOT_OPCODE         & 0xFF;  // opcode byte 4
-      cell[6]  = (tgHi >>> 24) & 0xFF;            // tgId hi byte 1
-      cell[7]  = (tgHi >>> 16) & 0xFF;            // tgId hi byte 2
-      cell[8]  = (tgHi >>>  8) & 0xFF;            // tgId hi byte 3
-      cell[9]  =  tgHi         & 0xFF;            // tgId hi byte 4
-      cell[10] = (tgLo >>> 24) & 0xFF;            // tgId lo byte 1
-      cell[11] = (tgLo >>> 16) & 0xFF;            // tgId lo byte 2
-      cell[12] = (tgLo >>>  8) & 0xFF;            // tgId lo byte 3
-      cell[13] =  tgLo         & 0xFF;            // tgId lo byte 4
-      cell[14] = lvl;                             // level
-
-      // BOC = 26 bytes: header(11) + cell(15)
-      const boc = new Uint8Array(26);
-      let i = 0;
-      boc[i++] = 0xB5; boc[i++] = 0xEE; boc[i++] = 0x9C; boc[i++] = 0x72; // magic
-      boc[i++] = 0x01; // flags (size=1)
-      boc[i++] = 0x01; // off_size = 1
-      boc[i++] = 0x01; // cell_count = 1
-      boc[i++] = 0x01; // root_count = 1
-      boc[i++] = 0x00; // absent_count = 0
-      boc[i++] = 0x0F; // tot_cells_size = 15 (1 byte because off_size=1)
-      boc[i++] = 0x00; // root_idx = 0
-      for (let j = 0; j < cell.length; j++) boc[i++] = cell[j];
-
-      let binary = '';
-      boc.forEach(b => binary += String.fromCharCode(b));
-      return btoa(binary);
-    }
-
-    const buyerTgId = String(
-      window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || '0'
-    );
+    // ── Full price in nanotons → admin wallet (no contract split on frontend) ──
+    const totalNano = BigInt(Math.round(priceTon * 1e9));
 
     const tx = {
       validUntil: Math.floor(Date.now() / 1000) + 600,
       messages: [
         {
-          // 100% → Smart contract (contract handles all distribution internally)
-          // Contract splits: 50% direct referrer, 20% upline1, 20% upline2, 10% drop pool
-          address: CONTRACT_ADDRESS,
+          // Direct P2P transfer to admin wallet — admin panel handles payouts
+          address: ADMIN_WALLET_ADDRESS,
           amount:  totalNano.toString(),
-          payload: buildBuySlotPayload(buyerTgId, level),
         }
       ]
     };
@@ -5110,163 +4998,215 @@ async function buySlot(level, priceTon) {
     showToast('Opening wallet…');
     const result = await state.tonConnectUI.sendTransaction(tx);
 
+    // ── TonConnect resolves the promise on wallet approval (before on-chain settle).
+    // We treat this as confirmation and immediately apply optimistic state updates.
     if (result) {
-      const tgDocId = String(
-        window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || ''
-      );
+      buySlot._writing = true;
 
-      // ── Resolve Firestore document ID ────────────────────────────────────────
-      // STANDALONE BROWSER SUPPORT: tgDocId may be empty when running outside
-      // Telegram. Fall back to sessionDocId (seed-phrase users stored in
-      // localStorage) so slot purchases always persist regardless of environment.
+      // ── Resolve Firestore document ID ──────────────────────────────────────
       const _bsSession = (() => {
         try { return JSON.parse(localStorage.getItem('crypton_session') || 'null'); }
         catch(_) { return null; }
       })();
+      const tgDocId = String(
+        window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || ''
+      );
       const _bsDocId =
-        tgDocId                                                ||
+        tgDocId                                                   ||
         (_bsSession && _bsSession.docId ? String(_bsSession.docId) : null) ||
-        state.userId                                           ||
+        state.userId                                              ||
         null;
 
-      // ── On-chain confirmation gate via Toncenter testnet ─────────────────────
-      // We do NOT do any optimistic local update. Instead we poll the contract's
-      // getSlotFillForUser getter every 5 s and ONLY update the UI + Firestore
-      // once the on-chain fill count has incremented. This closes all bypass
-      // exploits — a fake BOC or a cancelled tx cannot trigger a UI update.
-      //
-      // Using Toncenter public API (no auth key, no CORS issues on mobile/WebView):
-      //   POST https://testnet.toncenter.com/api/v2/runGetMethod
-      //   Body: { address, method: 'getSlotFillForUser', stack: [['num', buyerTgId], ['num', level]] }
+      // ── Income distribution math (50% working / 50% passive) ──────────────
+      const newFill         = currentFill + 1;
+      const dist            = calculateIncomeDistribution(priceTon);
+      const newWorkingInc   = (state.workingIncome   || 0) + dist.working;
+      const newPassiveInc   = (state.nonWorkingIncome || 0) + dist.passive;
+      const newTotalTon     = (state.totalTon        || 0) + priceTon;
 
-      const fillBefore = (slotFill[level] || 0);
+      // ── Optimistic local state update ──────────────────────────────────────
+      if (!state.activeSlots.includes(level)) state.activeSlots.push(level);
+      slotFill[level]          = newFill;
+      state.workingIncome      = newWorkingInc;
+      state.nonWorkingIncome   = newPassiveInc;
+      state.totalTon           = newTotalTon;
 
-      // Show persistent spinner toast while waiting for chain confirmation
-      showToast('\u23f3 Waiting for on-chain confirmation\u2026', 120000);
+      updateStatsUI();
+      renderSlots();
 
-      // Mark card as confirming for visual feedback
-      const _pollCard = document.querySelector(`[data-level="${level}"]`);
-      if (_pollCard) _pollCard.classList.add('slot-confirming');
+      // ── Celebration burst ──────────────────────────────────────────────────
+      const _card   = document.querySelector(`[data-level="${level}"]`);
+      const slotDef = SLOTS.find(s => s.level === level);
+      if (window.burstParticles && _card) burstParticles(_card, slotDef && slotDef.gold);
+      if (_card) {
+        _card.classList.add(slotDef && slotDef.gold ? 'flash-gold' : 'flash-cyan');
+        setTimeout(() => _card.classList.remove('flash-gold', 'flash-cyan'), 800);
+      }
 
-      const TONCENTER_TESTNET = 'https://testnet.toncenter.com/api/v2/runGetMethod';
+      showToast(`Level ${level} activated! 🎉`);
 
-      let _pollAttempts = 0;
-      const MAX_POLL_ATTEMPTS = 36; // 36 × 5 s = 3 minutes max
+      // ── Ticker update ──────────────────────────────────────────────────────
+      if (_tickerSeeded && state.tgNumericId) {
+        const myUid  = String(state.tgNumericId);
+        const tickIdx = _tickerData.findIndex(r => r.cryptonId === myUid);
+        if (tickIdx === -1) _tickerData.push({ cryptonId: myUid, totalTon: state.totalTon });
+        else                _tickerData[tickIdx].totalTon = state.totalTon;
+        _tickerData.sort((a, b) => b.totalTon - a.totalTon);
+        renderTicker();
+      }
 
-      const _pollInterval = setInterval(async () => {
-        _pollAttempts++;
-        if (_pollAttempts > MAX_POLL_ATTEMPTS) {
-          clearInterval(_pollInterval);
-          if (_pollCard) _pollCard.classList.remove('slot-confirming');
-          showToast('\u26a0\ufe0f On-chain confirmation timed out. Check your wallet and refresh.', 7000);
-          buySlot._writing = false;
-          return;
-        }
+      // ═══════════════════════════════════════════════════════════════════
+      // LAYER 1: 50/20/20/10 DISTRIBUTION MATH — referral chain resolution
+      // ═══════════════════════════════════════════════════════════════════
+      // Pull current user referredBy chain from Firestore and compute splits:
+      //   50% → Direct Referrer (workingIncome)
+      //   20% → Upline 1 — Referrer's Referrer (nonWorkingIncome)
+      //   20% → Upline 2 — Upline 1's Referrer  (nonWorkingIncome)
+      //   10% → /config/airdrop → airdropPool (global pool increment)
 
-        try {
-          const resp = await fetch(TONCENTER_TESTNET, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            cache: 'no-store',
-            body: JSON.stringify({
-              address: CONTRACT_ADDRESS,
-              method: 'getSlotFillForUser',
-              stack: [
-                ['num', buyerTgId],
-                ['num', String(level)]
-              ]
-            })
-          });
-          if (!resp.ok) return; // transient error — keep polling
+      const split50 = priceTon * 0.50;  // Direct referrer working income
+      const split20 = priceTon * 0.20;  // Each upline non-working income
+      const split10 = priceTon * 0.10;  // Airdrop pool contribution
 
-          const data = await resp.json();
+      // LAYER 2: Airdrop eligibility tagging — Levels 4, 8, 10 qualify
+      const AIRDROP_ELIGIBLE_LEVELS = [4, 8, 10];
+      const isAirdropEligibleLevel  = AIRDROP_ELIGIBLE_LEVELS.includes(level);
 
-          // Toncenter returns result.stack as array of [type, value] pairs.
-          // Fill count is the first stack item (type 'num', hex-encoded value).
-          const rawStack = data?.result?.stack;
-          const stackVal = Array.isArray(rawStack) && rawStack[0]
-            ? parseInt(String(rawStack[0][1]), 16)  // hex → decimal
-            : -1;
+      // ── Firestore write — immediately after wallet approval ────────────────
+      if (_bsDocId) {
+        (async function persistSlotPurchase() {
+          try {
+            await waitForFirestore();
+            const {
+              doc: _d, updateDoc: _u, arrayUnion: _au,
+              getDoc: _gd, collection: _col, increment: _inc,
+              writeBatch, serverTimestamp: _sts
+            } = window.__fs;
+            const _db = window.__db;
 
-          const fillOnChain = isNaN(stackVal) ? -1 : stackVal;
-          console.log(`[BuySlot] Poll #${_pollAttempts} \u2014 on-chain fill for L${level}:`, fillOnChain, '| before tx:', fillBefore);
+            // ── Step 1: Load current user doc to get referral chain ──────────
+            const mySnap      = await _gd(_d(_db, 'users', _bsDocId));
+            const myData      = mySnap.exists() ? mySnap.data() : {};
+            const directRefId = myData.referredBy || state.cachedReferredBy || null;
 
-          if (fillOnChain > fillBefore) {
-            // \u2705 Chain confirmed — stop polling and update everything
-            clearInterval(_pollInterval);
-            if (_pollCard) _pollCard.classList.remove('slot-confirming');
+            // ── Step 2: Resolve upline chain (referredBy → referredBy) ───────
+            let upline1Id = null;
+            let upline2Id = null;
 
-            // Update local state with confirmed on-chain value
-            if (!state.ownedSlots.includes(level)) state.ownedSlots.push(level);
-            slotFill[level] = fillOnChain;
-            updateStatsUI();
-            renderSlots();
-            showToast(`Level ${level} confirmed on-chain! \ud83c\udf89`);
-
-            // ── Celebration burst ────────────────────────────────────────────
-            const slotDef = SLOTS.find(s => s.level === level);
-            if (window.burstParticles) burstParticles(_pollCard, slotDef && slotDef.gold);
-            if (_pollCard) {
-              _pollCard.classList.add(slotDef && slotDef.gold ? 'flash-gold' : 'flash-cyan');
-              setTimeout(() => _pollCard.classList.remove('flash-gold','flash-cyan'), 800);
-            }
-            if (_tickerSeeded && state.tgNumericId) {
-              const myUid = String(state.tgNumericId);
-              const tickIdx = _tickerData.findIndex(r => r.tgId === myUid);
-              if (tickIdx === -1) _tickerData.push({ tgId: myUid, earnedTon: state.earnedTon||0 });
-              else                _tickerData[tickIdx].earnedTon = state.earnedTon||0;
-              _tickerData.sort((a,b) => b.earnedTon - a.earnedTon);
-              renderTicker();
-            }
-
-            // ── Firestore write — only AFTER on-chain confirmation ─────────────
-            // In-flight guard: prevents duplicate writes if user taps rapidly.
-            if (_bsDocId && !buySlot._writing) {
-              buySlot._writing = true;
-              (async function persistSlotPurchase() {
-                try {
-                  await waitForFirestore();
-                  const { doc: _d, updateDoc: _u, arrayUnion: _au } = window.__fs;
-                  const _db = window.__db;
-
-                  const sfKey = 'slotFill.' + level;
-                  const updateData = {
-                    walletAddress: state.walletAddress || '',
-                  };
-                  // arrayUnion ensures no duplicate level in ownedSlots
-                  if (_au) {
-                    updateData.ownedSlots = _au(level);
-                  } else {
-                    const deduped = [...new Set(state.ownedSlots)];
-                    updateData.ownedSlots = deduped;
-                  }
-                  // Write the exact confirmed on-chain value — not a blind increment
-                  updateData[sfKey] = fillOnChain;
-
-                  await _u(_d(_db, 'users', _bsDocId), updateData);
-                  console.log('[BuySlot] Firestore updated \u2713 docId:', _bsDocId, '| level:', level, '| onChainFill:', fillOnChain);
-                } catch (fsErr) {
-                  console.warn('[BuySlot] Firestore write failed:', fsErr.message);
-                  showToast('\u26a0\ufe0f On-chain confirmed but DB sync failed. Will sync on next login.');
-                } finally {
-                  buySlot._writing = false;
+            if (directRefId && directRefId !== 'none') {
+              try {
+                const ref1Snap = await _gd(_d(_db, 'users', directRefId));
+                if (ref1Snap.exists()) {
+                  const ref1Data = ref1Snap.data();
+                  upline1Id = ref1Data.referredBy || null;
+                  if (upline1Id && upline1Id !== 'none') {
+                    try {
+                      const ref2Snap = await _gd(_d(_db, 'users', upline1Id));
+                      if (ref2Snap.exists()) {
+                        upline2Id = ref2Snap.data().referredBy || null;
+                        if (upline2Id === 'none') upline2Id = null;
+                      }
+                    } catch(_e) { upline2Id = null; }
+                  } else { upline1Id = null; }
                 }
-              })();
-            } else if (!_bsDocId) {
-              console.warn('[BuySlot] Cannot persist \u2014 no document ID resolved (no TG session, no localStorage session).');
+              } catch(_e) { directRefId && console.warn('[BuySlot] Upline resolve failed:', _e.message); }
             }
+
+            console.log('[BuySlot] Referral chain — direct:', directRefId,
+              '| upline1:', upline1Id, '| upline2:', upline2Id);
+
+            // ── Step 3: Atomic batched Firestore write ───────────────────────
+            const batch = writeBatch(_db);
+
+            // A) Update current user's own document
+            const sfKey      = 'slotProgress.' + level;
+            const updateData = {
+              walletAddress:    state.walletAddress || '',
+              workingIncome:    newWorkingInc,
+              nonWorkingIncome: newPassiveInc,
+              totalTon:         newTotalTon,
+              lastSlotPurchase: level,
+              lastPurchaseAt:   Date.now(),
+              activeSlots:      _au ? _au(level) : [...new Set(state.activeSlots)],
+            };
+            updateData[sfKey] = newFill;
+
+            // LAYER 2: Tag airdrop eligibility for qualifying levels
+            if (isAirdropEligibleLevel) {
+              updateData.airdropEligible = true;
+              console.log('[BuySlot] Airdrop eligibility tagged — Level', level);
+            }
+
+            batch.update(_d(_db, 'users', _bsDocId), updateData);
+
+            // B) Credit direct referrer — 50% as workingIncome
+            if (directRefId && directRefId !== 'none') {
+              try {
+                batch.update(_d(_db, 'users', directRefId), {
+                  workingIncome: _inc(split50),
+                  totalTon:      _inc(split50),
+                });
+                console.log('[BuySlot] Direct referrer credited:', directRefId,
+                  '| amount:', split50, 'TON (workingIncome)');
+              } catch(e) { console.warn('[BuySlot] Direct ref credit failed:', e); }
+            }
+
+            // C) Credit upline 1 — 20% as nonWorkingIncome
+            if (upline1Id && upline1Id !== 'none') {
+              try {
+                batch.update(_d(_db, 'users', upline1Id), {
+                  nonWorkingIncome: _inc(split20),
+                  totalTon:         _inc(split20),
+                });
+                console.log('[BuySlot] Upline 1 credited:', upline1Id,
+                  '| amount:', split20, 'TON (nonWorkingIncome)');
+              } catch(e) { console.warn('[BuySlot] Upline1 credit failed:', e); }
+            }
+
+            // D) Credit upline 2 — 20% as nonWorkingIncome
+            if (upline2Id && upline2Id !== 'none') {
+              try {
+                batch.update(_d(_db, 'users', upline2Id), {
+                  nonWorkingIncome: _inc(split20),
+                  totalTon:         _inc(split20),
+                });
+                console.log('[BuySlot] Upline 2 credited:', upline2Id,
+                  '| amount:', split20, 'TON (nonWorkingIncome)');
+              } catch(e) { console.warn('[BuySlot] Upline2 credit failed:', e); }
+            }
+
+            // E) Increment global airdropPool — 10% into /config/airdrop
+            try {
+              batch.set(_d(_db, 'config', 'airdrop'), {
+                airdropPool: _inc(split10),
+                lastContribution: Date.now(),
+              }, { merge: true });
+              console.log('[BuySlot] AirdropPool incremented by:', split10, 'TON');
+            } catch(e) { console.warn('[BuySlot] AirdropPool increment failed:', e); }
+
+            // Commit all writes atomically
+            await batch.commit();
+            console.log('[BuySlot] Batch commit ✓ docId:', _bsDocId,
+              '| level:', level, '| fill:', newFill,
+              '| split: 50%→direct, 20%→up1, 20%→up2, 10%→pool');
+
+          } catch (fsErr) {
+            console.warn('[BuySlot] Firestore write failed:', fsErr.message);
+            showToast('⚠️ Slot activated but DB sync failed. Will sync on next login.');
+          } finally {
+            buySlot._writing = false;
           }
-        } catch (pollErr) {
-          console.warn('[BuySlot] Poll error (will retry):', pollErr.message);
-          // Non-fatal — keep polling until MAX_POLL_ATTEMPTS
-        }
-      }, 5000); // poll every 5 seconds
+        })();
+      } else {
+        buySlot._writing = false;
+        console.warn('[BuySlot] Cannot persist — no document ID resolved.');
+      }
     }
   } catch(e) {
-    buySlot._writing = false; // always clear guard on any error path
+    buySlot._writing = false;
     const msg = e?.message || '';
     if (msg === 'User closed the modal' || msg.includes('User declined')) {
-      // Silent — user cancelled, no toast needed
+      // Silent — user cancelled
     } else if (msg.includes('Insufficient')) {
       showToast('⚠️ Insufficient TON balance in wallet');
     } else {
@@ -5620,27 +5560,21 @@ async function handleVerifyAndCreate() {
     }
     if (!cryptonId) cryptonId = String(Date.now()).slice(-7);
 
-    await setDoc(doc(db, 'users', _regState.docId), {
-      docId:         _regState.docId,
+    // ── Document ID = cryptonId (7-digit) — single source of truth ──
+    await setDoc(doc(db, 'users', cryptonId), {
       cryptonId,
-      name:          _regState.name,
-      email:         _regState.email,
-      seedPhrase:    _regState.seedWords.join(' '), // stored for recovery (hash in docId)
-      tgHandle:      tgPayload.tgHandle   || null,
-      tgName:        _regState.name,
-      tgEmail:       _regState.email,
-      tgPhotoUrl:    state.tgPhotoUrl     || null,
-      walletAddress: null,
-      // ── REFERRAL FIX: always write referredBy — "none" when no referrer ──
-      referredBy:    resolvedReferrer,
-      ownedSlots:    [],
-      earnedTon:     0,
-      workingTon:    0,
-      passiveTon:    0,
-      referrals:     0,
-      teamSize:      0,
-      slotFill:      {},
-      joinedAt:      serverTimestamp(),
+      name:             _regState.name,
+      email:            _regState.email,
+      seedPhrase:       _regState.seedWords.join(' '), // stored for account recovery
+      walletAddress:    null,
+      referredBy:       resolvedReferrer,
+      directReferrals:  0,
+      teamSize:         0,
+      workingIncome:    0,
+      nonWorkingIncome: 0,
+      totalTon:         0,
+      activeSlots:      [],
+      joinedAt:         serverTimestamp(),
     });
 
     // ── REFERRAL FIX: credit the referrer's document immediately on registration ──
@@ -5653,45 +5587,25 @@ async function handleVerifyAndCreate() {
 
         try {
           await updateDoc(refDocRef, {
-            referrals:   increment(1),
-            teamSize:    increment(1),
-            subscribers: arrayUnion(_regState.docId),   // add new user's docId to referrer's subscribers list
+            directReferrals: increment(1),
+            teamSize:        increment(1),
           });
           refUpdated = true;
-          console.log('[Referral] Referrer credited (by docId):', resolvedReferrer);
+          console.log('[Referral] Referrer credited (by cryptonId):', resolvedReferrer);
         } catch (_directErr) {
-          // docId lookup failed — referrer may have used their cryptonId or tgId as the ref param
-          // Fallback: query by cryptonId field
+          // Direct doc lookup failed — referrer link may have passed cryptonId as query param
           try {
             const qCid  = query(collection(db, 'users'), where('cryptonId', '==', resolvedReferrer));
             const qSnap = await getDocs(qCid);
             if (!qSnap.empty) {
               await updateDoc(qSnap.docs[0].ref, {
-                referrals:   increment(1),
-                teamSize:    increment(1),
-                subscribers: arrayUnion(_regState.docId),
+                directReferrals: increment(1),
+                teamSize:        increment(1),
               });
               refUpdated = true;
-              console.log('[Referral] Referrer credited (by cryptonId):', resolvedReferrer);
+              console.log('[Referral] Referrer credited (query by cryptonId):', resolvedReferrer);
             }
           } catch (_cidErr) { /* silent */ }
-
-          // Second fallback: query by tgId field
-          if (!refUpdated) {
-            try {
-              const qTg   = query(collection(db, 'users'), where('tgId', '==', resolvedReferrer));
-              const qSnap2 = await getDocs(qTg);
-              if (!qSnap2.empty) {
-                await updateDoc(qSnap2.docs[0].ref, {
-                  referrals:   increment(1),
-                  teamSize:    increment(1),
-                  subscribers: arrayUnion(_regState.docId),
-                });
-                refUpdated = true;
-                console.log('[Referral] Referrer credited (by tgId):', resolvedReferrer);
-              }
-            } catch (_tgErr) { /* silent */ }
-          }
         }
 
         if (!refUpdated) {
@@ -5703,21 +5617,18 @@ async function handleVerifyAndCreate() {
       }
     }
 
-    // Save session (docId + email in localStorage)
+    // Save session — docId is now cryptonId
     localStorage.setItem('crypton_session', JSON.stringify({
-      docId:      _regState.docId,
+      docId:      cryptonId,
       cryptonId,
       email:      _regState.email,
     }));
 
     state.cryptonId   = cryptonId;
     state.tgFirstName = _regState.name;
-    state.tgEmail     = _regState.email;
-    state.tgNumericId = _regState.docId;
 
-    console.log('[Auth] Account created ✓ docId:', _regState.docId, 'cryptonId:', cryptonId,
-                'referredBy:', resolvedReferrer);
-    _authSuccess(_regState.docId, cryptonId, _regState.name);
+    console.log('[Auth] Account created ✓ cryptonId:', cryptonId, 'referredBy:', resolvedReferrer);
+    _authSuccess(cryptonId, cryptonId, _regState.name);
 
   } catch(e) {
     console.error('[Auth] Create account error:', e.code, e.message);
@@ -5779,7 +5690,7 @@ async function handleLogin() {
     const data = snap.data();
 
     // Verify email matches
-    if ((data.email || data.tgEmail || '').toLowerCase() !== email) {
+    if ((data.email || '').toLowerCase() !== email) {
       errEl.textContent = 'Email does not match this account.';
       return;
     }
@@ -5791,28 +5702,25 @@ async function handleLogin() {
 
     // Hydrate state
     state.cryptonId   = cryptonId;
-    state.tgFirstName = data.name || data.tgName || null;
-    state.tgEmail     = data.email || data.tgEmail || email;
-    state.tgNumericId = docId;
-    if (data.tgPhotoUrl) state.tgPhotoUrl = data.tgPhotoUrl;
+    state.tgFirstName = data.name || null;
 
-    state.ownedSlots = Array.isArray(data.ownedSlots) ? data.ownedSlots.map(Number) : [];
-    state.earnedTon  = data.earnedTon  || 0;
-    state.workingTon = data.workingTon || 0;
-    state.passiveTon = data.passiveTon || 0;
-    state.referrals  = data.referrals  || 0;
+    state.activeSlots = Array.isArray(data.activeSlots) ? data.activeSlots.map(Number) : [];
+    state.totalTon  = data.totalTon  || 0;
+    state.workingIncome = data.workingIncome || 0;
+    state.nonWorkingIncome = data.nonWorkingIncome || 0;
+    state.directReferrals  = data.directReferrals  || 0;
     state.teamSize   = data.teamSize   || 0;
 
     Object.keys(slotFill).forEach(k => delete slotFill[k]);
-    if (data.slotFill && typeof data.slotFill === 'object') {
-      Object.entries(data.slotFill).forEach(([k, v]) => {
+    if (data.slotProgress && typeof data.slotProgress === 'object') {
+      Object.entries(data.slotProgress).forEach(([k, v]) => {
         const ln = parseInt(k, 10);
         if (!isNaN(ln) && ln > 0) slotFill[ln] = parseInt(v, 10) || 0;
       });
     }
 
     console.log('[Auth] Login success ✓ docId:', docId, 'cryptonId:', cryptonId);
-    _authSuccess(docId, cryptonId, data.name || data.tgName || email);
+    _authSuccess(docId, cryptonId, data.name || data.name || email);
 
   } catch(e) {
     console.error('[Auth] Login error:', e.code, e.message);
@@ -5912,16 +5820,14 @@ function handleLogout() {
   state.cryptonId          = null;
   state.tgNumericId        = null;
   state.tgFirstName        = null;
-  state.tgEmail            = null;
   state.tgUsername         = null;
-  state.tgPhotoUrl         = null;
   state.cachedReferredBy   = null;
   state._referrerWallet    = null;
-  state.ownedSlots         = [];
-  state.earnedTon          = 0;
-  state.workingTon         = 0;
-  state.passiveTon         = 0;
-  state.referrals          = 0;
+  state.activeSlots         = [];
+  state.totalTon          = 0;
+  state.workingIncome         = 0;
+  state.nonWorkingIncome         = 0;
+  state.directReferrals          = 0;
   state.teamSize           = 0;
   Object.keys(slotFill).forEach(k => delete slotFill[k]);
   Object.keys(slotReferrals).forEach(k => delete slotReferrals[k]);
@@ -6096,7 +6002,7 @@ async function tryAutoLogin() {
     if (!snap.exists()) { localStorage.removeItem('crypton_session'); return; }
 
     const data = snap.data();
-    if ((data.email || data.tgEmail || '').toLowerCase() !== email) {
+    if ((data.email || '').toLowerCase() !== email) {
       localStorage.removeItem('crypton_session'); return;
     }
 
@@ -6104,19 +6010,16 @@ async function tryAutoLogin() {
 
     // Restore full state
     state.cryptonId   = resolvedCryptonId;
-    state.tgFirstName = data.name || data.tgName || null;
-    state.tgEmail     = data.email || data.tgEmail || email;
-    state.tgNumericId = docId;
-    if (data.tgPhotoUrl) state.tgPhotoUrl = data.tgPhotoUrl;
-    state.ownedSlots = Array.isArray(data.ownedSlots) ? data.ownedSlots.map(Number) : [];
-    state.earnedTon  = data.earnedTon  || 0;
-    state.workingTon = data.workingTon || 0;
-    state.passiveTon = data.passiveTon || 0;
-    state.referrals  = data.referrals  || 0;
+    state.tgFirstName = data.name || null;
+    state.activeSlots = Array.isArray(data.activeSlots) ? data.activeSlots.map(Number) : [];
+    state.totalTon  = data.totalTon  || 0;
+    state.workingIncome = data.workingIncome || 0;
+    state.nonWorkingIncome = data.nonWorkingIncome || 0;
+    state.directReferrals  = data.directReferrals  || 0;
     state.teamSize   = data.teamSize   || 0;
     Object.keys(slotFill).forEach(k => delete slotFill[k]);
-    if (data.slotFill && typeof data.slotFill === 'object') {
-      Object.entries(data.slotFill).forEach(([k, v]) => {
+    if (data.slotProgress && typeof data.slotProgress === 'object') {
+      Object.entries(data.slotProgress).forEach(([k, v]) => {
         const ln = parseInt(k, 10);
         if (!isNaN(ln) && ln > 0) slotFill[ln] = parseInt(v, 10) || 0;
       });
@@ -6143,13 +6046,13 @@ async function tryAutoLogin() {
     if (walletAlreadyConnected) {
       // Wallet IS connected — safe to show dashboard
       state.connected = true;
-      _showDashboardAfterWallet(docId, resolvedCryptonId, data.name || data.tgName || email);
+      _showDashboardAfterWallet(docId, resolvedCryptonId, data.name || data.name || email);
       console.log('[Auth] Auto-login: wallet already connected → dashboard opened.');
     } else {
       // Wallet NOT connected — show wallet connect step
       // Store pending auth so handleWalletConnected can consume it
-      window.__pendingAuth = { docId, cryptonId: resolvedCryptonId, name: data.name || data.tgName || email };
-      _authSuccess(docId, resolvedCryptonId, data.name || data.tgName || email);
+      window.__pendingAuth = { docId, cryptonId: resolvedCryptonId, name: data.name || data.name || email };
+      _authSuccess(docId, resolvedCryptonId, data.name || data.name || email);
       console.log('[Auth] Auto-login: wallet not connected → showing wallet connect gate.');
     }
   } catch(e) {
@@ -6200,47 +6103,41 @@ async function loginUser(walletAddress) {
     await waitForFirestore();
   } catch(e) {
     console.warn('[Firebase] Firestore not ready, using blank state:', e.message);
-    state.ownedSlots = []; state.earnedTon = 0; state.workingTon = 0;
-    state.passiveTon = 0; state.referrals = 0; state.teamSize = 0;
+    state.activeSlots = []; state.totalTon = 0; state.workingIncome = 0;
+    state.nonWorkingIncome = 0; state.directReferrals = 0; state.teamSize = 0;
     updateStatsUI(); renderSlots(); return;
   }
 
   const { doc, getDoc, updateDoc, increment, collection, query, where, getDocs } = window.__fs;
   const db = window.__db;
 
-  // ── DUAL document lookup — tgIdFromSDK first, then session docId ──
-  // New users registered via seed phrase have docs keyed by seed-hash docId.
-  // Returning via wallet connect, tgIdFromSDK may not match their Firestore doc.
-  // We try both: tgId path (for legacy/bot users) AND session docId (for app users).
+  // ── Document lookup — docId in session IS the cryptonId (new schema) ──
   const session = (() => {
     try { return JSON.parse(localStorage.getItem('crypton_session') || 'null'); }
     catch(_) { return null; }
   })();
   const sessionDocId = session?.docId || null;
 
-  // Primary ref: by tgId (legacy bot users + returning users who were bot-registered)
-  const userDocRef = doc(db, 'users', tgIdFromSDK);
-  // Secondary ref: by seed-hash docId (new app-registered users)
-  const sessionDocRef = sessionDocId && sessionDocId !== tgIdFromSDK
-    ? doc(db, 'users', sessionDocId)
-    : null;
-
-  const tgPayload  = typeof window.buildTelegramPayload === 'function'
+  const tgPayload = typeof window.buildTelegramPayload === 'function'
     ? window.buildTelegramPayload() : {};
-  // FIX 2: Fetch referredBy from DB (data loaded below) as fallback if sessionStorage cleared
-  // This is resolved after snap.exists() check using data.referredBy — see below.
 
   try {
-    let snap = await getDoc(userDocRef);
-    let activeDocRef = userDocRef;
+    // Primary lookup: session docId (= cryptonId)
+    if (!sessionDocId) {
+      showToast('No session found. Please register first.');
+      return;
+    }
+    const userDocRef   = doc(db, 'users', sessionDocId);
+    let snap           = await getDoc(userDocRef);
+    let activeDocRef   = userDocRef;
 
-    // FIX BUG 2: If tgId-keyed doc not found, try session docId (seed-hash users)
-    if (!snap.exists() && sessionDocRef) {
-      console.log('[Firebase] tgId doc not found — trying session docId:', sessionDocId);
-      snap = await getDoc(sessionDocRef);
-      if (snap.exists()) {
-        activeDocRef = sessionDocRef;
-        console.log('[Firebase] Found user doc via session docId:', sessionDocId);
+    // Fallback: query by cryptonId field (in case session has old hash-based docId)
+    if (!snap.exists()) {
+      console.log('[Firebase] Session doc not found — querying by cryptonId:', sessionDocId);
+      const qSnap = await getDocs(query(collection(db, 'users'), where('cryptonId', '==', sessionDocId)));
+      if (!qSnap.empty) {
+        snap        = qSnap.docs[0];
+        activeDocRef = qSnap.docs[0].ref;
       }
     }
 
@@ -6291,72 +6188,35 @@ async function loginUser(walletAddress) {
     state.cachedReferredBy = referredBy;
 
     // FIX 4: Map ownedSlots to actual integers so level checks don't fail on stringified values
-    state.ownedSlots = Array.isArray(data.ownedSlots) ? data.ownedSlots.map(Number) : [];
-    state.earnedTon  = data.earnedTon   || 0;
-    state.workingTon = data.workingTon  || 0;
-    state.passiveTon = data.passiveTon  || 0;
-    state.referrals  = data.referrals   || 0;
+    state.activeSlots = Array.isArray(data.activeSlots) ? data.activeSlots.map(Number) : [];
+    state.totalTon  = data.totalTon   || 0;
+    state.workingIncome = data.workingIncome  || 0;
+    state.nonWorkingIncome = data.nonWorkingIncome  || 0;
+    state.directReferrals  = data.directReferrals   || 0;
     state.teamSize   = data.teamSize    || 0;
 
-    // ── Hydrate Telegram profile fields from Firestore into UI ───────────
-    // These were saved by the bot — they are the source of truth for name/email.
-    if (data.tgName     && !state.tgFirstName) state.tgFirstName = data.tgName;
-    if (data.tgEmail    && !state.tgEmail)     state.tgEmail     = data.tgEmail;
-    if (data.tgHandle   && !state.tgUsername)  state.tgUsername  = data.tgHandle;
-    if (data.tgId       && !state.tgNumericId) state.tgNumericId = data.tgId;
-    // FIX: Load tgPhotoUrl from Firestore (written by bot) so avatar renders correctly
-    if (data.tgPhotoUrl && !state.tgPhotoUrl)  state.tgPhotoUrl  = data.tgPhotoUrl;
+    // ── Load name/email from Firestore into runtime state ────────────────
+    if (data.name  && !state.tgFirstName) state.tgFirstName = data.name;
 
-    // ── Update profile UI elements with bot-supplied data ─────────────────
-    // FIX 1: Profile CRYPTON ID must exactly match the Account Card's Crypton ID.
-    // state.cryptonId is resolved just below from data.cryptonId. We defer setting
-    // tg-user until AFTER state.cryptonId is set (see "Update dashboard UID display" block).
+    // ── Update profile UI elements ────────────────────────────────────────
     const userEl  = document.getElementById('tg-user');
     const emailEl = document.getElementById('user-email');
-    // userEl populated after state.cryptonId is confirmed — see FIX 1 patch below.
     if (emailEl) {
-      const displayEmail = data.tgEmail || state.tgEmail || null;
+      const displayEmail = data.email || null;
       emailEl.innerHTML = displayEmail
         ? `<span class="fetch-loaded">${displayEmail}</span>`
         : `<span class="fetch-na">Not shared</span>`;
     }
 
-    // ── Update dashboard UID display — show Crypton ID (7-digit) ────────
+    // ── Crypton ID — document key IS the cryptonId ───────────────────────
     state.cryptonId = data.cryptonId || null;
     const dashUidFromLogin = document.getElementById('dash-uid');
+    if (dashUidFromLogin) dashUidFromLogin.textContent = state.cryptonId ? 'Crypton ID: ' + state.cryptonId : '—';
 
-    if (!data.cryptonId) {
-      // ── Legacy user — no cryptonId yet: generate one, ensure uniqueness, save to Firestore ──
-      console.log('[Firebase] Legacy user — generating cryptonId for:', tgIdFromSDK);
-      try {
-        const { updateDoc: _upd, collection: _col, query: _q, where: _wh, getDocs: _gds } = window.__fs;
-        let legacyCryptonId;
-        let legacyAttempts = 0;
-        while (legacyAttempts < 10) {
-          const candidate = String(Math.floor(1000000 + Math.random() * 9000000));
-          const idCheck = await _gds(_q(_col(db, 'users'), _wh('cryptonId', '==', candidate)));
-          if (idCheck.empty) { legacyCryptonId = candidate; break; }
-          legacyAttempts++;
-        }
-        if (!legacyCryptonId) legacyCryptonId = String(Date.now()).slice(-7);
-        await _upd(activeDocRef, { cryptonId: legacyCryptonId });
-        state.cryptonId = legacyCryptonId;
-        if (dashUidFromLogin) dashUidFromLogin.textContent = 'Crypton ID: ' + legacyCryptonId;
-        console.log('[Firebase] Legacy user — cryptonId assigned:', legacyCryptonId);
-      } catch (legacyErr) {
-        console.warn('[Firebase] Could not assign cryptonId to legacy user:', legacyErr.message);
-        if (dashUidFromLogin) dashUidFromLogin.textContent = (data.tgId || tgIdFromSDK) || '—';
-      }
-    } else {
-      if (dashUidFromLogin) dashUidFromLogin.textContent = 'Crypton ID: ' + data.cryptonId;
-    }
-
-    // ── FIX 1: Now that state.cryptonId is finalized, update the profile USER ID field ──
-    // This ensures the Profile view CRYPTON ID is always identical to the Account Card Crypton ID.
+    // ── Set profile USER ID display ──────────────────────────────────────
     if (userEl) {
-      const finalCryptonId = state.cryptonId || null;
-      userEl.innerHTML = finalCryptonId
-        ? `<span class="fetch-loaded">${finalCryptonId}</span>`
+      userEl.innerHTML = state.cryptonId
+        ? `<span class="fetch-loaded">${state.cryptonId}</span>`
         : `<span class="fetch-na">Not assigned</span>`;
     }
 
@@ -6398,8 +6258,8 @@ async function loginUser(walletAddress) {
     // After this block, ALL keys in slotFill are guaranteed to be proper JS
     // integers — no duplicate "1" vs 1 ambiguity, no leftover string keys.
     Object.keys(slotFill).forEach(k => delete slotFill[k]);   // clear first
-    if (data.slotFill && typeof data.slotFill === 'object') {
-      Object.entries(data.slotFill).forEach(([k, v]) => {
+    if (data.slotProgress && typeof data.slotProgress === 'object') {
+      Object.entries(data.slotProgress).forEach(([k, v]) => {
         const levelNum = parseInt(k, 10);
         if (!isNaN(levelNum) && levelNum > 0) {
           slotFill[levelNum] = parseInt(v, 10) || 0;
@@ -6418,50 +6278,7 @@ async function loginUser(walletAddress) {
       });
     }
 
-    // ── Photo prefetch — load DP for each referral tgId into cache ───────────
-    // Collects all unique tgIds from slotReferrals, fetches their tgPhotoUrl
-    // from Firestore in parallel, and stores in window.__photoCache.
-    // circ() checks this cache to show DP inside matrix circles.
-    // Runs in background — does NOT block loginUser or renderSlots.
-    (async function prefetchReferralPhotos() {
-      try {
-        // Collect all unique tgIds across all slot levels
-        const allIds = new Set();
-        Object.values(slotReferrals).forEach(arr => {
-          if (Array.isArray(arr)) arr.forEach(id => { if (id) allIds.add(String(id)); });
-        });
-        if (allIds.size === 0) return;
-
-        if (!window.__photoCache) window.__photoCache = {};
-        await waitForFirestore();
-        const { doc: _doc, getDoc: _getDoc } = window.__fs;
-        const _db = window.__db;
-        if (!_db || !_doc || !_getDoc) return;
-
-        // Fetch all in parallel — one Firestore read per unique tgId
-        await Promise.all([...allIds].map(async (tgId) => {
-          // Skip if already cached
-          if (window.__photoCache[tgId] !== undefined) return;
-          try {
-            const snap = await _getDoc(_doc(_db, 'users', tgId));
-            if (snap.exists()) {
-              const photoUrl = snap.data().tgPhotoUrl || null;
-              window.__photoCache[tgId] = photoUrl || '';
-            } else {
-              window.__photoCache[tgId] = '';
-            }
-          } catch (_e) {
-            window.__photoCache[tgId] = '';
-          }
-        }));
-
-        // Re-render slots so circles show newly loaded photos
-        renderSlots();
-        console.log('[PhotoCache] Prefetched', allIds.size, 'referral photos');
-      } catch (_err) {
-        console.warn('[PhotoCache] Prefetch failed:', _err.message);
-      }
-    })();
+    // Photo prefetch removed — profile photos not stored in new schema.
 
     // ── Update join date display ──────────────────────────────────────────
     // Bot may write 'registeredAt' or 'joinedAt' — handle both
@@ -6507,16 +6324,16 @@ async function loginUser(walletAddress) {
         const refDocRef = doc(db, 'users', referredBy);
         const refSnap   = await getDoc(refDocRef);
         if (refSnap.exists()) {
-          await updateDoc(refDocRef, { referrals: increment(1), teamSize: increment(1) });
+          await updateDoc(refDocRef, { directReferrals: increment(1), teamSize: increment(1) });
           console.log('[Firebase] Referrer credited:', referredBy);
         } else {
           // referredBy may be a tgId string — query by tgId field as fallback
           if (where) {
-            const q     = query(collection(db, 'users'), where('tgId', '==', referredBy));
+            const q     = query(collection(db, 'users'), where('cryptonId', '==', referredBy));
             const qSnap = await getDocs(q);
             if (!qSnap.empty) {
-              await updateDoc(qSnap.docs[0].ref, { referrals: increment(1), teamSize: increment(1) });
-              console.log('[Firebase] Referrer (by tgId field) credited:', referredBy);
+              await updateDoc(qSnap.docs[0].ref, { directReferrals: increment(1), teamSize: increment(1) });
+              console.log('[Firebase] Referrer (by cryptonId) credited:', referredBy);
             }
           }
         }
@@ -6530,43 +6347,15 @@ async function loginUser(walletAddress) {
     // ── Merge wallet address into the single Telegram-keyed doc ──
     // This is the bridge moment: the bot document gains the wallet address.
     // updateDoc is used (not setDoc) so no existing bot fields are overwritten.
-    // NOTE: This block runs EVERY session (not gated by isFirstWalletLink) so that
-    // tgPhotoUrl and other SDK-fresh fields are always kept up-to-date in Firestore.
-    // This is what makes the Leaderboard and User Directory always show real avatars.
-
-    // Referral link MUST use Telegram numeric ID — canonical priority order:
-    //   1. state.tgNumericId (from SDK initDataUnsafe — most reliable)
-    //   2. tgIdFromSDK (raw SDK value captured at function entry)
-    //   3. data.tgId (from Firestore — written by bot at registration)
-    const canonicalTgId =
-      (state.tgNumericId && /^\d+$/.test(state.tgNumericId) ? state.tgNumericId : null) ||
-      (tgIdFromSDK && /^\d+$/.test(tgIdFromSDK) ? tgIdFromSDK : null) ||
-      (data.tgId && /^\d+$/.test(String(data.tgId)) ? String(data.tgId) : null);
-    // Sync resolved tgId back to state so other logic always has it
-    if (canonicalTgId && !state.tgNumericId) state.tgNumericId = canonicalTgId;
-    // FIX 1: Referral link MUST use state.cryptonId — the exact 7-digit Crypton ID
-    // shown on the Account Card. This is the unified canonical identity for CRYPTON.
+    // ── Wallet address is the only field updated on wallet connect ───────
     const refId2      = state.cryptonId || null;
     const refLinkVal2 = refId2
       ? `${window.location.origin}/?ref=${refId2}`
       : 'Referral link loading…';
-    const mergeFields = { walletAddress };
-    // Also refresh any tg fields the SDK may have fresher data for
-    if (tgPayload.tgHandle) mergeFields.tgHandle = tgPayload.tgHandle;
-    if (tgPayload.tgName)   mergeFields.tgName   = tgPayload.tgName;
-    if (tgPayload.tgEmail)  mergeFields.tgEmail  = tgPayload.tgEmail;
-    if (tgPayload.tgId)     mergeFields.tgId     = tgPayload.tgId;
-    // BUG #1 FIX: Sync live Telegram photo URL to Firestore every session.
-    // state.tgPhotoUrl is populated by initTelegram() from the SDK immediately on app open.
-    // Writing it here (on every loginUser call, not just first wallet link) ensures:
-    //   (a) Returning users with new profile photos get their photo updated.
-    //   (b) Other users see the real avatar on Leaderboard and User Directory.
-    //   (c) No extra Firestore read is needed — it piggybacks on this existing write.
-    if (state.tgPhotoUrl) mergeFields.tgPhotoUrl = state.tgPhotoUrl;
-    await updateDoc(activeDocRef, mergeFields).catch(err =>
-      console.error('[Firebase] Failed to merge wallet into user doc:', err)
+    await updateDoc(activeDocRef, { walletAddress }).catch(err =>
+      console.error('[Firebase] Failed to update walletAddress:', err)
     );
-    console.log('[Firebase] Wallet + tgPhotoUrl merged into doc:', activeDocRef.id, '←', walletAddress, '| photo:', state.tgPhotoUrl ? 'set' : 'not available');
+    console.log('[Firebase] walletAddress merged into doc:', activeDocRef.id, '←', walletAddress);
 
     // ── Set referral link exactly ONCE — uses state.cryptonId as the canonical value ──
     const _refLinkEl    = document.getElementById('ref-link');
@@ -6585,8 +6374,8 @@ async function loginUser(walletAddress) {
   } catch(e) {
     console.error('[Firebase] loginUser error:', e);
     showToast('Could not load profile. Check connection.');
-    state.ownedSlots = []; state.earnedTon = 0; state.workingTon = 0;
-    state.passiveTon = 0; state.referrals = 0; state.teamSize = 0;
+    state.activeSlots = []; state.totalTon = 0; state.workingIncome = 0;
+    state.nonWorkingIncome = 0; state.directReferrals = 0; state.teamSize = 0;
     updateStatsUI(); renderSlots();
   }
 }
@@ -6652,10 +6441,10 @@ async function getReferralStats() {
     const snap = await getDoc(doc(window.__db, 'users', tgDocId));
     if (snap.exists()) {
       const data = snap.data();
-      state.referrals = data.referrals || 0;
+      state.directReferrals = data.directReferrals || 0;
       state.teamSize  = data.teamSize  || 0;
       updateStatsUI();
-      console.log('[Firebase] Referral stats refreshed:', state.referrals, state.teamSize);
+      console.log('[Firebase] Referral stats refreshed:', state.directReferrals, state.teamSize);
     }
   } catch(e) {
     console.error('[Firebase] getReferralStats error:', e);
@@ -6740,33 +6529,20 @@ async function renderReferralList() {
     allRefDocs.forEach(docSnap => {
       const d = docSnap.data();
 
-      // ── Name: prefer tgName, then strip @ from handle, then fallback ──
-      const rawName  = d.tgName  || '';
-      const rawHandle = d.tgHandle ? d.tgHandle.replace(/^@+/, '') : '';
-      const name     = rawName.trim() || rawHandle || 'Unknown User';
+      // ── Slots count ──
+      const slotCount = Array.isArray(d.activeSlots) ? d.activeSlots.length : 0;
 
-      // ── Telegram ID: prefer tgId field, then doc ID ──
-      const tgId     = String(d.tgId || docSnap.id || '—');
+      // ── Name & Crypton ID ──
+      const name       = (d.name || '').trim() || 'Unknown User';
+      const cryptonId  = d.cryptonId || docSnap.id || '—';
 
-      // ── Handle display: always show with @ prefix ──
-      const handle   = rawHandle ? '@' + rawHandle : '';
-
-      // ── Avatar ──
-      const photoUrl = d.tgPhotoUrl || null;
-      const avatarInner = photoUrl
-        ? `<img src="${photoUrl}" alt="avatar" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.parentNode.innerHTML='${silhouetteSVG.replace(/"/g,"'")}'"/>`
-        : silhouetteSVG;
-
-      // ── Earned TON: earnedTon first, then sum of working + passive ──
-      const earnedRaw = typeof d.earnedTon === 'number' ? d.earnedTon
-        : ((typeof d.workingTon === 'number' ? d.workingTon : 0)
-         + (typeof d.passiveTon === 'number' ? d.passiveTon : 0));
+      // ── Earned TON ──
+      const earnedRaw  = typeof d.totalTon === 'number' ? d.totalTon : 0;
       const tonDisplay = earnedRaw >= 1000
         ? (earnedRaw / 1000).toFixed(2) + 'K TON'
         : earnedRaw.toFixed(3) + ' TON';
 
-      // ── Slots count ──
-      const slotCount = Array.isArray(d.ownedSlots) ? d.ownedSlots.length : 0;
+      const avatarInner = silhouetteSVG;
 
       html += `
       <div class="ref-list-row">
@@ -6774,8 +6550,7 @@ async function renderReferralList() {
         <div class="ref-list-info">
           <div class="ref-list-name">${name}</div>
           <div class="ref-list-uid" style="display:flex;flex-direction:column;gap:2px;">
-            <span style="font-size:11px;color:var(--cyan);font-family:var(--font-mono);">TG ID: ${tgId}</span>
-            ${handle ? `<span style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">${handle}</span>` : ''}
+            <span style="font-size:11px;color:var(--cyan);font-family:var(--font-mono);">ID: ${cryptonId}</span>
             <span style="font-size:10px;color:var(--text-muted);">Slots: ${slotCount}</span>
           </div>
         </div>
@@ -7038,13 +6813,13 @@ async function fetchGlobalStats() {
     // For exact totals in production, maintain a 'stats/global' aggregation
     // document updated by a Cloud Function on each verified purchase.
     let totalTon = 0;
-    const topQ   = query(usersCol, orderBy('passiveTon', 'desc'), limit(100));
+    const topQ   = query(usersCol, orderBy('totalTon', 'desc'), limit(100));
     const topSnap = await getDocs(topQ);
     topSnap.forEach(docSnap => {
       const d       = docSnap.data();
-      const working = typeof d.workingTon === 'number' ? d.workingTon : 0;
-      const passive = typeof d.passiveTon === 'number' ? d.passiveTon : 0;
-      const earned  = typeof d.earnedTon  === 'number' ? d.earnedTon  : 0;
+      const working = typeof d.workingIncome === 'number' ? d.workingIncome : 0;
+      const passive = typeof d.nonWorkingIncome === 'number' ? d.nonWorkingIncome : 0;
+      const earned  = typeof d.totalTon  === 'number' ? d.totalTon  : 0;
       totalTon += Math.max(earned, working + passive);
     });
 
@@ -7175,12 +6950,12 @@ async function fetchLeaderboard() {
     // FIX 3: Only fetch fully registered users (must have cryptonId, joinedAt, and name fields)
     // orderBy passiveTon desc; Firestore does NOT support inequality filter on multiple fields
     // so we filter client-side for the registration check.
-    const q    = query(collection(db, 'users'), orderBy('passiveTon', 'desc'), limit(30));
+    const q    = query(collection(db, 'users'), orderBy('totalTon', 'desc'), limit(30));
     const rawSnap = await getDocs(q);
     // Client-side strict filter: only include users who completed registration (have cryptonId)
     const validDocs = rawSnap.docs.filter(d => {
       const data = d.data();
-      return !!(data.cryptonId && data.joinedAt && (data.tgName || data.tgHandle || data.name));
+      return !!(data.cryptonId && data.joinedAt && (data.name || data.name || data.name));
     }).slice(0, 10);
     const snap = { docs: validDocs, empty: validDocs.length === 0 };
     clearTimeout(_lbGuard);
@@ -7201,27 +6976,21 @@ async function fetchLeaderboard() {
       const rLabel   = rankLabels[idx] || ('#' + rank);
       const rCls     = rankClass[idx]  || 'rn';
 
-      // Name: prefer tgName → tgHandle → truncated UID
-      const rawName  = d.tgName || d.tgHandle || null;
-      // FIX: Normalize tgHandle — remove @ if bot writes it with @, add only for display
-      const safeName = rawName
-        ? rawName.replace(/^@/, '').replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0, 22)
-        : ('User…' + String(d.tgId || docSnap.id).slice(-4));
-
-      // FIX 3: UID display — show Crypton ID (public identity), not internal tgId
-      const uid      = d.cryptonId || d.tgId || docSnap.id;
+      const safeName = (d.name || ('User…' + String(d.cryptonId || docSnap.id).slice(-4)))
+        .replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0, 22);
+      const uid      = d.cryptonId || docSnap.id;
       const safeUid  = String(uid).replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
       // TON balance
-      const working = typeof d.workingTon === 'number' ? d.workingTon : 0;
-      const passive = typeof d.passiveTon === 'number' ? d.passiveTon : 0;
-      const ton      = typeof d.earnedTon === 'number'
-        ? d.earnedTon.toFixed(2)
+      const working = typeof d.workingIncome === 'number' ? d.workingIncome : 0;
+      const passive = typeof d.nonWorkingIncome === 'number' ? d.nonWorkingIncome : 0;
+      const ton      = typeof d.totalTon === 'number'
+        ? d.totalTon.toFixed(2)
         : (working + passive > 0 ? (working + passive).toFixed(2) : '0.00');
 
       // Avatar
-      const photoUrl = d.tgPhotoUrl || null;
-      const avatarHtml = photoUrl
+      const photoUrl = null; // no profile photos in new schema
+      const avatarHtml = null // no photos; const _unused = photoUrl
         ? `<img src="${photoUrl.replace(/"/g,'')}" alt="avatar" style="width:100%;height:100%;object-fit:cover;border-radius:10px;display:block;" onerror="this.parentNode.innerHTML='${_lbSilSVG.replace(/'/g,'"').replace(/"/g,"'")}'"/>`
         : _lbSilSVG;
 
@@ -7415,24 +7184,22 @@ async function pvDoSearch() {
     }
 
     // ── Build full dashboard-mirror result HTML (same structure as doSearchUser) ──
-    const displayName = userData.tgName || userData.tgHandle || 'Unknown User';
-    const displayUid  = userData.cryptonId || userData.tgId || docId;
-    const photoUrl    = userData.tgPhotoUrl || null;
+    const displayName = userData.name || 'Unknown User';
+    const displayUid  = userData.cryptonId || docId;
+    const photoUrl    = userData.walletAddress || null;
 
     const silSVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width:26px;height:26px;fill:#8aa5c0;"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>`;
-    const avatarHtml = photoUrl
-      ? `<img src="${photoUrl}" alt="avatar" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:12px;" onerror="this.parentNode.innerHTML='${silSVG.replace(/'/g,'"').replace(/"/g,"'")}'"/>`
-      : silSVG;
+    const avatarHtml = silSVG;
 
-    const workingTon = typeof userData.workingTon === 'number' ? userData.workingTon : 0;
-    const passiveTon = typeof userData.passiveTon === 'number' ? userData.passiveTon : 0;
-    const totalTon   = (typeof userData.earnedTon === 'number' && userData.earnedTon > 0)
-      ? userData.earnedTon : (workingTon + passiveTon);
+    const workingTon = typeof userData.workingIncome === 'number' ? userData.workingIncome : 0;
+    const passiveTon = typeof userData.nonWorkingIncome === 'number' ? userData.nonWorkingIncome : 0;
+    const totalTon   = (typeof userData.totalTon === 'number' && userData.totalTon > 0)
+      ? userData.totalTon : (workingTon + passiveTon);
     const fmtT = v => (v % 1 === 0 ? v.toFixed(0) : v.toFixed(2));
-    const dirRef = typeof userData.referrals === 'number' ? userData.referrals : 0;
+    const dirRef = typeof userData.directReferrals === 'number' ? userData.directReferrals : 0;
     const team   = typeof userData.teamSize   === 'number' ? userData.teamSize   : 0;
 
-    const ownedSlots = Array.isArray(userData.ownedSlots) ? userData.ownedSlots : [];
+    const ownedSlots = Array.isArray(userData.activeSlots) ? userData.activeSlots : [];
 
     // Build slots grid cells (mirrors renderSrchSlots)
     let slotCells = '<span style="font-family:var(--font-mono);font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-right:8px;white-space:nowrap;flex-shrink:0;">Slots</span>';
@@ -7453,6 +7220,7 @@ async function pvDoSearch() {
     const passiveSub = TON_TO_USD
       ? fmtT(passiveTon) + ' TON  ≈ $' + (passiveTon * TON_TO_USD).toFixed(2)
       : fmtT(passiveTon) + ' TON';
+    // Note: workingTon/passiveTon are local aliases for workingIncome/nonWorkingIncome above
 
     // Inject full dashboard mirror HTML into result container
     resEl.innerHTML = `
@@ -7705,12 +7473,12 @@ async function pvFetchLeaderboard() {
     const db = window.__db;
 
     // FIX 3: Fetch extra and filter strictly to registered users
-    const q       = query(collection(db, 'users'), orderBy('passiveTon', 'desc'), limit(30));
+    const q       = query(collection(db, 'users'), orderBy('totalTon', 'desc'), limit(30));
     const rawSnap = await getDocs(q);
     clearTimeout(_pvLbGuard);
     const validPvDocs = rawSnap.docs.filter(d => {
       const dd = d.data();
-      return !!(dd.cryptonId && dd.joinedAt && (dd.tgName || dd.tgHandle || dd.name));
+      return !!(dd.cryptonId && dd.joinedAt && (dd.name || dd.name || dd.name));
     }).slice(0, 10);
     const snap = { docs: validPvDocs, empty: validPvDocs.length === 0 };
 
@@ -7732,15 +7500,11 @@ async function pvFetchLeaderboard() {
       const d       = docSnap.data();
       const rLabel  = rankLabels[idx] || ('#' + (idx+1));
       const rCls    = rankClass[idx]  || 'rn';
-      const safeName = (d.tgName || d.tgHandle || ('User…' + String(d.tgId || docSnap.id).slice(-4)))
+      const safeName = (d.name || ('User…' + String(d.cryptonId || docSnap.id).slice(-4)))
         .replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0,22);
-      const safeUid  = String(d.tgId || docSnap.id).replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      const ton      = typeof d.earnedTon === 'number' ? d.earnedTon.toFixed(2) : '0.00';
-      const avatarHtml = d.tgPhotoUrl
-        ? `<img src="${(d.tgPhotoUrl||'').replace(/"/g,'')}" alt="av"
-             style="width:100%;height:100%;object-fit:cover;border-radius:10px;display:block;"
-             onerror="this.parentNode.innerHTML='${pvSilSVG.replace(/'/g,'"').replace(/"/g,"'")}'">`
-        : pvSilSVG;
+      const safeUid  = String(d.cryptonId || docSnap.id).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const ton      = typeof d.totalTon === 'number' ? d.totalTon.toFixed(2) : '0.00';
+      const avatarHtml = pvSilSVG;
       html += `
         <div class="lb-row" style="--i:${idx}">
           <div class="lb-rank ${rCls}">${rLabel}</div>
@@ -7904,9 +7668,9 @@ async function doSearchUser() {
     }
 
     // ── Populate profile card ──────────────────────────────────
-    const displayName = userData.tgName || userData.tgHandle || 'Unknown User';
-    const displayUid  = userData.cryptonId || userData.tgId || docId;
-    const photoUrl    = userData.tgPhotoUrl || null;
+    const displayName = userData.name || 'Unknown User';
+    const displayUid  = userData.cryptonId || docId;
+    const photoUrl    = userData.walletAddress || null;
 
     document.getElementById('srch-name').textContent        = displayName;
     document.getElementById('srch-uid-display').textContent = (userData.cryptonId ? 'Crypton ID: ' : 'ID: ') + displayUid;
@@ -7950,24 +7714,24 @@ async function doSearchUser() {
     }
 
     // ── ① YOUR ACCOUNT card — income totals ─────────────────
-    const workingTon = typeof userData.workingTon === 'number' ? userData.workingTon : 0;
-    const passiveTon = typeof userData.passiveTon === 'number' ? userData.passiveTon : 0;
+    const workingTon = typeof userData.workingIncome === 'number' ? userData.workingIncome : 0;
+    const passiveTon = typeof userData.nonWorkingIncome === 'number' ? userData.nonWorkingIncome : 0;
     // earnedTon stored by bot; fallback to sum of working+passive if absent
-    const totalTon   = (typeof userData.earnedTon === 'number' && userData.earnedTon > 0)
-      ? userData.earnedTon
+    const totalTon   = (typeof userData.totalTon === 'number' && userData.totalTon > 0)
+      ? userData.totalTon
       : (workingTon + passiveTon);
     const fmtT = v => (v % 1 === 0 ? v.toFixed(0) : v.toFixed(2));
 
     document.getElementById('srch-total-ton').textContent = fmtT(totalTon);
 
     // ── ② SLOTS indicator grid ────────────────────────────────
-    const ownedSlots  = Array.isArray(userData.ownedSlots) ? userData.ownedSlots : [];
+    const ownedSlots  = Array.isArray(userData.activeSlots) ? userData.activeSlots : [];
     const slotFillMap = (userData.slotFill && typeof userData.slotFill === 'object')
       ? userData.slotFill : {};
     renderSrchSlots(ownedSlots, slotFillMap);
 
     // ── ③ DIRECT REFERRAL + YOUR TEAM cards ──────────────────
-    document.getElementById('srch-direct-val').textContent = userData.referrals || 0;
+    document.getElementById('srch-direct-val').textContent = userData.directReferrals || 0;
     document.getElementById('srch-team-val').textContent   = userData.teamSize  || 0;
 
     // ── ④ WORKING INCOME card ─────────────────────────────────
@@ -8030,15 +7794,10 @@ async function renderSearchDownline(targetUid) {
       const d        = docSnap.data();
       // FIX 3: Only render fully registered downline members (must have cryptonId)
       if (!d.cryptonId || !d.joinedAt) return;
-      const name     = d.tgName || (d.tgHandle ? d.tgHandle.replace(/^@/, '') : null) || 'Unknown';
-      const handle   = d.tgHandle ? '@' + d.tgHandle.replace(/^@/, '') : '';
-      // FIX 3: Show Crypton ID as the public UID, not internal tgId
-      const uid      = d.cryptonId || d.tgId || docSnap.id;
-      const photoUrl = d.tgPhotoUrl || null;
-      const uidLine  = handle ? `${handle} · ID: ${uid}` : `Crypton ID: ${uid}`;
-      const avatar   = photoUrl
-        ? `<img src="${photoUrl}" alt="avatar" onerror="this.parentNode.innerHTML='${silSVG.replace(/"/g,"'")}'" />`
-        : silSVG;
+      const name    = (d.name || 'Unknown').trim();
+      const uid     = d.cryptonId || docSnap.id;
+      const uidLine = `Crypton ID: ${uid}`;
+      const avatar  = silSVG;
 
       html += `
       <div class="ref-list-row">
@@ -8078,7 +7837,7 @@ async function fetchTickerDataFromFirestore() {
 
     // Fetch top earners ordered by passiveTon for ranking
     // FIX 3: Fetch extra results so client-side filter can trim to top 100 registered users
-    const q     = query(collection(window.__db, 'users'), orderBy('passiveTon','desc'), limit(150));
+    const q     = query(collection(window.__db, 'users'), orderBy('totalTon','desc'), limit(150));
     const snap  = await getDocs(q);
     const users = [];
     snap.forEach(d => {
@@ -8086,10 +7845,9 @@ async function fetchTickerDataFromFirestore() {
       // FIX 3: Strict filter — only include fully registered users (must have cryptonId + joinedAt)
       if (!data.cryptonId || !data.joinedAt) return;
       users.push({
-        tgId:      data.tgId || d.id || null,
-        cryptonId: data.cryptonId || null,
+        cryptonId: data.cryptonId || d.id,
         joinedAt:  data.joinedAt  || null,
-        earnedTon: data.earnedTon || 0,
+        totalTon:  data.totalTon  || 0,
       });
     });
 
@@ -8110,9 +7868,9 @@ async function fetchTickerDataFromFirestore() {
       _tickerData = users
         .filter(u => u.cryptonId) // FIX 3: Strict filter — no cryptonId = not registered
         .map(u => ({
-          tgId:     u.tgId,
-          seqLabel: '#' + (seqMap[u.tgId] || seqMap[u.cryptonId] || '?'),
-          earnedTon: u.earnedTon,
+          cryptonId: u.cryptonId,
+          seqLabel:  '#' + (seqMap[u.cryptonId] || '?'),
+          totalTon:  u.totalTon,
         }));
       _tickerSeeded = true;
       console.log('[Ticker] Loaded', _tickerData.length, 'registered users from Firestore');
@@ -8158,11 +7916,11 @@ function _injectLiveUserIntoTicker() {
   // Key live user entry on numeric UID — matches what fetchTickerDataFromFirestore now stores
   if (state.connected && state.tgNumericId) {
     const myUid = String(state.tgNumericId);
-    const myTon = state.earnedTon || 0;
-    const idx   = _tickerData.findIndex(r => r.tgId === myUid);
+    const myTon = state.totalTon || 0;
+    const idx   = _tickerData.findIndex(r => r.cryptonId === myUid);
     if (idx === -1) _tickerData.push({ tgId: myUid, earnedTon: myTon });
-    else            _tickerData[idx].earnedTon = myTon;
-    _tickerData.sort((a,b) => b.earnedTon - a.earnedTon);
+    else            _tickerData[idx].totalTon = myTon;
+    _tickerData.sort((a,b) => b.totalTon - a.totalTon);
   }
 }
 
@@ -8182,7 +7940,7 @@ function _buildTickerDOM(track) {
     const rank  = i + 1;
     const rCls  = rank <= 3 ? `r${rank}` : '';
     const medal = rank <= 3 ? `<span class="tc-medal">${MEDALS[rank-1]}</span>` : '';
-    const ton   = parseFloat(r.earnedTon).toFixed(1);
+    const ton   = parseFloat(r.totalTon).toFixed(1);
     // FIX (Bug 3): Display the DB sequence index label (#N) — never Telegram IDs or usernames
     // seqLabel is set by fetchTickerDataFromFirestore; fall back to rank position if missing
     const displayId = r.seqLabel ? String(r.seqLabel).replace(/</g,'&lt;').replace(/>/g,'&gt;') : ('#' + rank);
@@ -8357,7 +8115,7 @@ function _updateDashAvatar() {
   const avatarEl = document.getElementById('dash-avatar');
   if (!avatarEl) return;
   const photoUrl = window.Telegram?.WebApp?.initDataUnsafe?.user?.photo_url
-                   || state.tgPhotoUrl
+                   // state.tgPhotoUrl removed
                    || null;
   if (photoUrl) {
     const img = document.createElement('img');
@@ -8447,7 +8205,7 @@ async function loadUserDirectory() {
 
     // FIX 3: Filter to only fully registered users (must have cryptonId + joinedAt + name)
     const registeredUsers = users.filter(u =>
-      u.cryptonId && u.joinedAt && (u.tgName || u.tgHandle || u.name)
+      u.cryptonId && u.joinedAt && u.name
     );
 
     if (countEl) countEl.textContent = registeredUsers.length;
@@ -8461,27 +8219,19 @@ async function loadUserDirectory() {
     // seq badge | avatar DP | TG name + UID | TON balance
     const rows = registeredUsers.map((u, idx) => {
       const seq       = idx + 1;
-      // Use tgName as primary (set by bot), then fallback chain
-      // FIX 3: Show Crypton ID in the UID line — registeredUsers already filtered by cryptonId
-      const firstName = escHtml(u.tgName || u.tgHandle || u.firstName || u.first_name || u.name || 'Unknown');
-      const tgId      = escHtml(String(u.cryptonId || u.tgId || u.id || '—'));
-      // Avatar: tgPhotoUrl is the canonical field written by the python bot
-      const photoUrl  = u.tgPhotoUrl || '';
+      const firstName = escHtml(u.name || 'Unknown');
+      const tgId      = escHtml(String(u.cryptonId || u.id || '—'));
       // TON balance — earnedTon primary, fallback to sum of workingTon+passiveTon
-      const tonVal    = typeof u.earnedTon === 'number' && u.earnedTon > 0
-        ? u.earnedTon
-        : ((typeof u.workingTon === 'number' ? u.workingTon : 0) + (typeof u.passiveTon === 'number' ? u.passiveTon : 0));
+      const tonVal    = typeof u.totalTon === 'number' && u.totalTon > 0
+        ? u.totalTon
+        : ((typeof u.workingIncome === 'number' ? u.workingIncome : 0) + (typeof u.nonWorkingIncome === 'number' ? u.nonWorkingIncome : 0));
       const tonDisplay = tonVal > 0
         ? (tonVal >= 1000 ? (tonVal/1000).toFixed(2)+'K' : tonVal.toFixed(2))
         : '0.00';
 
       // Avatar: reliable onerror fallback (same pattern as leaderboard)
       const silSvgDir = `<svg viewBox="0 0 42 42" width="42" height="42" xmlns="http://www.w3.org/2000/svg"><rect width="42" height="42" rx="10" fill="rgba(255,255,255,0.06)"/><circle cx="21" cy="16" r="7.5" fill="#8aa5c0"/><path d="M4 40 Q4 28 21 28 Q38 28 38 40" fill="#8aa5c0"/></svg>`;
-      const avatarHtml = photoUrl
-        ? `<img src="${escAttr(photoUrl)}" alt="" loading="lazy"
-               style="width:100%;height:100%;object-fit:cover;display:block;border-radius:10px;"
-               onerror="this.onerror=null; this.src='https://i.ibb.co/sv3gKkfx/IPROS3221059704984801090.png';">`
-        : silSvgDir;
+      const avatarHtml = silSvgDir;
 
       // Medal colors for top 3 (mirrors leaderboard)
       const medalColors = ['#f0c96a','#d4d4d4','#cd7f32'];
@@ -8599,7 +8349,7 @@ async function loadLeaderboardView() {
     // FIX 3: Fetch more records to allow client-side registration filter
     const q = fs.query(
       fs.collection(db, 'users'),
-      fs.orderBy('passiveTon', 'desc'),
+      fs.orderBy('totalTon', 'desc'),
       fs.limit(30)
     );
 
@@ -8610,7 +8360,7 @@ async function loadLeaderboardView() {
     const allRaw = [];
     rawSnap.forEach(doc => allRaw.push({ id: doc.id, ...doc.data() }));
     const users = allRaw.filter(u =>
-      u.cryptonId && u.joinedAt && (u.tgName || u.tgHandle || u.name)
+      u.cryptonId && u.joinedAt && u.name
     ).slice(0, 10);
 
     if (users.length === 0) {
@@ -8632,22 +8382,12 @@ async function loadLeaderboardView() {
 
     const rows = users.map((u, idx) => {
       const rank      = idx + 1;
-      // Use tgName as primary (written by bot), then fallback chain
-      // FIX 3: Show Crypton ID in the UID line — not internal tgId
-      const firstName = escHtml(u.tgName || u.tgHandle || u.firstName || u.first_name || u.name || 'Unknown');
-      const tgId      = escHtml(String(u.cryptonId || u.tgId || u.id || '—'));
-      // tgPhotoUrl is the canonical avatar field written by the python bot
-      const photoUrl  = u.tgPhotoUrl || '';
-      const earned    = typeof u.earnedTon === 'number' ? u.earnedTon.toFixed(2) : '0.00';
+      const firstName = escHtml(u.name || 'Unknown');
+      const tgId      = escHtml(String(u.cryptonId || u.id || '—'));
+      const earned    = typeof u.totalTon === 'number' ? u.totalTon.toFixed(2) : '0.00';
 
       // Avatar — using reliable onerror fallback via a named function approach
-      const avatarId   = `lb-av-${rank}`;
-      const avatarHtml = photoUrl
-        ? `<img src="${escAttr(photoUrl)}" alt="" loading="lazy"
-               id="${avatarId}"
-               style="width:100%;height:100%;object-fit:cover;display:block;border-radius:11px;"
-               onerror="this.onerror=null; this.src='https://i.ibb.co/sv3gKkfx/IPROS3221059704984801090.png';">`
-        : `<svg viewBox="0 0 42 42" width="42" height="42" xmlns="http://www.w3.org/2000/svg"><rect width="42" height="42" rx="10" fill="rgba(255,255,255,0.06)"/><circle cx="21" cy="16" r="7.5" fill="#8aa5c0"/><path d="M4 40 Q4 28 21 28 Q38 28 38 40" fill="#8aa5c0"/></svg>`;
+      const avatarHtml = `<svg viewBox="0 0 42 42" width="42" height="42" xmlns="http://www.w3.org/2000/svg"><rect width="42" height="42" rx="10" fill="rgba(255,255,255,0.06)"/><circle cx="21" cy="16" r="7.5" fill="#8aa5c0"/><path d="M4 40 Q4 28 21 28 Q38 28 38 40" fill="#8aa5c0"/></svg>`;
 
       const rankColor = medalColors[idx] || 'var(--text-lo)';
       const medal     = rank <= 3 ? `<span style="font-size:15px;line-height:1;">${medalEmoji[idx]}</span>` : `<span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:${rankColor};">${rank}</span>`;
@@ -8868,21 +8608,34 @@ async function loadLeaderboardView() {
 })();
 
 // ──────────────────────────────────────────────────────────────
-// SPLASH SCREEN — 4-second cinematic intro
+// SPLASH SCREEN — 4-second hold, then fade + remove
 // ──────────────────────────────────────────────────────────────
 (function initSplash() {
-  const splash = document.getElementById('splash-screen');
+  var splash = document.getElementById('splash-screen');
   if (!splash) return;
 
-  // Block scroll/touch interaction behind splash
-  document.body.style.overflow = 'hidden';
-
-  setTimeout(function () {
+  function dismissSplash() {
+    if (!splash || splash._dismissed) return;
+    splash._dismissed = true;
+    // Step 1: CSS opacity fade (0.6s)
     splash.classList.add('fade-out');
+    // Step 2: After fade completes, hard-remove from DOM
     setTimeout(function () {
-      splash.remove();
-      document.body.style.overflow = '';
-    }, 720);
-  }, 4000);
+      splash.style.display = 'none';
+      if (splash.parentNode) splash.parentNode.removeChild(splash);
+      splash = null;
+    }, 650);
+  }
+
+  // Primary: dismiss after exactly 4 seconds
+  setTimeout(dismissSplash, 4000);
+
+  // Fallback: if anything delays the script, cap at 5.5s
+  setTimeout(dismissSplash, 5500);
 })();
+
+
 </script>
+
+</body>
+</html>
