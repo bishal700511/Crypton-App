@@ -480,6 +480,7 @@
       box-shadow: 0 6px 24px rgba(0,40,55,0.60);
     }
 
+
     .hic-body {
       display: flex;
       align-items: center;
@@ -754,6 +755,11 @@
     body.matrix-bg .bg-canvas { background: #010e22 !important; }
     body.matrix-bg .orb { opacity: 0 !important; }
     #view-matrix { background-color: #010e22; min-height: 100vh; }
+
+    body.stats-bg { background-color: #1a0d3a !important; }
+    body.stats-bg .bg-canvas { background: #1a0d3a !important; }
+    body.stats-bg .orb { opacity: 0 !important; }
+    #view-stats { background-color: #1a0d3a; min-height: 100vh; }
 
     body.users-bg { background-color: #0f1133 !important; }
     body.users-bg .bg-canvas { background: #0f1133 !important; }
@@ -1520,7 +1526,119 @@
     .btn-pv-connect:hover  { transform: translateY(-1px) scale(1.02); }
     .btn-pv-connect:active { transform: scale(0.97); }
 
+    .gstat-header-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 22px;
+      position: relative;
+    }
+    .gstat-header-icon {
+      width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+      background: linear-gradient(135deg, rgba(212,168,67,0.22) 0%, rgba(0,229,255,0.18) 100%);
+      border: 1px solid rgba(212,168,67,0.30);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .gstat-header-title {
+      font-family: var(--font-head); font-size: 18px; font-weight: 800;
+      background: linear-gradient(90deg, var(--gold-lt), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .gstat-header-sub {
+      font-family: var(--font-mono); font-size: 10px; color: var(--text-lo);
+      letter-spacing: 1px; margin-top: 2px;
+    }
 
+    .gstat-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin-bottom: 20px;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(80,40,160,0.28), 0 2px 8px rgba(0,0,0,0.30);
+    }
+
+    .gstat-card {
+      padding: 22px 22px 18px;
+      position: relative; overflow: hidden;
+      transition: transform 0.2s ease;
+    }
+    .gstat-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.07) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .gstat-card.cyan-card {
+      background: linear-gradient(135deg, #1a3a8a 0%, #2d1a6e 50%, #3d1060 100%);
+      border: none;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+      border-radius: 0;
+    }
+    .gstat-card.gold-card {
+      background: linear-gradient(135deg, #3d1060 0%, #5a1a8a 50%, #1a2a7a 100%);
+      border: none;
+      border-radius: 0;
+    }
+
+    .gstat-card-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 14px;
+    }
+    .gold-card .gstat-card-icon { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18); }
+    .cyan-card .gstat-card-icon { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18); }
+
+    .gstat-label {
+      font-family: var(--font-mono); font-size: 9.5px; font-weight: 600;
+      letter-spacing: 2px; text-transform: uppercase;
+      color: rgba(255,255,255,0.65); margin-bottom: 10px; line-height: 1.4;
+    }
+    .gstat-value {
+      font-family: var(--font-head); font-size: 36px; font-weight: 800;
+      line-height: 1; letter-spacing: -1px;
+    }
+    .gold-card .gstat-value { color: #ffffff; text-shadow: 0 0 24px rgba(180,120,255,0.55); }
+    .cyan-card .gstat-value { color: #ffffff; text-shadow: 0 0 24px rgba(100,160,255,0.55); }
+
+    .gstat-unit {
+      font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+      margin-top: 6px;
+    }
+    .gold-card .gstat-unit { color: rgba(255,255,255,0.55); }
+    .cyan-card .gstat-unit { color: rgba(255,255,255,0.55); }
+
+    .gstat-shimmer {
+      display: inline-block; width: 90px; height: 30px; border-radius: 6px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.08) 25%, rgba(255,255,255,0.18) 50%, rgba(255,255,255,0.08) 75%);
+      background-size: 200% 100%;
+      animation: gstat-skeleton 1.4s ease infinite;
+    }
+    @keyframes gstat-skeleton {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .gstat-refresh-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--glass-bg); border: 1px solid var(--glass-bd);
+      border-radius: var(--radius-md);
+      margin-bottom: 14px;
+    }
+    .gstat-refresh-label {
+      font-family: var(--font-mono); font-size: 10px;
+      color: var(--text-lo); letter-spacing: 0.5px;
+    }
+    .gstat-refresh-label span { color: var(--green); font-size: 9px; margin-left: 6px; }
+    .gstat-refresh-btn {
+      background: rgba(0,229,255,0.10); border: 1px solid rgba(0,229,255,0.22);
+      border-radius: 8px; padding: 6px 14px;
+      font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+      color: var(--cyan); cursor: pointer; letter-spacing: 1px;
+      transition: background 0.2s, transform 0.15s;
+    }
+    .gstat-refresh-btn:hover  { background: rgba(0,229,255,0.18); }
+    .gstat-refresh-btn:active { transform: scale(0.94); }
+    .gstat-refresh-btn.spinning svg { animation: spin-fetch 0.7s linear infinite; }
     /*
      * Built entirely from styled text characters — no graphic emoji.
      * Outer arcs: mirrored ( ) scaled vertically to form an oval lens.
@@ -2037,14 +2155,19 @@
       el.style.display = 'none';
       if (el.parentNode) el.parentNode.removeChild(el);
 
-      /* Show register page if no active session */
+      /* Show register/login page if no active wallet connection */
       var heroEl = document.getElementById('hero-section');
       var dashEl = document.getElementById('dashboard');
-      var hasSession = !!(
-        (window.__pendingAuth) ||
-        (window.state && window.state.cryptonId)
+
+      // Dashboard sirf tabhi show karo jab wallet actually connected ho
+      var walletConnected = !!(
+        window.state &&
+        window.state.connected === true &&
+        window.state.walletAddress
       );
-      if (!hasSession) {
+
+      if (!walletConnected) {
+        // Wallet nahi connected — hero/register page dikhao
         if (dashEl) dashEl.style.display = 'none';
         if (heroEl) {
           heroEl.style.opacity    = '0';
@@ -2053,7 +2176,9 @@
           setTimeout(function () { heroEl.style.opacity = '1'; }, 30);
         }
       } else {
+        // Wallet connected hai — dashboard dikhao
         if (heroEl) heroEl.style.display = 'none';
+        if (dashEl) dashEl.style.display = 'block';
       }
     }, FADE_MS);
   }
@@ -2333,7 +2458,7 @@
       </div>
 
 
-      <div class="home-income-card home-income-working" style="margin-top:16px; border-radius:20px;">
+      <div class="home-income-card home-income-working" style="margin-top:10px; margin-bottom:0; border-radius:20px;">
         <div class="hic-body">
           <div class="hic-icon">⛁</div>
           <div class="hic-info">
@@ -2503,7 +2628,7 @@
       <div class="ref-list-wrap" id="ref-list-wrap">
         <div class="ref-list-header" style="display:flex;align-items:center;justify-content:space-between;">
           <span>Downline Team</span>
-          <span id="ref-downline-count" style="font-family:var(--font-head);font-size:16px;font-weight:800;color:var(--cyan);letter-spacing:-0.3px;">0</span>
+          <span id="ref-downline-count" style="font-family:var(--font-head);font-size:15px;font-weight:800;color:var(--cyan);letter-spacing:-0.3px;">0</span>
         </div>
         <div class="ref-list-inner" id="ref-list-inner">
           <div class="ref-list-loading" id="ref-list-loading">View ◔</div>
@@ -2854,8 +2979,94 @@
   </section>
 </div><!-- /view-search -->
 
+<div class="view" id="view-stats" style="padding-bottom: 96px;">
+  <button class="view-back-btn" id="back-stats" onclick="switchView('home')">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Home
+  </button>
+  <section>
 
+    <div class="gstat-header-row">
+      <div class="gstat-header-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold-lt)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      </div>
+      <div>
+        <div class="gstat-header-title">TOP EARNERS Stats</div>
+        <div class="gstat-header-sub"></div>
+      </div>
+    </div>
 
+    <div onclick="openUserDirectory()" style="
+      cursor:pointer;
+      background: linear-gradient(135deg, rgba(0,229,255,0.10) 0%, rgba(0,229,255,0.04) 100%);
+      border: 1px solid rgba(0,229,255,0.30);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 2px 16px rgba(0,229,255,0.08);
+    "
+    onmouseover="this.style.background='linear-gradient(135deg,rgba(0,229,255,0.17) 0%,rgba(0,229,255,0.07) 100%)';this.style.borderColor='rgba(0,229,255,0.55)';this.style.boxShadow='0 0 18px rgba(0,229,255,0.18)';"
+    onmouseout="this.style.background='linear-gradient(135deg,rgba(0,229,255,0.10) 0%,rgba(0,229,255,0.04) 100%)';this.style.borderColor='rgba(0,229,255,0.30)';this.style.boxShadow='0 2px 16px rgba(0,229,255,0.08)';"
+    onmousedown="this.style.transform='scale(0.97)'"
+    onmouseup="this.style.transform='scale(1)'"
+    ontouchstart="this.style.transform='scale(0.97)'"
+    ontouchend="this.style.transform='scale(1)'">
+      <div style="display:flex;align-items:center;gap:13px;">
+        <div style="
+          width:42px; height:42px; border-radius:12px; flex-shrink:0;
+          background: rgba(0,229,255,0.14);
+          border: 1px solid rgba(0,229,255,0.28);
+          display:flex; align-items:center; justify-content:center;
+          font-size:19px;
+        ">🔍</div>
+        <div>
+          <div style="font-family:var(--font-head);font-size:15px;font-weight:800;color:var(--cyan);letter-spacing:-0.3px;">View Top #100</div>
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-lo);letter-spacing:1px;margin-top:3px;text-transform:uppercase;"></div>
+        </div>
+      </div>
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.65;flex-shrink:0;"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+
+    <div class="gstat-refresh-row">
+      <div class="gstat-refresh-label">
+        Last updated: <span id="gstat-last-updated">—</span>
+      </div>
+      <button class="gstat-refresh-btn" id="gstat-refresh-btn" onclick="fetchGlobalStats()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:middle;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>REFRESH
+      </button>
+    </div>
+
+    <div class="gstat-grid">
+
+      <div class="gstat-card cyan-card">
+        <div class="gstat-card-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="gstat-label">Total Active<br>Users</div>
+        <div class="gstat-value" id="gstat-user-count"><span class="gstat-shimmer"></span></div>
+        <div class="gstat-unit">registered</div>
+      </div>
+
+      <div class="gstat-card gold-card">
+        <div class="gstat-card-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        </div>
+        <div class="gstat-label">Top #100<br>TON Distributed</div>
+        <div class="gstat-value" id="gstat-ton-total"><span class="gstat-shimmer"></span></div>
+        <div class="gstat-unit" id="gstat-ton-unit">TON · Top 100</div>
+      </div>
+
+    </div><!-- /gstat-grid -->
+
+  </section>
+</div><!-- /view-stats -->
 
 <div class="view" id="view-preview" style="padding-bottom: 96px;">
 
@@ -2951,9 +3162,9 @@
 </div><!-- /view-preview -->
 
 <div class="view" id="view-users" style="padding-bottom:96px;">
-  <button class="view-back-btn" id="back-users" onclick="switchView('home')" style="display:flex;">
+  <button class="view-back-btn" id="back-users" onclick="switchView('stats')" style="display:flex;">
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    Home
+    Global Stats
   </button>
   <section>
 
@@ -3015,7 +3226,11 @@
     <span class="fab-menu-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
     <span>Search</span>
   </button>
-<button class="fab-menu-item" id="fmi-disconnect" onclick="closeFabMenu(); disconnectWallet();" style="border-top:1px solid rgba(255,77,109,0.18); margin-top:6px; padding-top:10px; color:var(--red);">
+  <button class="fab-menu-item" id="fmi-stats" onclick="switchView('stats')">
+    <span class="fab-menu-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+    <span>Stats</span>
+  </button>
+  <button class="fab-menu-item" id="fmi-disconnect" onclick="closeFabMenu(); disconnectWallet();" style="border-top:1px solid rgba(255,77,109,0.18); margin-top:6px; padding-top:10px; color:var(--red);">
     <span class="fab-menu-icon" style="color:var(--red);">
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -3301,7 +3516,7 @@ async function disconnectWallet() {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const homeView = document.getElementById('view-home');
   if (homeView) homeView.classList.add('active');
-  ['matrix','referral','profile','search','preview','users','leaderboard'].forEach(n => {
+  ['matrix','referral','profile','search','stats','preview','users','leaderboard'].forEach(n => {
     const btn = document.getElementById('back-' + n);
     if (btn) btn.style.display = 'none';
   });
@@ -3319,12 +3534,40 @@ function handleWalletConnected(rawAddress) {
 
   const sessionStr = localStorage.getItem('crypton_session');
   const hasPendingAuth = !!window.__pendingAuth;
+
+  // STRICT GATE: wallet connect karne se pehle valid session ya pendingAuth ZARURI hai
   if (!sessionStr && !hasPendingAuth) {
-    showToast('Please register or login first.', 3500);
+    showToast('Please register or login first to connect your wallet.', 4000);
     if (state.tonConnectUI) {
       try { state.tonConnectUI.disconnect(); } catch(_e) {}
     }
+    // Hero/register page dikhao
+    const heroEl = document.getElementById('hero-section');
+    const dashEl = document.getElementById('dashboard');
+    if (dashEl) dashEl.style.display = 'none';
+    if (heroEl) heroEl.style.display = 'block';
     return;
+  }
+
+  // Session hai lekin cryptonId nahi — incomplete state, block karo
+  if (sessionStr && !hasPendingAuth) {
+    try {
+      const sess = JSON.parse(sessionStr);
+      if (!sess.cryptonId && !sess.docId) {
+        showToast('Session invalid. Please login again.', 4000);
+        localStorage.removeItem('crypton_session');
+        if (state.tonConnectUI) {
+          try { state.tonConnectUI.disconnect(); } catch(_e) {}
+        }
+        return;
+      }
+    } catch(_) {
+      localStorage.removeItem('crypton_session');
+      if (state.tonConnectUI) {
+        try { state.tonConnectUI.disconnect(); } catch(_e) {}
+      }
+      return;
+    }
   }
 
   state.connected     = true;
@@ -3368,6 +3611,14 @@ function handleWalletConnected(rawAddress) {
 
   const navLock = document.getElementById('fmi-matrix-lock');
   if (navLock) navLock.style.display = 'none';
+
+  const referredBy = getStoredRef();
+  if (referredBy) {
+  }
+
+  const tgPayload = typeof window.buildTelegramPayload === 'function'
+    ? window.buildTelegramPayload()
+    : {};
 
   loginUser(rawAddress);
 
@@ -3511,23 +3762,20 @@ function updateStatsUI() {
   const totalIncUsd = '$' + tonToUsd((state.workingIncome || 0) + (state.nonWorkingIncome || 0));
   const totalIncTon = fmtTon((state.workingIncome || 0) + (state.nonWorkingIncome || 0)) + ' TON';
 
-  // legacy hidden elements (may still exist in other views)
   const wiEl  = document.getElementById('working-income-val');
   const piEl  = document.getElementById('passive-income-val');
   const rwiEl = document.getElementById('ref-working-income-val');
   const rpiEl = document.getElementById('ref-passive-income-val');
   const rwtEl = document.getElementById('ref-working-income-ton');
   const rptEl = document.getElementById('ref-passive-income-ton');
+  const tiEl  = document.getElementById('ref-total-income-val');
+  const titEl = document.getElementById('ref-total-income-ton');
   if (wiEl)  wiEl.textContent  = wi;
   if (piEl)  piEl.textContent  = pi;
   if (rwiEl) rwiEl.textContent = wi;
   if (rpiEl) rpiEl.textContent = pi;
   if (rwtEl) rwtEl.textContent = wiT;
   if (rptEl) rptEl.textContent = piT;
-
-  // new combined Your Income card
-  const tiEl  = document.getElementById('ref-total-income-val');
-  const titEl = document.getElementById('ref-total-income-ton');
   if (tiEl)  tiEl.textContent  = totalIncUsd;
   if (titEl) titEl.textContent = totalIncTon;
 
@@ -4677,6 +4925,16 @@ function handleLogout() {
 }
 
 function _showDashboardAfterWallet(docId, cryptonId, name) {
+  // Final safety check: wallet MUST be connected to show dashboard
+  if (!state.connected || !state.walletAddress) {
+    // Wallet nahi hai — dashboard mat kholna
+    const heroEl2 = document.getElementById('hero-section');
+    const dashEl2 = document.getElementById('dashboard');
+    if (dashEl2) dashEl2.style.display = 'none';
+    if (heroEl2) heroEl2.style.display = 'block';
+    return;
+  }
+
   const heroEl = document.getElementById('hero-section');
   const dashEl = document.getElementById('dashboard');
   if (heroEl) heroEl.style.display = 'none';
@@ -4763,18 +5021,21 @@ async function tryAutoLogin() {
       });
     }
 
+    // TonConnect UI v2: .wallet is the connected wallet object or null
     const walletAlreadyConnected = !!(
       state.tonConnectUI &&
-      typeof state.tonConnectUI.wallet !== 'undefined' &&
-      state.tonConnectUI.wallet !== null
+      state.tonConnectUI.wallet !== null &&
+      typeof state.tonConnectUI.wallet === 'object' &&
+      state.tonConnectUI.wallet.account
     );
 
     if (walletAlreadyConnected) {
       state.connected = true;
-      _showDashboardAfterWallet(docId, resolvedCryptonId, data.name || data.name || email);
+      _showDashboardAfterWallet(docId, resolvedCryptonId, data.name || email);
     } else {
-      window.__pendingAuth = { docId, cryptonId: resolvedCryptonId, name: data.name || data.name || email };
-      _authSuccess(docId, resolvedCryptonId, data.name || data.name || email);
+      // Session valid but wallet not yet connected — show connect-wallet prompt
+      window.__pendingAuth = { docId, cryptonId: resolvedCryptonId, name: data.name || email };
+      _authSuccess(docId, resolvedCryptonId, data.name || email);
     }
   } catch(e) {
   }
@@ -4783,6 +5044,32 @@ async function tryAutoLogin() {
 setTimeout(tryAutoLogin, 2000);
 
 async function loginUser(walletAddress) {
+  let tgIdFromSDK = String(
+    window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || ''
+  );
+
+  if (!tgIdFromSDK) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await new Promise(r => setTimeout(r, 500));
+      tgIdFromSDK = String(
+        window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || ''
+      );
+      if (tgIdFromSDK) {
+        break;
+      }
+    }
+  }
+
+  if (!tgIdFromSDK) {
+    tgIdFromSDK = walletAddress ? 'W_' + walletAddress.slice(-12) : '';
+    if (tgIdFromSDK) {
+    }
+  }
+
+  if (!tgIdFromSDK) {
+    updateStatsUI(); renderSlots(); return;
+  }
+
   try {
     await waitForFirestore();
   } catch(e) {
@@ -4798,7 +5085,7 @@ async function loginUser(walletAddress) {
     try { return JSON.parse(localStorage.getItem('crypton_session') || 'null'); }
     catch(_) { return null; }
   })();
-  const sessionDocId = session?.docId || session?.cryptonId || state.cryptonId || null;
+  const sessionDocId = session?.docId || null;
 
   const tgPayload = typeof window.buildTelegramPayload === 'function'
     ? window.buildTelegramPayload() : {};
@@ -5123,21 +5410,23 @@ function switchView(name) {
   if (view) view.classList.add('active');
 
   document.body.classList.toggle('matrix-bg', name === 'matrix');
+  document.body.classList.toggle('stats-bg',  name === 'stats');
   document.body.classList.toggle('users-bg',  name === 'users');
   document.body.classList.toggle('search-bg', name === 'search');
 
-  ['matrix','referral','profile','search','preview','users','leaderboard'].forEach(n => {
+  ['matrix','referral','profile','search','stats','preview','users','leaderboard'].forEach(n => {
     const btn = document.getElementById('back-' + n);
     if (btn) btn.style.display = (name === n) ? 'flex' : 'none';
   });
 
-  ['matrix','referral','profile','search'].forEach(n => {
+  ['matrix','referral','profile','search','stats'].forEach(n => {
     const mi = document.getElementById('fmi-' + n);
     if (mi) mi.classList.toggle('active-view', name === n);
   });
 
   if (name === 'referral') getReferralStats();
   if (name === 'search')   resetSearchView();
+  if (name === 'stats')    fetchGlobalStats();
 
   if (name === 'home') {
     var heroEl2 = document.getElementById('hero-section');
@@ -5242,7 +5531,77 @@ function copyReferralGold() {
   });
 }
 
+let _gstatFetching = false;
 
+async function fetchGlobalStats() {
+  if (_gstatFetching) return;
+  _gstatFetching = true;
+
+  const refreshBtn = document.getElementById('gstat-refresh-btn');
+  if (refreshBtn) refreshBtn.classList.add('spinning');
+
+  const userCountEl = document.getElementById('gstat-user-count');
+  const tonTotalEl  = document.getElementById('gstat-ton-total');
+  if (userCountEl) userCountEl.innerHTML = '<span class="gstat-shimmer"></span>';
+  if (tonTotalEl)  tonTotalEl.innerHTML  = '<span class="gstat-shimmer"></span>';
+
+  try {
+    await new Promise((resolve, reject) => {
+      if (window.__db && window.__fs) { resolve(); return; }
+      let attempts = 0;
+      const check = setInterval(() => {
+        attempts++;
+        if (window.__db && window.__fs) { clearInterval(check); resolve(); }
+        else if (attempts > 40) { clearInterval(check); reject(new Error('Firebase timeout')); }
+      }, 150);
+    });
+
+    const { collection, query, orderBy, limit, getDocs, getCountFromServer } = window.__fs;
+    const db = window.__db;
+
+    const usersCol = collection(db, 'users');
+    const countSnap = await getCountFromServer(usersCol);
+    const totalUsers = countSnap.data().count;
+
+    let totalTon = 0;
+    const topQ   = query(usersCol, orderBy('totalTon', 'desc'), limit(100));
+    const topSnap = await getDocs(topQ);
+    topSnap.forEach(docSnap => {
+      const d       = docSnap.data();
+      const working = typeof d.workingIncome === 'number' ? d.workingIncome : 0;
+      const passive = typeof d.nonWorkingIncome === 'number' ? d.nonWorkingIncome : 0;
+      const earned  = typeof d.totalTon  === 'number' ? d.totalTon  : 0;
+      totalTon += Math.max(earned, working + passive);
+    });
+
+    const fmtUsers = totalUsers >= 1000
+      ? (totalUsers / 1000).toFixed(1).replace(/\.0$/, '') + 'K'
+      : String(totalUsers);
+
+    const fmtTon = totalTon >= 1000
+      ? (totalTon / 1000).toFixed(2).replace(/\.?0+$/, '') + 'K'
+      : totalTon.toFixed(2);
+
+    if (userCountEl) userCountEl.textContent = fmtUsers;
+    if (tonTotalEl)  tonTotalEl.textContent  = fmtTon;
+
+    const lastEl = document.getElementById('gstat-last-updated');
+    if (lastEl) {
+      const now = new Date();
+      const hh  = String(now.getHours()).padStart(2, '0');
+      const mm  = String(now.getMinutes()).padStart(2, '0');
+      const ss  = String(now.getSeconds()).padStart(2, '0');
+      lastEl.textContent = `${hh}:${mm}:${ss}`;
+    }
+
+  } catch (err) {
+    if (userCountEl) userCountEl.textContent = '—';
+    if (tonTotalEl)  tonTotalEl.textContent  = '—';
+  } finally {
+    _gstatFetching = false;
+    if (refreshBtn) refreshBtn.classList.remove('spinning');
+  }
+}
 
 let toastTimer;
 function showToast(msg, duration) {
@@ -5405,7 +5764,7 @@ function exitPreviewMode() {
     if (dashEl) dashEl.style.display = 'block';
   }
 
-  ['matrix','referral','profile','search','preview','users','leaderboard'].forEach(function(n) {
+  ['matrix','referral','profile','search','stats','preview','users','leaderboard'].forEach(function(n) {
     var btn = document.getElementById('back-' + n);
     if (btn) btn.style.display = 'none';
   });
@@ -6182,10 +6541,8 @@ function _buildTickerDOM(track) {
 
   const rows = _tickerData.slice(0, 100);
   const makeChip = (r, i) => {
-    const ton       = parseFloat(r.totalTon || 0).toFixed(1);
-    const displayId = r.seqLabel
-      ? String(r.seqLabel).replace(/</g,'&lt;').replace(/>/g,'&gt;')
-      : String(r.cryptonId || r.tgId || (i + 1));
+    const ton   = parseFloat(r.totalTon).toFixed(1);
+    const displayId = r.seqLabel ? String(r.seqLabel).replace(/</g,'&lt;').replace(/>/g,'&gt;') : ('#' + (i + 1));
     return `<span class="ticker-chip">
       <span class="tc-id">${displayId}</span>
       <span class="tc-ton">${ton} TON</span>
