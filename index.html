@@ -471,29 +471,15 @@
 
     .home-income-card {
       overflow: hidden;
-      border-left: 1.5px solid rgba(0,229,255,0.25);
-      border-right: 1.5px solid rgba(0,229,255,0.25);
     }
 
     .home-income-working {
       background: linear-gradient(160deg, #0f3d46 0%, #0a2d35 60%, #071f26 100%);
-      border-top: 1.5px solid rgba(0,180,210,0.30);
-      border-left: 1.5px solid rgba(0,180,210,0.20);
-      border-right: 1.5px solid rgba(0,180,210,0.20);
-      border-bottom: none;
-      border-radius: 20px 20px 0 0;
+      border: 1.5px solid rgba(0,180,210,0.25);
+      border-radius: 20px;
       box-shadow: 0 6px 24px rgba(0,40,55,0.60);
     }
 
-    .home-income-nonworking {
-      background: linear-gradient(160deg, #0e3028 0%, #092018 60%, #051510 100%);
-      border-top: 1px solid rgba(0,160,100,0.18);
-      border-bottom: 1.5px solid rgba(0,160,100,0.28);
-      border-left: 1.5px solid rgba(0,160,100,0.18);
-      border-right: 1.5px solid rgba(0,160,100,0.18);
-      border-radius: 0 0 20px 20px;
-      box-shadow: 0 8px 26px rgba(0,20,10,0.60);
-    }
 
     .hic-body {
       display: flex;
@@ -569,51 +555,6 @@
     .ref-stat-num { font-family:var(--font-head); font-size:22px; font-weight:700; color:var(--cyan); }
     .ref-stat-lbl { font-size:10px; color:var(--text-mid); font-family:var(--font-mono); margin-top:2px; letter-spacing:0.3px; }
 
-    .blue-stat-row {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-      margin-bottom: 14px;
-    }
-    .blue-stat-card {
-      border-radius: 0;
-      padding: 16px 20px;
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-      position: relative;
-      overflow: hidden;
-      min-height: 70px;
-    }
-    .blue-stat-card:first-child {
-      background: linear-gradient(160deg, #5c1a08 0%, #421005 60%, #2e0a03 100%);
-      border: none;
-      border-bottom: 1px solid rgba(0,0,0,0.25);
-      border-radius: 20px 20px 0 0;
-      box-shadow: 0 6px 24px rgba(60,10,0,0.65), 0 2px 8px rgba(0,0,0,0.50);
-    }
-    .blue-stat-card:last-child {
-      background: linear-gradient(160deg, #3d1010 0%, #2b0808 60%, #1c0505 100%);
-      border: none;
-      border-top: 1px solid rgba(80,20,20,0.40);
-      border-radius: 0 0 20px 20px;
-      box-shadow: 0 8px 26px rgba(30,0,0,0.65), 0 2px 8px rgba(0,0,0,0.50);
-    }
-    .blue-stat-card::before { content: none; }
-    .blue-stat-header {
-      display:flex; align-items:center; gap:10px;
-    }    .blue-stat-title {
-      font-family: var(--font-body); font-size:13px; font-weight:600;
-      color: rgba(255,255,255,0.65); letter-spacing:0.2px;
-    }
-    .blue-stat-num {
-      font-family: var(--font-head); font-size:34px; font-weight:800;
-      color: #ffffff; letter-spacing:-1px; line-height:1;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.40);
-      flex-shrink: 0;
-    }
 
     .ref-link-label { font-size:12px; color:var(--text-mid); margin-bottom:8px; font-family:var(--font-mono); }
     .ref-link-box { display:flex; align-items:center; gap:8px; background:rgba(0,0,0,0.25); border:1px solid var(--glass-bd); border-radius:var(--radius-sm); padding:10px 12px; }
@@ -2509,46 +2450,15 @@
         <div style="flex:1; height:1px; background:var(--glass-bd);"></div>
       </div>
 
-      <p class="section-label" style="margin-top:14px; margin-bottom:10px;">NETWORK ☈</p>
-      <div class="blue-stat-row" style="margin-top:0; margin-bottom:14px;">
-        <div class="blue-stat-card">
-          <div class="blue-stat-header">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
-            <span class="blue-stat-title">Direct Referral</span>
-          </div>
-          <div class="blue-stat-num" id="ref-direct">0</div>
-        </div>
-        <div class="blue-stat-card">
-          <div class="blue-stat-header">
-            <svg width="22" height="20" viewBox="0 0 28 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M20 11c2.2 0 3.9-1.8 3.9-4S22.2 3 20 3c-2.2 0-3.9 1.8-3.9 4s1.7 4 3.9 4zm-12 0c2.2 0 3.9-1.8 3.9-4S10.2 3 8 3C5.8 3 4.1 4.8 4.1 7s1.7 4 3.9 4zm0 2c-2.7 0-8 1.3-8 4v2h16v-2c0-2.7-5.3-4-8-4zm12 0c-.3 0-.7 0-1 .1 1.2.9 2 2.1 2 3.9v2h6v-2c0-2.7-5.3-4-7-4z"/></svg>
-            <span class="blue-stat-title">Your Team</span>
-          </div>
-          <div class="blue-stat-num" id="ref-total">0</div>
-        </div>
-      </div>
 
-      <div class="home-income-card home-income-working" style="margin-top:10px; margin-bottom:0;">
+      <div class="home-income-card home-income-working" style="margin-top:10px; margin-bottom:0; border-radius:20px;">
         <div class="hic-body">
-          <div class="hic-icon">❂</div>
+          <div class="hic-icon">⛁</div>
           <div class="hic-info">
-            <div class="hic-label">WORKING INCOME</div>
-            <div class="hic-val" id="ref-working-income-val">$0.00</div>
-            <div class="hic-ton" id="ref-working-income-ton">0 TON</div>
+            <div class="hic-label">YOUR INCOME</div>
+            <div class="hic-val" id="ref-total-income-val">$0.00</div>
+            <div class="hic-ton" id="ref-total-income-ton">0 TON</div>
           </div>
-        </div>
-      </div>
-
-      <div class="home-income-card home-income-nonworking" style="margin-top:0;">
-        <div class="hic-body">
-          <div class="hic-icon">♾</div>
-          <div class="hic-info">
-            <div class="hic-label hic-label-gold">NON WORKING INCOME</div>
-            <div class="hic-val hic-val-gold" id="ref-passive-income-val">$0.00</div>
-            <div class="hic-ton hic-ton-gold" id="ref-passive-income-ton">0 TON</div>
-          </div>
-        </div>
-        <div class="hic-belt">
-          <span class="hic-belt-text">PASSIVE · MATRIX SPILLOVER</span>
         </div>
       </div>
 
@@ -2709,7 +2619,10 @@
     <section>
 
       <div class="ref-list-wrap" id="ref-list-wrap">
-        <div class="ref-list-header">Downline Team</div>
+        <div class="ref-list-header" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>Downline Team</span>
+          <span id="ref-downline-count" style="font-family:var(--font-head);font-size:15px;font-weight:800;color:var(--cyan);letter-spacing:-0.3px;">0</span>
+        </div>
         <div class="ref-list-inner" id="ref-list-inner">
           <div class="ref-list-loading" id="ref-list-loading">View ◔</div>
         </div>
@@ -3811,6 +3724,8 @@ function updateStatsUI() {
   const pi  = '$' + tonToUsd(state.nonWorkingIncome || 0);
   const wiT = fmtTon(state.workingIncome || 0) + ' TON';
   const piT = fmtTon(state.nonWorkingIncome || 0) + ' TON';
+  const totalIncUsd = '$' + tonToUsd((state.workingIncome || 0) + (state.nonWorkingIncome || 0));
+  const totalIncTon = fmtTon((state.workingIncome || 0) + (state.nonWorkingIncome || 0)) + ' TON';
 
   const wiEl  = document.getElementById('working-income-val');
   const piEl  = document.getElementById('passive-income-val');
@@ -3818,19 +3733,25 @@ function updateStatsUI() {
   const rpiEl = document.getElementById('ref-passive-income-val');
   const rwtEl = document.getElementById('ref-working-income-ton');
   const rptEl = document.getElementById('ref-passive-income-ton');
+  const tiEl  = document.getElementById('ref-total-income-val');
+  const titEl = document.getElementById('ref-total-income-ton');
   if (wiEl)  wiEl.textContent  = wi;
   if (piEl)  piEl.textContent  = pi;
   if (rwiEl) rwiEl.textContent = wi;
   if (rpiEl) rpiEl.textContent = pi;
   if (rwtEl) rwtEl.textContent = wiT;
   if (rptEl) rptEl.textContent = piT;
+  if (tiEl)  tiEl.textContent  = totalIncUsd;
+  if (titEl) titEl.textContent = totalIncTon;
 
   const rdEl = document.getElementById('ref-direct');
   const rtEl = document.getElementById('ref-total');
   const riEl = document.getElementById('ref-income');
+  const dcEl = document.getElementById('ref-downline-count');
   if (rdEl) rdEl.textContent = state.directReferrals;
   if (rtEl) rtEl.textContent = state.teamSize;
   if (riEl) riEl.textContent = fmtTon(state.totalTon || 0);
+  if (dcEl) dcEl.textContent = state.teamSize || 0;
 
   updateLevelBar();
 }
@@ -6572,14 +6493,9 @@ function _buildTickerDOM(track) {
 
   const rows = _tickerData.slice(0, 100);
   const makeChip = (r, i) => {
-    const rank  = i + 1;
-    const rCls  = rank <= 3 ? `r${rank}` : '';
-    const medal = rank <= 3 ? `<span class="tc-medal">${MEDALS[rank-1]}</span>` : '';
     const ton   = parseFloat(r.totalTon).toFixed(1);
-    const displayId = r.seqLabel ? String(r.seqLabel).replace(/</g,'&lt;').replace(/>/g,'&gt;') : ('#' + rank);
+    const displayId = r.seqLabel ? String(r.seqLabel).replace(/</g,'&lt;').replace(/>/g,'&gt;') : ('#' + (i + 1));
     return `<span class="ticker-chip">
-      <span class="tc-rank ${rCls}">#${rank}</span>
-      ${medal}
       <span class="tc-id">${displayId}</span>
       <span class="tc-ton">${ton} TON</span>
     </span>`;
