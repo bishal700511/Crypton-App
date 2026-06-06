@@ -2305,7 +2305,7 @@
         <div class="hic-body">
           <div class="hic-icon">⛁</div>
           <div class="hic-info">
-            <div class="hic-label">YOUR INCOME</div>
+            <div class="hic-label">YOUR DOWNLINE INCOME</div>
             <div class="hic-val" id="ref-total-income-val">$0.00</div>
             <div class="hic-ton" id="ref-total-income-ton">0 TON</div>
           </div>
@@ -3534,130 +3534,71 @@ function updateStatsUI() {
 }
 
 function buildMatrixSVG(level, isGold, filled, referralIds) {
-  const isOwned  = state.activeSlots.includes(level);
-  const isFull   = isOwned && filled >= 6;
-  const rIds = Array.isArray(referralIds) ? referralIds : [];
+  const isOwned = state.activeSlots.includes(level);
+  const rIds    = Array.isArray(referralIds) ? referralIds : [];
 
-  let cStroke, cFill, cText, cLine;
+  // App icon — same as splash screen logo
+  const APP_ICON = 'https://i.ibb.co/sv3gKkfx/IPROS3221059704984801090.png';
 
+  // Colors based on state
+  const emptyBg     = 'rgba(255,255,255,0.04)';
+  const emptyBorder = 'rgba(255,255,255,0.10)';
+  const emptyNum    = 'rgba(255,255,255,0.25)';
+
+  let activeBg, activeBorder, activeGlow;
   if (!isOwned) {
-    cStroke    = 'rgba(255,255,255,0.18)';
-    cFill      = 'rgba(255,255,255,0.04)';
-    cText      = 'rgba(255,255,255,0.35)';
-    cLine      = 'rgba(255,255,255,0.10)';
+    activeBg     = emptyBg;
+    activeBorder = emptyBorder;
+    activeGlow   = 'none';
   } else if (isGold) {
-    cStroke    = '#d4a843';
-    cFill      = 'rgba(212,168,67,0.18)';
-    cText      = '#f0c96a';
-    cLine      = 'rgba(212,168,67,0.55)';
+    activeBg     = 'rgba(212,168,67,0.18)';
+    activeBorder = '#d4a843';
+    activeGlow   = '0 0 8px rgba(212,168,67,0.50)';
   } else {
-    cStroke    = '#22c55e';
-    cFill      = 'rgba(34,197,94,0.14)';
-    cText      = '#22c55e';
-    cLine      = 'rgba(34,197,94,0.50)';
+    activeBg     = 'rgba(34,197,94,0.14)';
+    activeBorder = '#22c55e';
+    activeGlow   = '0 0 8px rgba(34,197,94,0.40)';
   }
 
-  const cYouStroke = isOwned ? '#22c55e' : 'rgba(255,255,255,0.20)';
-  const cYouFill   = isOwned ? 'rgba(34,197,94,0.22)' : 'rgba(255,255,255,0.05)';
-  const cYouText   = isOwned ? '#4ade80' : 'rgba(255,255,255,0.30)';
+  // Build 6 boxes
+  let boxesHtml = '';
+  for (let i = 1; i <= 6; i++) {
+    const isFilled  = isOwned && filled >= i;
+    const refId     = rIds[i - 1] || null;
 
-  const glowID = `glow-${level}`;
-  const glowColor = isOwned ? (isGold ? '#d4a843' : '#22c55e') : 'rgba(255,255,255,0.15)';
+    const bg     = isFilled ? activeBg     : emptyBg;
+    const border = isFilled ? activeBorder : emptyBorder;
+    const glow   = isFilled ? activeGlow   : 'none';
 
-  const YOU= {x:60, y:14, r:13};
-  const L  = {x:24, y:48, r:12};
-  const R  = {x:96, y:48, r:12};
-  const N3 = {x:6,  y:84, r:11};
-  const N5 = {x:42, y:84, r:11};
-  const N4 = {x:78, y:84, r:11};
-  const N6 = {x:114,y:84, r:11};
-
-  const lFill = filled>=1, rFill = filled>=2;
-  const n3F   = filled>=3, n5F   = filled>=4;
-  const n4F   = filled>=5, n6F   = filled>=6;
-
-  const greenStroke = '#22c55e';
-  const greenFill   = 'rgba(34,197,94,0.22)';
-  const greenText   = '#4ade80';
-
-  function circ(node, isFilled, label, refTgId) {
-    const stroke  = (isOwned && isFilled) ? greenStroke : cStroke;
-    const bg      = (isOwned && isFilled) ? greenFill   : cFill;
-    const numCol  = (isOwned && isFilled) ? greenText   : cText;
-    const sw      = '2.0';
-    const gFilter = (isOwned && isFilled) ? `filter="url(#${glowID})"` : '';
-    const fs      = node.r >= 13 ? '9' : '8.5';
-
-    const photoUrl = (isOwned && isFilled && refTgId)
-      ? (window.__photoCache && window.__photoCache[String(refTgId)]) || null
-      : null;
-
-    const clipId = `cp-${level}-${label}`;
-
-    const innerContent = photoUrl
-      ? `<defs>
-           <clipPath id="${clipId}">
-             <circle cx="${node.x}" cy="${node.y}" r="${node.r - 1}"/>
-           </clipPath>
-         </defs>
-         <image href="${photoUrl}"
-           x="${node.x - node.r + 1}" y="${node.y - node.r + 1}"
-           width="${(node.r - 1) * 2}" height="${(node.r - 1) * 2}"
-           clip-path="url(#${clipId})"
-           preserveAspectRatio="xMidYMid slice"
-           style="pointer-events:none;"/>`
-      : `<text x="${node.x}" y="${node.y}" font-size="${fs}"
-           text-anchor="middle" dominant-baseline="central"
-           fill="${numCol}"
-           style="font-family:'DM Mono',monospace;font-weight:700;user-select:none;">${label}</text>`;
-
-    const clickOverlay = (isOwned && isFilled && refTgId)
-      ? `<circle cx="${node.x}" cy="${node.y}" r="${node.r}"
-           fill="transparent" stroke="none" style="cursor:pointer;"
-           onclick="showRefNodeModal('${refTgId}',${level})"/>`
+    const clickAttr = (isFilled && refId)
+      ? `onclick="showRefNodeModal('${refId}',${level})" style="cursor:pointer;"`
       : '';
 
-    return `
-      <circle cx="${node.x}" cy="${node.y}" r="${node.r}"
-        fill="${bg}" stroke="${stroke}" stroke-width="${sw}" ${gFilter}/>
-      ${innerContent}
-      ${clickOverlay}`;
+    // Inner content: filled = app icon, empty = slot number
+    const inner = isFilled
+      ? `<img src="${APP_ICON}" alt="" style="width:65%;height:65%;object-fit:contain;display:block;opacity:0.90;pointer-events:none;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:${isGold ? '#f0c96a' : '#22c55e'};">${i}</span>`
+      : `<span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:${emptyNum};">${i}</span>`;
+
+    boxesHtml += `
+      <div ${clickAttr} style="
+        flex:1; min-width:0;
+        aspect-ratio:1/1;
+        background:${bg};
+        border:1.5px solid ${border};
+        border-radius:10px;
+        box-shadow:${glow};
+        display:flex;align-items:center;justify-content:center;
+        overflow:hidden;
+        transition:border-color 0.2s,background 0.2s,box-shadow 0.2s;
+        position:relative;
+      ">${inner}</div>`;
   }
 
-  const lines = `
-    <line x1="${YOU.x}" y1="${YOU.y+YOU.r}" x2="${L.x}"  y2="${L.y-L.r}"   stroke="${cLine}" stroke-width="1.8"/>
-    <line x1="${YOU.x}" y1="${YOU.y+YOU.r}" x2="${R.x}"  y2="${R.y-R.r}"   stroke="${cLine}" stroke-width="1.8"/>
-    <line x1="${L.x}"   y1="${L.y+L.r}"    x2="${N3.x}" y2="${N3.y-N3.r}" stroke="${cLine}" stroke-width="1.8"/>
-    <line x1="${L.x}"   y1="${L.y+L.r}"    x2="${N5.x}" y2="${N5.y-N5.r}" stroke="${cLine}" stroke-width="1.8"/>
-    <line x1="${R.x}"   y1="${R.y+R.r}"    x2="${N4.x}" y2="${N4.y-N4.r}" stroke="${cLine}" stroke-width="1.8"/>
-    <line x1="${R.x}"   y1="${R.y+R.r}"    x2="${N6.x}" y2="${N6.y-N6.r}" stroke="${cLine}" stroke-width="1.8"/>`;
-
-  const youNode = `
-    <circle cx="${YOU.x}" cy="${YOU.y}" r="${YOU.r}"
-      fill="${cYouFill}" stroke="${cYouStroke}" stroke-width="2.2" ${isOwned ? `filter="url(#${glowID})"` : ''}/>
-    <text x="${YOU.x}" y="${YOU.y}" font-size="8.5"
-      text-anchor="middle" dominant-baseline="central"
-      fill="${cYouText}"
-      style="font-family:'DM Mono',monospace;font-weight:700;user-select:none;">You</text>`;
-
   return `
-    <div class="slot-matrix">
-      <svg viewBox="-6 0 132 100" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:134px;overflow:visible;">
-        <defs>
-          <filter id="${glowID}" x="-80%" y="-80%" width="260%" height="260%">
-            <feGaussianBlur stdDeviation="3" result="blur"/>
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-        </defs>
-        ${lines}
-        ${youNode}
-        ${circ(L,  lFill,'1', rIds[0])}
-        ${circ(R,  rFill,'2', rIds[1])}
-        ${circ(N3, n3F,  '3', rIds[2])}
-        ${circ(N5, n5F,  '5', rIds[3])}
-        ${circ(N4, n4F,  '4', rIds[4])}
-        ${circ(N6, n6F,  '6', rIds[5])}
-      </svg>
+    <div class="slot-matrix" style="padding:6px 2px 2px;">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;width:100%;">
+        ${boxesHtml}
+      </div>
     </div>`;
 }
 
@@ -3802,7 +3743,7 @@ async function showRefNodeModal(tgId, level) {
     if (!d) {
       body.innerHTML = `
         <div class="ref-node-header">
-          <div class="ref-node-avatar"><svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg></div>
+          <div class="ref-node-avatar" style="background:linear-gradient(135deg,#0d1e38 0%,#091525 100%);display:flex;align-items:center;justify-content:center;"><img src="https://i.ibb.co/sv3gKkfx/IPROS3221059704984801090.png" alt="Crypton" style="width:72%;height:72%;object-fit:contain;display:block;" /></div>
           <div>
             <div class="ref-node-name">Unknown User</div>
             <div class="ref-node-id">Crypton ID: ${tgId}</div>
@@ -3828,7 +3769,7 @@ async function showRefNodeModal(tgId, level) {
       ? (v / 1000).toFixed(2) + 'K TON'
       : v.toFixed(3) + ' TON';
 
-    const avatarHtml = `<svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>`;
+    const avatarHtml = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0d1e38 0%,#091525 100%);border-radius:16px;"><img src="https://i.ibb.co/sv3gKkfx/IPROS3221059704984801090.png" alt="Crypton" style="width:72%;height:72%;object-fit:contain;display:block;" /></div>`;
 
     body.innerHTML = `
       <div class="ref-node-header">
@@ -5097,9 +5038,7 @@ async function renderReferralList() {
       return;
     }
 
-    const silhouetteSVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-    </svg>`;
+    const silhouetteSVG = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0d1e38 0%,#091525 100%);border-radius:50%;"><img src="https://i.ibb.co/sv3gKkfx/IPROS3221059704984801090.png" alt="Crypton" style="width:72%;height:72%;object-fit:contain;display:block;" /></div>`;
 
     let html = '';
     allRefDocs.forEach(docSnap => {
@@ -5568,7 +5507,7 @@ async function pvDoSearch() {
     const displayUid  = userData.cryptonId || docId;
     const photoUrl    = userData.walletAddress || null;
 
-    const silSVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width:26px;height:26px;fill:#8aa5c0;"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>`;
+    const silSVG = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0d1e38 0%,#091525 100%);border-radius:12px;"><img src="https://i.ibb.co/sv3gKkfx/IPROS3221059704984801090.png" alt="Crypton" style="width:72%;height:72%;object-fit:contain;display:block;" /></div>`;
     const avatarHtml = silSVG;
 
     const workingTon = typeof userData.workingIncome === 'number' ? userData.workingIncome : 0;
@@ -5853,10 +5792,9 @@ async function pvFetchLeaderboard() {
     const rankLabels = ['🥇','🥈','🥉'];
     const rankClass  = ['r1','r2','r3'];
     const pvSilSVG   =
-      '<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="40" height="40">' +
-      '<rect width="40" height="40" rx="10" fill="rgba(255,255,255,0.06)"/>' +
-      '<circle cx="20" cy="15" r="7" fill="#3a5470"/>' +
-      '<path d="M4 38 Q4 27 20 27 Q36 27 36 38" fill="#3a5470"/></svg>';
+      '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0d1e38 0%,#091525 100%);border-radius:10px;">' +
+      '<img src=\"https://i.ibb.co/sv3gKkfx/IPROS3221059704984801090.png\" alt=\"Crypton\" style=\"width:72%;height:72%;object-fit:contain;\" />' +
+      '</div>';
 
     let html = '<div class="lb-list">';
     snap.docs.forEach((docSnap, idx) => {
@@ -6047,7 +5985,7 @@ async function doSearchUser() {
     }
 
     const avatarEl = document.getElementById('srch-avatar');
-    const silSVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width:26px;height:26px;fill:#8aa5c0;"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>`;
+    const silSVG = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0d1e38 0%,#091525 100%);border-radius:12px;"><img src="https://i.ibb.co/sv3gKkfx/IPROS3221059704984801090.png" alt="Crypton" style="width:72%;height:72%;object-fit:contain;display:block;" /></div>`;
     if (photoUrl) {
       avatarEl.innerHTML = `<img src="${photoUrl}" alt="avatar" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.parentNode.innerHTML='${silSVG.replace(/"/g,"'")}'" />`;
     } else {
@@ -6113,7 +6051,7 @@ async function renderSearchDownline(targetUid) {
       return;
     }
 
-    const silSVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>`;
+    const silSVG = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0d1e38 0%,#091525 100%);border-radius:50%;"><img src="https://i.ibb.co/sv3gKkfx/IPROS3221059704984801090.png" alt="Crypton" style="width:72%;height:72%;object-fit:contain;display:block;" /></div>`;
 
     let html = '';
     snap.forEach(docSnap => {
