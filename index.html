@@ -115,6 +115,8 @@
       --shadow-cyan: 0 0 24px rgba(0,229,255,0.24);
       --shadow-green: 0 0 20px rgba(34,197,94,0.25);
       --transition:  0.25s cubic-bezier(0.4,0,0.2,1);
+      --accent:      #f0c96a;
+      --text-muted:  #5a7a96;
     }
 
     html { scroll-behavior: smooth; }
@@ -756,15 +758,10 @@
     body.matrix-bg .orb { opacity: 0 !important; }
     #view-matrix { background-color: #010e22; min-height: 100vh; }
 
-    body.stats-bg { background-color: #1a0d3a !important; }
-    body.stats-bg .bg-canvas { background: #1a0d3a !important; }
-    body.stats-bg .orb { opacity: 0 !important; }
-    #view-stats { background-color: #1a0d3a; min-height: 100vh; }
 
     body.users-bg { background-color: #0f1133 !important; }
     body.users-bg .bg-canvas { background: #0f1133 !important; }
     body.users-bg .orb { opacity: 0 !important; }
-    #view-users { background-color: #0f1133; min-height: 100vh; }
 
     body.search-bg { background-color: #0a1628 !important; }
     body.search-bg .bg-canvas { background: #0a1628 !important; }
@@ -1525,120 +1522,6 @@
     }
     .btn-pv-connect:hover  { transform: translateY(-1px) scale(1.02); }
     .btn-pv-connect:active { transform: scale(0.97); }
-
-    .gstat-header-row {
-      display: flex; align-items: center; gap: 10px;
-      margin-bottom: 22px;
-      position: relative;
-    }
-    .gstat-header-icon {
-      width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
-      background: linear-gradient(135deg, rgba(212,168,67,0.22) 0%, rgba(0,229,255,0.18) 100%);
-      border: 1px solid rgba(212,168,67,0.30);
-      display: flex; align-items: center; justify-content: center;
-    }
-    .gstat-header-title {
-      font-family: var(--font-head); font-size: 18px; font-weight: 800;
-      background: linear-gradient(90deg, var(--gold-lt), var(--cyan));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .gstat-header-sub {
-      font-family: var(--font-mono); font-size: 10px; color: var(--text-lo);
-      letter-spacing: 1px; margin-top: 2px;
-    }
-
-    .gstat-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-      margin-bottom: 20px;
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      box-shadow: 0 8px 32px rgba(80,40,160,0.28), 0 2px 8px rgba(0,0,0,0.30);
-    }
-
-    .gstat-card {
-      padding: 22px 22px 18px;
-      position: relative; overflow: hidden;
-      transition: transform 0.2s ease;
-    }
-    .gstat-card::before {
-      content: ''; position: absolute; inset: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.07) 0%, transparent 60%);
-      pointer-events: none;
-    }
-    .gstat-card.cyan-card {
-      background: linear-gradient(135deg, #1a3a8a 0%, #2d1a6e 50%, #3d1060 100%);
-      border: none;
-      border-bottom: 1px solid rgba(255,255,255,0.10);
-      border-radius: 0;
-    }
-    .gstat-card.gold-card {
-      background: linear-gradient(135deg, #3d1060 0%, #5a1a8a 50%, #1a2a7a 100%);
-      border: none;
-      border-radius: 0;
-    }
-
-    .gstat-card-icon {
-      width: 36px; height: 36px; border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      margin-bottom: 14px;
-    }
-    .gold-card .gstat-card-icon { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18); }
-    .cyan-card .gstat-card-icon { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18); }
-
-    .gstat-label {
-      font-family: var(--font-mono); font-size: 9.5px; font-weight: 600;
-      letter-spacing: 2px; text-transform: uppercase;
-      color: rgba(255,255,255,0.65); margin-bottom: 10px; line-height: 1.4;
-    }
-    .gstat-value {
-      font-family: var(--font-head); font-size: 36px; font-weight: 800;
-      line-height: 1; letter-spacing: -1px;
-    }
-    .gold-card .gstat-value { color: #ffffff; text-shadow: 0 0 24px rgba(180,120,255,0.55); }
-    .cyan-card .gstat-value { color: #ffffff; text-shadow: 0 0 24px rgba(100,160,255,0.55); }
-
-    .gstat-unit {
-      font-family: var(--font-mono); font-size: 11px; font-weight: 600;
-      margin-top: 6px;
-    }
-    .gold-card .gstat-unit { color: rgba(255,255,255,0.55); }
-    .cyan-card .gstat-unit { color: rgba(255,255,255,0.55); }
-
-    .gstat-shimmer {
-      display: inline-block; width: 90px; height: 30px; border-radius: 6px;
-      background: linear-gradient(90deg, rgba(255,255,255,0.08) 25%, rgba(255,255,255,0.18) 50%, rgba(255,255,255,0.08) 75%);
-      background-size: 200% 100%;
-      animation: gstat-skeleton 1.4s ease infinite;
-    }
-    @keyframes gstat-skeleton {
-      0%   { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
-
-    .gstat-refresh-row {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 12px 16px;
-      background: var(--glass-bg); border: 1px solid var(--glass-bd);
-      border-radius: var(--radius-md);
-      margin-bottom: 14px;
-    }
-    .gstat-refresh-label {
-      font-family: var(--font-mono); font-size: 10px;
-      color: var(--text-lo); letter-spacing: 0.5px;
-    }
-    .gstat-refresh-label span { color: var(--green); font-size: 9px; margin-left: 6px; }
-    .gstat-refresh-btn {
-      background: rgba(0,229,255,0.10); border: 1px solid rgba(0,229,255,0.22);
-      border-radius: 8px; padding: 6px 14px;
-      font-family: var(--font-mono); font-size: 10px; font-weight: 600;
-      color: var(--cyan); cursor: pointer; letter-spacing: 1px;
-      transition: background 0.2s, transform 0.15s;
-    }
-    .gstat-refresh-btn:hover  { background: rgba(0,229,255,0.18); }
-    .gstat-refresh-btn:active { transform: scale(0.94); }
-    .gstat-refresh-btn.spinning svg { animation: spin-fetch 0.7s linear infinite; }
     /*
      * Built entirely from styled text characters — no graphic emoji.
      * Outer arcs: mirrored ( ) scaled vertically to form an oval lens.
@@ -1672,52 +1555,6 @@
       line-height: 1;
       margin: 0 1px;
     }
-    .dir-header-row {
-      display: flex; align-items: center; gap: 12px;
-      margin-bottom: 22px;
-    }
-    .dir-header-icon {
-      width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
-      background: linear-gradient(135deg, rgba(0,229,255,0.20) 0%, rgba(0,229,255,0.08) 100%);
-      border: 1px solid rgba(0,229,255,0.30);
-      display: flex; align-items: center; justify-content: center;
-    }
-    .dir-header-title {
-      font-family: var(--font-head); font-size: 18px; font-weight: 800;
-      background: linear-gradient(90deg, var(--cyan), #80f4ff);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .dir-header-sub {
-      font-family: var(--font-mono); font-size: 10px; color: var(--text-lo);
-      letter-spacing: 1px; margin-top: 2px;
-    }
-
-    .dir-list { display: flex; flex-direction: column; gap: 9px; }
-    .dir-loading {
-      text-align: center; padding: 36px 20px;
-      font-family: var(--font-mono); font-size: 12px;
-      color: var(--text-mid); letter-spacing: 0.5px;
-    }
-    .dir-loading::before {
-      content: ''; display: block; width: 26px; height: 26px; margin: 0 auto 14px;
-      border-radius: 50%; border: 2px solid var(--glass-bd);
-      border-top-color: var(--cyan); animation: spin-fetch 0.9s linear infinite;
-    }
-    .dir-empty {
-      text-align: center; padding: 36px 20px;
-      font-family: var(--font-mono); font-size: 12px;
-      color: var(--text-lo); letter-spacing: 0.5px;
-      background: var(--glass-bg); border: 1px solid var(--glass-bd);
-      border-radius: var(--radius-md);
-    }
-    .dir-count-bar {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 10px 4px 16px;
-      font-family: var(--font-mono); font-size: 10px; color: var(--text-lo);
-      letter-spacing: 1px;
-    }
-    .dir-count-num { color: var(--cyan); font-weight: 700; font-size: 12px; }
-
     .header-hamburger-btn {
       width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
       background: rgba(255,255,255,0.06);
@@ -2744,6 +2581,10 @@
   <section>
     <div id="srch-main-wrap">
 
+    <div id="srch-readonly-banner" style="display:none; background:rgba(0,229,255,0.07); border:1px solid rgba(0,229,255,0.22); border-radius:10px; padding:9px 14px; margin-bottom:10px; font-family:var(--font-mono); font-size:11px; color:var(--cyan); letter-spacing:0.3px; text-align:center;">
+      🔍 Read-only public view
+    </div>
+
     <div class="srch-topbar">
       <p class="section-label" style="display:flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> PUBLIC LOOKUP</p>
     </div>
@@ -2979,95 +2820,6 @@
   </section>
 </div><!-- /view-search -->
 
-<div class="view" id="view-stats" style="padding-bottom: 96px;">
-  <button class="view-back-btn" id="back-stats" onclick="switchView('home')">
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    Home
-  </button>
-  <section>
-
-    <div class="gstat-header-row">
-      <div class="gstat-header-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold-lt)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-      </div>
-      <div>
-        <div class="gstat-header-title">TOP EARNERS Stats</div>
-        <div class="gstat-header-sub"></div>
-      </div>
-    </div>
-
-    <div onclick="openUserDirectory()" style="
-      cursor:pointer;
-      background: linear-gradient(135deg, rgba(0,229,255,0.10) 0%, rgba(0,229,255,0.04) 100%);
-      border: 1px solid rgba(0,229,255,0.30);
-      border-radius: var(--radius-lg);
-      padding: 16px 20px;
-      margin-bottom: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.15s;
-      -webkit-tap-highlight-color: transparent;
-      box-shadow: 0 2px 16px rgba(0,229,255,0.08);
-    "
-    onmouseover="this.style.background='linear-gradient(135deg,rgba(0,229,255,0.17) 0%,rgba(0,229,255,0.07) 100%)';this.style.borderColor='rgba(0,229,255,0.55)';this.style.boxShadow='0 0 18px rgba(0,229,255,0.18)';"
-    onmouseout="this.style.background='linear-gradient(135deg,rgba(0,229,255,0.10) 0%,rgba(0,229,255,0.04) 100%)';this.style.borderColor='rgba(0,229,255,0.30)';this.style.boxShadow='0 2px 16px rgba(0,229,255,0.08)';"
-    onmousedown="this.style.transform='scale(0.97)'"
-    onmouseup="this.style.transform='scale(1)'"
-    ontouchstart="this.style.transform='scale(0.97)'"
-    ontouchend="this.style.transform='scale(1)'">
-      <div style="display:flex;align-items:center;gap:13px;">
-        <div style="
-          width:42px; height:42px; border-radius:12px; flex-shrink:0;
-          background: rgba(0,229,255,0.14);
-          border: 1px solid rgba(0,229,255,0.28);
-          display:flex; align-items:center; justify-content:center;
-          font-size:19px;
-        ">🔍</div>
-        <div>
-          <div style="font-family:var(--font-head);font-size:15px;font-weight:800;color:var(--cyan);letter-spacing:-0.3px;">View Top #100</div>
-          <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-lo);letter-spacing:1px;margin-top:3px;text-transform:uppercase;"></div>
-        </div>
-      </div>
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.65;flex-shrink:0;"><path d="M9 18l6-6-6-6"/></svg>
-    </div>
-
-    <div class="gstat-refresh-row">
-      <div class="gstat-refresh-label">
-        Last updated: <span id="gstat-last-updated">—</span>
-      </div>
-      <button class="gstat-refresh-btn" id="gstat-refresh-btn" onclick="fetchGlobalStats()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:middle;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>REFRESH
-      </button>
-    </div>
-
-    <div class="gstat-grid">
-
-      <div class="gstat-card cyan-card">
-        <div class="gstat-card-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        </div>
-        <div class="gstat-label">Total Active<br>Users</div>
-        <div class="gstat-value" id="gstat-user-count"><span class="gstat-shimmer"></span></div>
-        <div class="gstat-unit">registered</div>
-      </div>
-
-      <div class="gstat-card gold-card">
-        <div class="gstat-card-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-        </div>
-        <div class="gstat-label">Top #100<br>TON Distributed</div>
-        <div class="gstat-value" id="gstat-ton-total"><span class="gstat-shimmer"></span></div>
-        <div class="gstat-unit" id="gstat-ton-unit">TON · Top 100</div>
-      </div>
-
-    </div><!-- /gstat-grid -->
-
-  </section>
-</div><!-- /view-stats -->
-
 <div class="view" id="view-preview" style="padding-bottom: 96px;">
 
   <button class="view-back-btn" id="back-preview" onclick="exitPreviewMode()">
@@ -3160,36 +2912,6 @@
 
   </section>
 </div><!-- /view-preview -->
-
-<div class="view" id="view-users" style="padding-bottom:96px;">
-  <button class="view-back-btn" id="back-users" onclick="switchView('stats')" style="display:flex;">
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    Global Stats
-  </button>
-  <section>
-
-    <div class="dir-header-row">
-      <div class="dir-header-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-      </div>
-      <div>
-        <div class="dir-header-title">top #100</div>
-        <div class="dir-header-sub"></div>
-      </div>
-    </div>
-
-    <div class="dir-count-bar">
-      <span>TOP EARNERS</span>
-      <span class="dir-count-num" id="dir-total-count">—</span>
-    </div>
-
-    <div class="dir-list" id="dir-list-inner">
-      <div class="dir-loading" id="dir-loading-state">Loading members…</div>
-    </div>
-
-  </section>
-</div>
-
 <!-- ── UPGRADE MODAL (single, no duplicate) ── --><div class="modal-overlay" id="upgrade-modal" onclick="closeUpgradeModal(event)">
   <div class="modal-sheet">
     <div class="modal-icon">&#x267B;&#xFE0F;</div>
@@ -3225,10 +2947,6 @@
   <button class="fab-menu-item" id="fmi-search" onclick="switchView('search')">
     <span class="fab-menu-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
     <span>Search</span>
-  </button>
-  <button class="fab-menu-item" id="fmi-stats" onclick="switchView('stats')">
-    <span class="fab-menu-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
-    <span>Stats</span>
   </button>
   <button class="fab-menu-item" id="fmi-disconnect" onclick="closeFabMenu(); disconnectWallet();" style="border-top:1px solid rgba(255,77,109,0.18); margin-top:6px; padding-top:10px; color:var(--red);">
     <span class="fab-menu-icon" style="color:var(--red);">
@@ -3516,7 +3234,7 @@ async function disconnectWallet() {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const homeView = document.getElementById('view-home');
   if (homeView) homeView.classList.add('active');
-  ['matrix','referral','profile','search','stats','preview','users','leaderboard'].forEach(n => {
+  ['matrix','referral','profile','search','preview','leaderboard'].forEach(n => {
     const btn = document.getElementById('back-' + n);
     if (btn) btn.style.display = 'none';
   });
@@ -4363,7 +4081,6 @@ function withTimeout(promise, ms, fallbackMsg) {
   const HARD_TIMEOUT_MS = 15000;
   const LOADER_IDS = [
     'srch-loading-state', 'pv-srch-loading',
-    'dir-loading-state',  'dir-loading-state',
   ];
   setTimeout(() => {
     LOADER_IDS.forEach(id => {
@@ -4621,6 +4338,7 @@ async function handleVerifyAndCreate() {
       nonWorkingIncome: 0,
       totalTon:         0,
       activeSlots:      [],
+      referralCounted:  false,            // set true on first wallet connect (loginUser)
       joinedAt:         serverTimestamp(),
     });
 
@@ -5410,23 +5128,21 @@ function switchView(name) {
   if (view) view.classList.add('active');
 
   document.body.classList.toggle('matrix-bg', name === 'matrix');
-  document.body.classList.toggle('stats-bg',  name === 'stats');
   document.body.classList.toggle('users-bg',  name === 'users');
   document.body.classList.toggle('search-bg', name === 'search');
 
-  ['matrix','referral','profile','search','stats','preview','users','leaderboard'].forEach(n => {
+  ['matrix','referral','profile','search','preview','leaderboard'].forEach(n => {
     const btn = document.getElementById('back-' + n);
     if (btn) btn.style.display = (name === n) ? 'flex' : 'none';
   });
 
-  ['matrix','referral','profile','search','stats'].forEach(n => {
+  ['matrix','referral','profile','search'].forEach(n => {
     const mi = document.getElementById('fmi-' + n);
     if (mi) mi.classList.toggle('active-view', name === n);
   });
 
   if (name === 'referral') getReferralStats();
   if (name === 'search')   resetSearchView();
-  if (name === 'stats')    fetchGlobalStats();
 
   if (name === 'home') {
     var heroEl2 = document.getElementById('hero-section');
@@ -5529,78 +5245,6 @@ function copyReferralGold() {
       showToast('Copy failed. Long-press the link to copy manually.');
     }
   });
-}
-
-let _gstatFetching = false;
-
-async function fetchGlobalStats() {
-  if (_gstatFetching) return;
-  _gstatFetching = true;
-
-  const refreshBtn = document.getElementById('gstat-refresh-btn');
-  if (refreshBtn) refreshBtn.classList.add('spinning');
-
-  const userCountEl = document.getElementById('gstat-user-count');
-  const tonTotalEl  = document.getElementById('gstat-ton-total');
-  if (userCountEl) userCountEl.innerHTML = '<span class="gstat-shimmer"></span>';
-  if (tonTotalEl)  tonTotalEl.innerHTML  = '<span class="gstat-shimmer"></span>';
-
-  try {
-    await new Promise((resolve, reject) => {
-      if (window.__db && window.__fs) { resolve(); return; }
-      let attempts = 0;
-      const check = setInterval(() => {
-        attempts++;
-        if (window.__db && window.__fs) { clearInterval(check); resolve(); }
-        else if (attempts > 40) { clearInterval(check); reject(new Error('Firebase timeout')); }
-      }, 150);
-    });
-
-    const { collection, query, orderBy, limit, getDocs, getCountFromServer } = window.__fs;
-    const db = window.__db;
-
-    const usersCol = collection(db, 'users');
-    const countSnap = await getCountFromServer(usersCol);
-    const totalUsers = countSnap.data().count;
-
-    let totalTon = 0;
-    const topQ   = query(usersCol, orderBy('totalTon', 'desc'), limit(100));
-    const topSnap = await getDocs(topQ);
-    topSnap.forEach(docSnap => {
-      const d       = docSnap.data();
-      const working = typeof d.workingIncome === 'number' ? d.workingIncome : 0;
-      const passive = typeof d.nonWorkingIncome === 'number' ? d.nonWorkingIncome : 0;
-      const earned  = typeof d.totalTon  === 'number' ? d.totalTon  : 0;
-      totalTon += Math.max(earned, working + passive);
-    });
-
-    const fmtUsers = totalUsers >= 1000
-      ? (totalUsers / 1000).toFixed(1).replace(/\.0$/, '') + 'K'
-      : String(totalUsers);
-
-    const fmtTon = totalTon >= 1000
-      ? (totalTon / 1000).toFixed(2).replace(/\.?0+$/, '') + 'K'
-      : totalTon.toFixed(2);
-
-    if (userCountEl) userCountEl.textContent = fmtUsers;
-    if (tonTotalEl)  tonTotalEl.textContent  = fmtTon;
-
-    const lastEl = document.getElementById('gstat-last-updated');
-    if (lastEl) {
-      const now = new Date();
-      const hh  = String(now.getHours()).padStart(2, '0');
-      const mm  = String(now.getMinutes()).padStart(2, '0');
-      const ss  = String(now.getSeconds()).padStart(2, '0');
-      lastEl.textContent = `${hh}:${mm}:${ss}`;
-    }
-
-  } catch (err) {
-    if (userCountEl) userCountEl.textContent = '—';
-    if (tonTotalEl)  tonTotalEl.textContent  = '—';
-  } finally {
-    _gstatFetching = false;
-    if (refreshBtn) refreshBtn.classList.remove('spinning');
-  }
 }
 
 let toastTimer;
@@ -5764,7 +5408,7 @@ function exitPreviewMode() {
     if (dashEl) dashEl.style.display = 'block';
   }
 
-  ['matrix','referral','profile','search','stats','preview','users','leaderboard'].forEach(function(n) {
+  ['matrix','referral','profile','search','preview','leaderboard'].forEach(function(n) {
     var btn = document.getElementById('back-' + n);
     if (btn) btn.style.display = 'none';
   });
@@ -6430,6 +6074,7 @@ async function renderSearchDownline(targetUid) {
       if (!d.cryptonId || !d.joinedAt) return;
       const name    = (d.name || 'Unknown').trim();
       const uid     = d.cryptonId || docSnap.id;
+      const handle  = d.name ? d.name.trim() : null;
       const uidLine = `Crypton ID: ${uid}`;
       const avatar  = silSVG;
 
@@ -6703,274 +6348,6 @@ function _updateDashAvatar() {
 }
 
 renderSlots();
-
-let _dirLoaded = false; // cache flag — only fetch once per session
-
-function openUserDirectory() {
-  switchView('users');
-  if (!_dirLoaded) {
-    _dirLoaded = true;
-    loadUserDirectory();
-  }
-}
-
-async function loadUserDirectory() {
-  const listEl    = document.getElementById('dir-list-inner');
-  const countEl   = document.getElementById('dir-total-count');
-  const loadingEl = document.getElementById('dir-loading-state');
-
-  if (!listEl) return;
-
-  listEl.innerHTML = '<div class="dir-loading" id="dir-loading-state">Loading members…</div>';
-  if (countEl) countEl.textContent = '—';
-
-  const _dirGuard = setTimeout(() => {
-    const spinEl = listEl.querySelector('.dir-loading');
-    if (spinEl) {
-      listEl.innerHTML = '<div class="dir-empty">Request timed out. Tap the back button and retry.</div>';
-    }
-  }, 12000);
-
-  try {
-    const db = window.__db;
-    const fs = window.__fs;
-    if (!db || !fs) throw new Error('Firestore not ready');
-
-    const snap = await fs.getDocs(
-      fs.query(fs.collection(db, 'users'), fs.orderBy('joinedAt', 'desc'), fs.limit(150))
-    );
-    clearTimeout(_dirGuard);
-    const users = [];
-    snap.forEach(doc => users.push({ id: doc.id, ...doc.data() }));
-
-    users.sort((a, b) => {
-      const getTs = (u) => {
-        const ts = u.registeredAt || u.joinedAt;
-        if (!ts) return 0;
-        if (ts?.seconds) return ts.seconds;
-        if (ts?.toMillis) return ts.toMillis() / 1000;
-        if (typeof ts === 'number') return ts;
-        return new Date(ts).getTime() / 1000;
-      };
-      return getTs(a) - getTs(b);
-    });
-
-    if (countEl) countEl.textContent = users.length;
-
-    const registeredUsers = users.filter(u =>
-      u.cryptonId && u.joinedAt && u.name
-    );
-
-    if (countEl) countEl.textContent = registeredUsers.length;
-
-    if (registeredUsers.length === 0) {
-      listEl.innerHTML = '<div class="dir-empty">No registered users found.</div>';
-      return;
-    }
-
-    const rows = registeredUsers.map((u, idx) => {
-      const seq       = idx + 1;
-      const firstName = escHtml(u.name || 'Unknown');
-      const tgId      = escHtml(String(u.cryptonId || u.id || '—'));
-      const tonVal    = typeof u.totalTon === 'number' && u.totalTon > 0
-        ? u.totalTon
-        : ((typeof u.workingIncome === 'number' ? u.workingIncome : 0) + (typeof u.nonWorkingIncome === 'number' ? u.nonWorkingIncome : 0));
-      const tonDisplay = tonVal > 0
-        ? (tonVal >= 1000 ? (tonVal/1000).toFixed(2)+'K' : tonVal.toFixed(2))
-        : '0.00';
-
-      const silSvgDir = `<svg viewBox="0 0 42 42" width="42" height="42" xmlns="http://www.w3.org/2000/svg"><rect width="42" height="42" rx="10" fill="rgba(255,255,255,0.06)"/><circle cx="21" cy="16" r="7.5" fill="#8aa5c0"/><path d="M4 40 Q4 28 21 28 Q38 28 38 40" fill="#8aa5c0"/></svg>`;
-      const avatarHtml = silSvgDir;
-
-      const medalColors = ['#f0c96a','#d4d4d4','#cd7f32'];
-      const rankColor   = medalColors[idx] || 'var(--text-lo)';
-      const seqDisplay  = idx < 3
-        ? `<span style="font-size:15px;line-height:1;">${['🥇','🥈','🥉'][idx]}</span>`
-        : `<span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:${rankColor};">#${seq}</span>`;
-
-      return `
-        <div style="
-          display:flex; align-items:center; gap:12px;
-          background:var(--glass-bg);
-          border:1px solid ${idx < 3 ? `rgba(212,168,67,${0.28-idx*0.07})` : 'var(--glass-bd)'};
-          border-radius:var(--radius-md);
-          padding:13px 16px;
-          backdrop-filter:blur(14px);
-          -webkit-backdrop-filter:blur(14px);
-          margin-bottom:9px;
-          transition:border-color 0.2s;
-        ">
-          <div style="min-width:24px;text-align:center;flex-shrink:0;">${seqDisplay}</div>
-          <div style="
-            width:42px; height:42px; border-radius:12px; flex-shrink:0;
-            overflow:hidden; background:rgba(255,255,255,0.06);
-            border:1.5px solid rgba(255,255,255,0.09);
-            display:flex; align-items:center; justify-content:center;
-          ">${avatarHtml}</div>
-          <div style="flex:1; min-width:0;">
-            <div style="font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--text-hi);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${firstName}</div>
-            <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-mid);margin-top:2px;letter-spacing:0.3px;">ID · ${tgId}</div>
-          </div>
-          <div style="text-align:right;flex-shrink:0;">
-            <div style="font-family:var(--font-head);font-size:14px;font-weight:800;color:var(--cyan);letter-spacing:-0.3px;">${tonDisplay}</div>
-            <div style="font-family:var(--font-mono);font-size:9px;color:rgba(0,229,255,0.55);letter-spacing:1px;text-transform:uppercase;margin-top:2px;">TON</div>
-          </div>
-        </div>`;
-    });
-
-    listEl.innerHTML = `<div>${rows.join('')}</div>`;
-
-  } catch (err) {
-    clearTimeout(_dirGuard);
-    listEl.innerHTML = `<div class="dir-empty">⚠ Could not load directory.<br><span style="font-size:10px;opacity:0.6;">${escHtml(err.message)}</span></div>`;
-  }
-}
-
-function escHtml(s) {
-  return String(s)
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;');
-}
-function openLeaderboardView() {
-  switchView('leaderboard');
-  loadLeaderboardView();
-}
-
-async function loadLeaderboardView() {
-  const contentEl = document.getElementById('lb-view-content');
-  if (!contentEl) return;
-
-  contentEl.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 2px;">
-      <span class="lb-loading" style="margin:0;">Fetching top earners…</span>
-      <button onclick="loadLeaderboardView()" style="
-        background:rgba(0,229,255,0.10);border:1px solid rgba(0,229,255,0.25);
-        color:var(--cyan);border-radius:8px;padding:5px 12px;
-        font-family:var(--font-mono);font-size:10px;font-weight:700;
-        letter-spacing:1px;cursor:pointer;flex-shrink:0;
-      ">↻ REFRESH</button>
-    </div>`;
-
-  const _lbvGuard = setTimeout(() => {
-    if (contentEl.querySelector('.lb-loading') || contentEl.textContent.includes('Fetching')) {
-      contentEl.innerHTML = `
-        <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:10px;padding:0 2px;">
-          <button onclick="loadLeaderboardView()" style="
-            background:rgba(0,229,255,0.10);border:1px solid rgba(0,229,255,0.25);
-            color:var(--cyan);border-radius:8px;padding:5px 12px;
-            font-family:var(--font-mono);font-size:10px;font-weight:700;
-            letter-spacing:1px;cursor:pointer;
-          ">↻ REFRESH</button>
-        </div>
-        <div class="dir-empty">Request timed out. Tap REFRESH to retry.</div>`;
-    }
-  }, 12000);
-
-  try {
-    const db = window.__db;
-    const fs = window.__fs;
-    if (!db || !fs) throw new Error('Firestore not ready');
-
-    const q = fs.query(
-      fs.collection(db, 'users'),
-      fs.orderBy('totalTon', 'desc'),
-      fs.limit(30)
-    );
-
-    const rawSnap = await fs.getDocs(q);
-    clearTimeout(_lbvGuard);
-
-    const allRaw = [];
-    rawSnap.forEach(doc => allRaw.push({ id: doc.id, ...doc.data() }));
-    const users = allRaw.filter(u =>
-      u.cryptonId && u.joinedAt && u.name
-    ).slice(0, 10);
-
-    if (users.length === 0) {
-      contentEl.innerHTML = `
-        <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:10px;padding:0 2px;">
-          <button onclick="loadLeaderboardView()" style="
-            background:rgba(0,229,255,0.10);border:1px solid rgba(0,229,255,0.25);
-            color:var(--cyan);border-radius:8px;padding:5px 12px;
-            font-family:var(--font-mono);font-size:10px;font-weight:700;
-            letter-spacing:1px;cursor:pointer;
-          ">↻ REFRESH</button>
-        </div>
-        <div class="dir-empty">No registered users yet.</div>`;
-      return;
-    }
-
-    const medalColors = ['#f0c96a','#d4d4d4','#cd7f32'];
-    const medalEmoji  = ['🥇','🥈','🥉'];
-
-    const rows = users.map((u, idx) => {
-      const rank      = idx + 1;
-      const firstName = escHtml(u.name || 'Unknown');
-      const tgId      = escHtml(String(u.cryptonId || u.id || '—'));
-      const earned    = typeof u.totalTon === 'number' ? u.totalTon.toFixed(2) : '0.00';
-
-      const avatarHtml = `<svg viewBox="0 0 42 42" width="42" height="42" xmlns="http://www.w3.org/2000/svg"><rect width="42" height="42" rx="10" fill="rgba(255,255,255,0.06)"/><circle cx="21" cy="16" r="7.5" fill="#8aa5c0"/><path d="M4 40 Q4 28 21 28 Q38 28 38 40" fill="#8aa5c0"/></svg>`;
-
-      const rankColor = medalColors[idx] || 'var(--text-lo)';
-      const medal     = rank <= 3 ? `<span style="font-size:15px;line-height:1;">${medalEmoji[idx]}</span>` : `<span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:${rankColor};">${rank}</span>`;
-
-      return `
-        <div style="
-          display:flex; align-items:center; gap:12px;
-          background:var(--glass-bg);
-          border:1px solid ${rank<=3 ? `rgba(212,168,67,${0.28-idx*0.07})` : 'var(--glass-bd)'};
-          border-radius:var(--radius-md);
-          padding:13px 16px;
-          backdrop-filter:blur(14px);
-          -webkit-backdrop-filter:blur(14px);
-          margin-bottom:9px;
-          transition:border-color 0.2s;
-        ">
-          <div style="min-width:24px;text-align:center;flex-shrink:0;">${medal}</div>
-          <div style="
-            width:42px; height:42px; border-radius:12px; flex-shrink:0;
-            overflow:hidden; background:rgba(255,255,255,0.06);
-            border:1.5px solid rgba(255,255,255,0.09);
-            display:flex; align-items:center; justify-content:center;
-          ">${avatarHtml}</div>
-          <div style="flex:1; min-width:0;">
-            <div style="font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--text-hi);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${firstName}</div>
-            <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-mid);margin-top:2px;letter-spacing:0.3px;">ID · ${tgId}</div>
-          </div>
-          <div style="text-align:right;flex-shrink:0;">
-            <div style="font-family:var(--font-head);font-size:14px;font-weight:800;color:var(--gold-lt);letter-spacing:-0.3px;">${earned}</div>
-            <div style="font-family:var(--font-mono);font-size:9px;color:rgba(212,168,67,0.55);letter-spacing:1px;text-transform:uppercase;margin-top:2px;">TON</div>
-          </div>
-        </div>`;
-    });
-
-    const refreshBar = `
-      <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:10px;padding:0 2px;">
-        <button onclick="loadLeaderboardView()" style="
-          background:rgba(0,229,255,0.10);border:1px solid rgba(0,229,255,0.25);
-          color:var(--cyan);border-radius:8px;padding:5px 12px;
-          font-family:var(--font-mono);font-size:10px;font-weight:700;
-          letter-spacing:1px;cursor:pointer;
-        ">↻ REFRESH</button>
-      </div>`;
-    contentEl.innerHTML = refreshBar + rows.join('');
-
-  } catch (err) {
-    clearTimeout(_lbvGuard);
-    contentEl.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:10px;padding:0 2px;">
-        <button onclick="loadLeaderboardView()" style="
-          background:rgba(0,229,255,0.10);border:1px solid rgba(0,229,255,0.25);
-          color:var(--cyan);border-radius:8px;padding:5px 12px;
-          font-family:var(--font-mono);font-size:10px;font-weight:700;
-          letter-spacing:1px;cursor:pointer;
-        ">↻ REFRESH</button>
-      </div>
-      <div class="dir-empty">⚠ Could not load leaderboard.<br><span style="font-size:10px;opacity:0.6;">${escHtml(err.message)}</span></div>`;
-  }
-}
 
 (function initAirdropTimer() {
 
