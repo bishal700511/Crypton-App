@@ -5675,26 +5675,27 @@ async function handleLogin() {
 
   try {
     await waitForFirestore();
-    const { doc, getDoc } = window.__fs;
+    const { doc, getDoc, collection, query, where, getDocs } = window.__fs;
     const db = window.__db;
 
-    // Derive docId from seed phrase
-    const docId = seedToDocId(words);
-    const snap  = await getDoc(doc(db, 'users', docId));
+    // LOGIN FIX: Query by seedPhrase field (docId = cryptonId, not CX-hash)
+    // Registration stores docId = cryptonId (7-digit). We search by seedPhrase + email.
+    const phraseStr = words.join(' ');
+    const q = query(
+      collection(db, 'users'),
+      where('seedPhrase', '==', phraseStr),
+      where('email', '==', email)
+    );
+    const qSnap = await getDocs(q);
 
-    if (!snap.exists()) {
+    if (qSnap.empty) {
       errEl.textContent = 'Incorrect phrase or email. Check your secret words.';
       return;
     }
 
-    const data = snap.data();
-
-    // Verify email matches
-    if ((data.email || '').toLowerCase() !== email) {
-      errEl.textContent = 'Email does not match this account.';
-      return;
-    }
-
+    const snapDoc = qSnap.docs[0];
+    const data    = snapDoc.data();
+    const docId   = snapDoc.id;
     const cryptonId = data.cryptonId || docId;
 
     // Save session
