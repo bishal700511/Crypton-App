@@ -732,13 +732,16 @@
     .view-back-btn:hover svg { transform:translateX(-3px); }
 
     #toast {
-      position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(8px);
-      background:rgba(0,229,255,0.12); border:1px solid var(--cyan);
-      color:var(--cyan); font-family:var(--font-mono); font-size:12px;
-      padding:10px 20px; border-radius:30px; z-index:1000;
+      position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(8px);
+      background:rgba(0,20,40,0.92); border:1px solid var(--cyan);
+      color:var(--cyan); font-family:var(--font-mono); font-size:11px;
+      padding:7px 16px; border-radius:20px; z-index:9999;
       opacity:0;
-      transition:opacity 0.3s, transform 0.3s;
-      backdrop-filter:blur(12px); white-space:nowrap;
+      transition:opacity 0.25s, transform 0.25s;
+      backdrop-filter:blur(12px);
+      white-space:nowrap; max-width:88vw;
+      overflow:hidden; text-overflow:ellipsis;
+      pointer-events:none;
     }
     #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
@@ -3970,7 +3973,8 @@ async function buySlot(level, priceTon) {
     showToast('Opening wallet…');
     const result = await state.tonConnectUI.sendTransaction(tx);
 
-    if (result) {
+    // ── STRICT GATE: only proceed if TonConnect returned a signed BOC ──
+    if (result && result.boc) {
       buySlot._writing = true;
 
       // ── On-chain verification before slot activation ──
@@ -3979,7 +3983,7 @@ async function buySlot(level, priceTon) {
       if (_verifyCard) {
         _verifyCard.classList.add('slot-confirming');
       }
-      showToast('⏳ Verifying transaction on-chain…', 6000);
+      showToast('⏳ Verifying on-chain…', 6000);
 
       // Extract BOC and derive tx hash for polling
       let txVerified = false;
@@ -4024,9 +4028,10 @@ async function buySlot(level, priceTon) {
           }
         }
       } catch (_verifyErr) {
-        // If verification infrastructure fails, fall back to optimistic (logged)
+        // Verification infrastructure error — do NOT auto-approve.
+        // Only allow fallback if TonConnect returned a valid BOC (proof of broadcast).
         console.warn('[BuySlot] Verification error:', _verifyErr);
-        txVerified = true; // fallback: trust TonConnect result
+        txVerified = !!(result && result.boc); // only trust if BOC exists
       }
 
       // Remove confirming animation
@@ -4037,7 +4042,7 @@ async function buySlot(level, priceTon) {
       // ── STRICT GATE: nothing happens until txVerified = true ──
       if (!txVerified) {
         buySlot._writing = false;
-        showToast('⚠️ Transaction not confirmed on-chain. Slot not activated. Try again or check wallet.', 5000);
+        showToast('⚠️ Tx not confirmed. Slot not activated.', 4000);
         return;
       }
 
@@ -4126,6 +4131,20 @@ async function buySlot(level, priceTon) {
             if (isAirdropEligibleLevel) buyerUpdate.airdropEligible = true;
             batch.update(_d(_db, 'users', _bsDocId), buyerUpdate);
 
+            // ══════════════════════════════════════════════════════════
+            // INCOME DISTRIBUTION MODEL (Manual Payout via Admin Panel)
+            // ──────────────────────────────────────────────────────────
+            // All amounts are tracked as PENDING in Firestore only.
+            // NO real-time TON transfers happen here.
+            // Admin Panel reads these fields and dispatches payouts manually.
+            //
+            //  workingIncome    ← 50% credited to direct referrer
+            //  nonWorkingIncome ← 10% credited to upline1 + 10% to upline2
+            //  airdropPool      ← 10% credited to config/airdrop
+            //  Admin 20%        ← collected on-chain (no DB entry needed)
+            //  Buyer            ← ZERO income (slot only)
+            // ══════════════════════════════════════════════════════════
+
             // ── 50% → Direct referrer (workingIncome) ──
             if (directRefId) {
               batch.update(_d(_db, 'users', directRefId), {
@@ -4187,14 +4206,14 @@ async function buySlot(level, priceTon) {
 
           } catch (fsErr) {
             console.error('[BuySlot] DB commit failed:', fsErr);
-            showToast('⚠️ Payment confirmed but data sync failed. Please refresh.');
+            showToast('⚠️ Paid but sync failed. Refresh.');
           } finally {
             buySlot._writing = false;
           }
         })();
       } else {
         buySlot._writing = false;
-        showToast('⚠️ Could not identify your account. Please re-login.');
+        showToast('⚠️ Account not found. Re-login.');
       }
     }
   } catch(e) {
@@ -4202,7 +4221,7 @@ async function buySlot(level, priceTon) {
     const msg = e?.message || '';
     if (msg === 'User closed the modal' || msg.includes('User declined')) {
     } else if (msg.includes('Insufficient')) {
-      showToast('⚠️ Insufficient TON balance in wallet');
+      showToast('⚠️ Insufficient TON balance');
     } else {
       showToast('Transaction failed. Please try again.');
     }
