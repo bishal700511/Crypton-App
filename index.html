@@ -2921,7 +2921,7 @@
 
     <div class="pv-connect-cta">
       <div class="pv-cta-title">Ready to Earn?</div>
-      <p class="pv-cta-sub">Connect your TON wallet to activate slots, build your team, and start earning automatically across all levels.</p>
+      <p class="pv-cta-sub">Register or Login first, then connect your TON wallet to activate slots and start earning.</p>
       <button class="btn-pv-connect" onclick="exitPreviewMode()">
         <svg width="18" height="18" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M28 56C43.464 56 56 43.464 56 28C56 12.536 43.464 0 28 0C12.536 0 0 12.536 0 28C0 43.464 12.536 56 28 56Z" fill="currentColor" fill-opacity="0.15"/>
@@ -3183,7 +3183,7 @@ function getStoredRef() {
 
 (function initTonConnect() {
   try {
-    const ACTIVE_NETWORK = 'testnet'; // ← Locked to testnet for live on-chain verification
+    const ACTIVE_NETWORK = 'testnet'; // TESTNET ← Mainnet ke liye: 'mainnet' kar do
     state.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
       manifestUrl: 'https://crypton-app-omega.vercel.app/tonconnect-manifest.json',
       network: ACTIVE_NETWORK,
@@ -3930,7 +3930,11 @@ function simulateFill(level) {
   });
 }
 
-const ADMIN_WALLET_ADDRESS = '0QAyWRljtSjBqPGeKkBhDRo5v6foXKz81L3Yo79UuCzg6zqy'; // testnet
+// ── NETWORK SWITCH ──────────────────────────────────────────────────────────
+// TESTNET  → 0QAyWRljtSjBqPGeKkBhDRo5v6foXKz81L3Yo79UuCzg6zqy
+// MAINNET  → Apna mainnet wallet address yahan replace karo (UQ... ya EQ...)
+// ────────────────────────────────────────────────────────────────────────────
+const ADMIN_WALLET_ADDRESS = '0QAyWRljtSjBqPGeKkBhDRo5v6foXKz81L3Yo79UuCzg6zqy'; // ← TESTNET
 
 async function buySlot(level, priceTon) {
   if (!state.connected)    { showToast('Connect wallet first'); return; }
@@ -3983,6 +3987,7 @@ async function buySlot(level, priceTon) {
         const bocBase64 = result.boc; // base64-encoded BOC from TonConnect
         if (bocBase64) {
           // Compute hash from BOC using TON Center API
+          // TESTNET: testnet.toncenter.com | MAINNET: toncenter.com (remove "testnet.")
           const TON_API_BASE = 'https://testnet.toncenter.com/api/v2';
           // Poll for tx confirmation (up to 60 seconds, every 4 seconds)
           const maxAttempts = 15;
@@ -4578,6 +4583,10 @@ async function handleVerifyAndCreate() {
       nonWorkingIncome: 0,
       totalTon:         0,
       activeSlots:      [],
+      slotProgress:     {},               // tracks fill count per level (e.g. {1: 3, 2: 1})
+      airdropBonus:     0,                // admin-credited airdrop share
+      airdropEligible:  false,            // set true when Level 4/8/10 activated
+      // payoutStatus intentionally not set at creation — Firestore rules only allow 'PAID' or null
       referralCounted:  false,            // set true on first wallet connect (loginUser)
       joinedAt:         serverTimestamp(),
     });
@@ -4775,6 +4784,11 @@ function _authSuccess(docId, cryptonId, name) {
 
 function handleLogout() {
   stopDashboardListener();
+
+  // LOGOUT = session clear + login page pe redirect.
+  // Wallet DISCONNECT NAHI HOGA — user ka wallet intact rehta hai.
+  // Agar user dobara login kare aur wallet already connected ho, woh
+  // seedha dashboard pe jaayega (tryAutoLogin handle karega).
   localStorage.removeItem('crypton_session');
 
   state.connected          = false;
@@ -4785,16 +4799,21 @@ function handleLogout() {
   state.tgUsername         = null;
   state.cachedReferredBy   = null;
   state._referrerWallet    = null;
-  state.activeSlots         = [];
-  state.totalTon          = 0;
-  state.workingIncome         = 0;
-  state.nonWorkingIncome         = 0;
-  state.directReferrals          = 0;
+  state.activeSlots        = [];
+  state.totalTon           = 0;
+  state.workingIncome      = 0;
+  state.nonWorkingIncome   = 0;
+  state.directReferrals    = 0;
   state.teamSize           = 0;
   Object.keys(slotFill).forEach(k => delete slotFill[k]);
   Object.keys(slotReferrals).forEach(k => delete slotReferrals[k]);
   sessionStorage.removeItem('ref');
   buySlot._writing = false;
+
+  // Also clear TonConnect session so wallet doesn't auto-reconnect on next login
+  if (state.tonConnectUI) {
+    try { state.tonConnectUI.disconnect(); } catch(_e) {}
+  }
 
   const heroEl = document.getElementById('hero-section');
   const dashEl = document.getElementById('dashboard');
@@ -4820,6 +4839,7 @@ function handleLogout() {
 
   resetStats();
   renderSlots();
+  closeFabMenu();
 
   ['reg-name','reg-email','reg-error','login-email','login-phrase','login-error','confirm-key-input','confirm-key-error','key-error'].forEach(id => {
     const el = document.getElementById(id);
@@ -4881,9 +4901,8 @@ function handleLogout() {
   }
   showAuthTab('register');
   switchView('home');
-  showToast('Logged out successfully');
+  showToast('Logged out. Please login again.');
 }
-
 function _showDashboardAfterWallet(docId, cryptonId, name) {
   // Final safety check: wallet MUST be connected to show dashboard
   if (!state.connected || !state.walletAddress) {
@@ -5032,31 +5051,12 @@ async function tryAutoLogin() {
 setTimeout(tryAutoLogin, 800); // faster start — TONConnect restore begins immediately
 
 async function loginUser(walletAddress) {
+  // In web context (non-Telegram), TG SDK ID is always empty.
+  // We rely on sessionDocId from localStorage instead.
+  // tgIdFromSDK is kept for compatibility but no longer blocks execution.
   let tgIdFromSDK = String(
     window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || ''
   );
-
-  if (!tgIdFromSDK) {
-    for (let attempt = 0; attempt < 3; attempt++) {
-      await new Promise(r => setTimeout(r, 500));
-      tgIdFromSDK = String(
-        window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || ''
-      );
-      if (tgIdFromSDK) {
-        break;
-      }
-    }
-  }
-
-  if (!tgIdFromSDK) {
-    tgIdFromSDK = walletAddress ? 'W_' + walletAddress.slice(-12) : '';
-    if (tgIdFromSDK) {
-    }
-  }
-
-  if (!tgIdFromSDK) {
-    updateStatsUI(); renderSlots(); return;
-  }
 
   try {
     await waitForFirestore();
@@ -5261,14 +5261,17 @@ async function loginUser(walletAddress) {
 }
 
 async function getReferralStats() {
-  const tgDocId = String(
-    window.Telegram?.WebApp?.initDataUnsafe?.user?.id || state.tgNumericId || ''
-  );
-  if (!tgDocId) return;
+  // Use session docId (cryptonId) — TG SDK ID is not available in web context
+  const session = (() => {
+    try { return JSON.parse(localStorage.getItem('crypton_session') || 'null'); }
+    catch(_) { return null; }
+  })();
+  const docId = session?.docId || state.cryptonId || null;
+  if (!docId) return;
   try {
     await waitForFirestore();
     const { doc, getDoc } = window.__fs;
-    const snap = await getDoc(doc(window.__db, 'users', tgDocId));
+    const snap = await getDoc(doc(window.__db, 'users', docId));
     if (snap.exists()) {
       const data = snap.data();
       state.directReferrals = data.directReferrals || 0;
@@ -5285,10 +5288,13 @@ async function renderReferralList() {
   const loading = document.getElementById('ref-list-loading');
   if (!inner) return;
 
-  const sdkId    = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-  const myTgId   = String(sdkId || state.tgNumericId || '').trim();
+  // Primary: use cryptonId (this is what gets stored in referredBy on registration)
+  // Fallback: TG numeric ID (legacy support)
+  const myCryptonId = state.cryptonId || null;
+  const sdkId       = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+  const myTgId      = String(sdkId || state.tgNumericId || '').trim();
 
-  if (!myTgId || myTgId === 'null' || myTgId === 'undefined') {
+  if (!myCryptonId && (!myTgId || myTgId === 'null' || myTgId === 'undefined')) {
     if (loading) loading.textContent = '';
     inner.innerHTML = '<div class="ref-list-empty">No referrals yet.<br>Share your referral link to invite friends!</div>';
     return;
@@ -5301,19 +5307,22 @@ async function renderReferralList() {
     const { collection, query, where, getDocs } = window.__fs;
     const db = window.__db;
 
-    const q    = query(collection(db, 'users'), where('referredBy', '==', myTgId));
-    const snap = await getDocs(q);
-    let allRefDocs = snap.docs ? [...snap.docs] : [];
+    let allRefDocs = [];
 
-    if (allRefDocs.length === 0 && state.tgNumericId && state.tgNumericId !== myTgId) {
+    // Try cryptonId first (primary — this is what referral links use)
+    if (myCryptonId) {
+      const q1    = query(collection(db, 'users'), where('referredBy', '==', String(myCryptonId)));
+      const snap1 = await getDocs(q1);
+      if (snap1.docs && snap1.docs.length > 0) allRefDocs = [...snap1.docs];
+    }
+
+    // Fallback: try TG numeric ID (for accounts created before cryptonId system)
+    if (allRefDocs.length === 0 && myTgId && myTgId !== 'null' && myTgId !== 'undefined') {
       try {
-        const qFallback    = query(collection(db, 'users'), where('referredBy', '==', String(state.tgNumericId)));
-        const snapFallback = await getDocs(qFallback);
-        if (snapFallback?.docs?.length > 0) {
-          allRefDocs = [...snapFallback.docs];
-        }
-      } catch(_fe) {
-      }
+        const q2    = query(collection(db, 'users'), where('referredBy', '==', myTgId));
+        const snap2 = await getDocs(q2);
+        if (snap2.docs && snap2.docs.length > 0) allRefDocs = [...snap2.docs];
+      } catch(_fe) {}
     }
 
     if (allRefDocs.length === 0) {
@@ -5731,11 +5740,16 @@ async function fetchLeaderboard() {
 }
 
 function enterPreviewMode() {
+  // Agar already connected hai to preview nahi dikhana, seedha dashboard dikhao
+  if (state.connected && state.walletAddress) {
+    switchView('home');
+    return;
+  }
+
   const heroEl = document.getElementById('hero-section');
   if (heroEl) heroEl.style.display = 'none';
 
   switchView('preview');
-
   pvResetSearch();
 }
 
@@ -5745,15 +5759,14 @@ function exitPreviewMode() {
   const homeView = document.getElementById('view-home');
   if (homeView) homeView.classList.add('active');
 
+  // Preview se exit hone ke baad ALWAYS hero/login page dikhao.
+  // Dashboard tab hi dikhega jab wallet connected ho — aur preview se
+  // exit karne ka matlab user connect karna chahta hai, dashboard nahi.
+  // Agar pehle se connected hai to bhi: wallet connect page se guzarna zaroori.
   const heroEl = document.getElementById('hero-section');
   const dashEl = document.getElementById('dashboard');
-  if (!state.connected) {
-    if (heroEl) heroEl.style.display = 'block';
-    if (dashEl) dashEl.style.display = 'none';
-  } else {
-    if (heroEl) heroEl.style.display = 'none';
-    if (dashEl) dashEl.style.display = 'block';
-  }
+  if (heroEl) heroEl.style.display = 'block';
+  if (dashEl) dashEl.style.display = 'none';
 
   ['matrix','referral','profile','search','preview','leaderboard'].forEach(function(n) {
     var btn = document.getElementById('back-' + n);
