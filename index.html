@@ -2685,28 +2685,25 @@
         </div>
       </div>
 
-      <div class="srch-income-working">
-        <div class="srch-hic-body">
-          <div class="srch-hic-icon">❂</div>
-          <div class="srch-hic-info">
-            <div class="srch-hic-label">WORKING INCOME</div>
-            <div class="srch-hic-val" id="srch-working-val">0.00</div>
-            <div class="srch-hic-ton" id="srch-working-sub">TON</div>
+      <div class="home-income-card home-income-working" style="margin-top:14px; margin-bottom:0; border-radius:20px 20px 0 0;">
+        <div class="hic-body">
+          <div class="hic-icon">⛁</div>
+          <div class="hic-info">
+            <div class="hic-label">DOWNLINE INCOME (50%)</div>
+            <div class="hic-val" id="srch-working-val">0.00</div>
+            <div class="hic-ton" id="srch-working-sub">TON</div>
           </div>
         </div>
       </div>
 
-      <div class="srch-income-nonworking">
-        <div class="srch-hic-body">
-          <div class="srch-hic-icon">♾</div>
-          <div class="srch-hic-info">
-            <div class="srch-hic-label">NON WORKING INCOME</div>
-            <div class="srch-hic-val" id="srch-passive-val">0.00</div>
-            <div class="srch-hic-ton" id="srch-passive-sub">TON</div>
+      <div class="home-income-card" style="margin-top:0; margin-bottom:14px; border-radius:0 0 20px 20px; background:linear-gradient(160deg,#0f3d46 0%,#0a2d35 60%,#071f26 100%); border:1.5px solid rgba(0,180,210,0.30); border-top:1px solid rgba(255,255,255,0.06);">
+        <div class="hic-body">
+          <div class="hic-icon">🏆</div>
+          <div class="hic-info">
+            <div class="hic-label" style="color:rgba(0,229,255,0.75);">TOTAL INCOME</div>
+            <div class="hic-val" id="srch-passive-val" style="color:#00e5ff;">0.00</div>
+            <div class="hic-ton" id="srch-passive-sub" style="color:rgba(0,229,255,0.60);">Referral + Airdrop Bonus</div>
           </div>
-        </div>
-        <div class="srch-hic-belt">
-          <span class="srch-hic-belt-text">PASSIVE · MATRIX SPILLOVER</span>
         </div>
       </div>
 
@@ -4728,6 +4725,9 @@ function _authSuccess(docId, cryptonId, name) {
 
   const heroEl = document.getElementById('hero-section');
   if (heroEl) {
+    heroEl.style.display = 'block'; // ← FIX: blank screen bug — hero must be visible
+    const dashEl2 = document.getElementById('dashboard');
+    if (dashEl2) dashEl2.style.display = 'none';
     const authCard = document.getElementById('auth-card');
     if (authCard) {
       authCard.innerHTML = `
@@ -5960,28 +5960,25 @@ async function pvDoSearch() {
         </div>
       </div>
 
-      <div class="srch-income-working">
-        <div class="srch-hic-body">
-          <div class="srch-hic-icon">❂</div>
-          <div class="srch-hic-info">
-            <div class="srch-hic-label">WORKING INCOME</div>
-            <div class="srch-hic-val">${fmtT(workingTon)}</div>
-            <div class="srch-hic-ton">${workingSub}</div>
+      <div class="home-income-card home-income-working" style="margin-top:14px; margin-bottom:0; border-radius:20px 20px 0 0;">
+        <div class="hic-body">
+          <div class="hic-icon">⛁</div>
+          <div class="hic-info">
+            <div class="hic-label">DOWNLINE INCOME (50%)</div>
+            <div class="hic-val">${fmtT(workingTon)}</div>
+            <div class="hic-ton">${workingSub}</div>
           </div>
         </div>
       </div>
 
-      <div class="srch-income-nonworking">
-        <div class="srch-hic-body">
-          <div class="srch-hic-icon">♾</div>
-          <div class="srch-hic-info">
-            <div class="srch-hic-label">NON WORKING INCOME</div>
-            <div class="srch-hic-val">${fmtT(passiveTon)}</div>
-            <div class="srch-hic-ton">${passiveSub}</div>
+      <div class="home-income-card" style="margin-top:0; margin-bottom:14px; border-radius:0 0 20px 20px; background:linear-gradient(160deg,#0f3d46 0%,#0a2d35 60%,#071f26 100%); border:1.5px solid rgba(0,180,210,0.30); border-top:1px solid rgba(255,255,255,0.06);">
+        <div class="hic-body">
+          <div class="hic-icon">🏆</div>
+          <div class="hic-info">
+            <div class="hic-label" style="color:rgba(0,229,255,0.75);">TOTAL INCOME</div>
+            <div class="hic-val" style="color:#00e5ff;">${fmtT(workingTon + passiveTon)}</div>
+            <div class="hic-ton" style="color:rgba(0,229,255,0.60);">${TON_TO_USD ? fmtT(workingTon+passiveTon)+' TON  ≈ $'+(((workingTon+passiveTon)*TON_TO_USD).toFixed(2)) : 'Referral + Airdrop Bonus'}</div>
           </div>
-        </div>
-        <div class="srch-hic-belt">
-          <span class="srch-hic-belt-text">PASSIVE · MATRIX SPILLOVER</span>
         </div>
       </div>
 
@@ -6383,15 +6380,18 @@ async function doSearchUser() {
     document.getElementById('srch-direct-val').textContent = userData.directReferrals || 0;
     document.getElementById('srch-team-val').textContent   = userData.teamSize  || 0;
 
+    // DOWNLINE INCOME = workingIncome (50% referral)
     document.getElementById('srch-working-val').textContent = fmtT(workingTon);
     document.getElementById('srch-working-sub').textContent = TON_TO_USD
       ? fmtT(workingTon) + ' TON  ≈ $' + (workingTon * TON_TO_USD).toFixed(2)
       : fmtT(workingTon) + ' TON';
 
-    document.getElementById('srch-passive-val').textContent = fmtT(passiveTon);
+    // TOTAL INCOME = working + passive (nonWorking)
+    const srchTotalIncome = workingTon + passiveTon;
+    document.getElementById('srch-passive-val').textContent = fmtT(srchTotalIncome);
     document.getElementById('srch-passive-sub').textContent = TON_TO_USD
-      ? fmtT(passiveTon) + ' TON  ≈ $' + (passiveTon * TON_TO_USD).toFixed(2)
-      : fmtT(passiveTon) + ' TON';
+      ? fmtT(srchTotalIncome) + ' TON  ≈ $' + (srchTotalIncome * TON_TO_USD).toFixed(2)
+      : 'Referral + Airdrop Bonus';
 
     document.getElementById('srch-result-area').style.display = 'block';
     await renderSearchDownline(String(displayUid));
