@@ -19,7 +19,7 @@
              query, orderBy, where, limit, getDocs,
              addDoc, deleteDoc, serverTimestamp,
              Timestamp, getCountFromServer,
-             arrayUnion, writeBatch }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+             arrayUnion, writeBatch, onSnapshot }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey:            "AIzaSyBgUDDlOJR_xgPwQq7e89ISWRbGEo2CoNk",
@@ -37,7 +37,7 @@
     window.__fs = { doc, getDoc, setDoc, updateDoc, increment,
                     collection, query, orderBy, where, limit, getDocs,
                     addDoc, deleteDoc, serverTimestamp, Timestamp,
-                    getCountFromServer, arrayUnion, writeBatch };
+                    getCountFromServer, arrayUnion, writeBatch, onSnapshot };
 
   </script>
 
@@ -2979,15 +2979,6 @@
     </span>
     <span style="color:var(--red);">Disconnect</span>
   </button>
-  <button class="fab-menu-item" id="fmi-logout" onclick="closeFabMenu(); handleLogout();" style="padding-top:6px; color:rgba(255,77,109,0.65);">
-    <span class="fab-menu-icon" style="color:rgba(255,77,109,0.65);">
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"/>
-        <path d="M15 9l-6 6M9 9l6 6"/>
-      </svg>
-    </span>
-    <span style="color:rgba(255,77,109,0.65);">Log Out</span>
-  </button>
   <button class="fab-menu-close" onclick="closeFabMenu()" aria-label="Close">✕</button>
 </div>
 
@@ -3236,6 +3227,7 @@ async function connectWallet() {
 }
 
 async function disconnectWallet() {
+  stopDashboardListener();
   // ── Step 1: Remove walletAddress from Firestore (session stays intact) ──
   try {
     const session = (() => {
@@ -4179,6 +4171,27 @@ async function buySlot(level, priceTon) {
 
             await batch.commit();
 
+            // ── Slot 5 / 6 full: write payout request to Firestore ──
+            // When buyer's Level 5 or 6 fills completely (6/6), send 100% to
+            // their referrer so they can upgrade to the next level.
+            // Admin panel picks this up under "Payout Requests".
+            if ((level === 5 || level === 6) && newFillDB >= 6) {
+              try {
+                const { collection: _col, addDoc: _add, serverTimestamp: _sts } = window.__fs;
+                await _add(_col(_db, 'payoutRequests'), {
+                  type:          'slotFull',
+                  level,
+                  buyerDocId:    _bsDocId,
+                  referrerId:    directRefId || null,
+                  amount:        priceTon,       // 100% goes to referrer for upgrade
+                  status:        'pending',
+                  createdAt:     _sts(),
+                });
+              } catch(_prErr) {
+                console.warn('[BuySlot] payoutRequest write failed:', _prErr.message);
+              }
+            }
+
             // ── Only update local UI AFTER successful DB commit ──
             if (!state.activeSlots.includes(level)) state.activeSlots.push(level);
             slotFill[level] = newFillDB;
@@ -4237,6 +4250,64 @@ function waitForFirestore(timeout = 15000) {
       else if (Date.now() - start > timeout) { clearInterval(check); reject(new Error('Firestore timeout')); }
     }, 80);
   });
+}
+
+// ── Real-time dashboard subscription ──────────────────────────────────────────
+// Subscribes to the user's Firestore doc so that income, slots, and totals
+// update live without requiring a manual refresh. Call once after login.
+let _dashUnsubscribe = null;
+
+function startDashboardListener(docId) {
+  // Cancel any existing listener first
+  if (_dashUnsubscribe) { try { _dashUnsubscribe(); } catch(_) {} _dashUnsubscribe = null; }
+  if (!docId) return;
+
+  waitForFirestore().then(() => {
+    const { doc: _d, onSnapshot: _os } = window.__fs;
+    const db = window.__db;
+    _dashUnsubscribe = _os(_d(db, 'users', docId), (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+
+      // Update state from live snapshot
+      state.totalTon         = typeof data.totalTon         === 'number' ? data.totalTon         : state.totalTon;
+      state.workingIncome    = typeof data.workingIncome    === 'number' ? data.workingIncome    : state.workingIncome;
+      state.nonWorkingIncome = typeof data.nonWorkingIncome === 'number' ? data.nonWorkingIncome : state.nonWorkingIncome;
+      state.directReferrals  = typeof data.directReferrals  === 'number' ? data.directReferrals  : state.directReferrals;
+      state.teamSize         = typeof data.teamSize         === 'number' ? data.teamSize         : state.teamSize;
+      state.airdropBonus     = typeof data.airdropBonus     === 'number' ? data.airdropBonus     : state.airdropBonus;
+
+      // Merge active slots
+      if (Array.isArray(data.activeSlots)) {
+        const liveSlots = data.activeSlots.map(Number);
+        liveSlots.forEach(s => { if (!state.activeSlots.includes(s)) state.activeSlots.push(s); });
+        state.activeSlots = [...new Set([...state.activeSlots, ...liveSlots])];
+      }
+
+      // Merge slotProgress
+      if (data.slotProgress && typeof data.slotProgress === 'object') {
+        Object.entries(data.slotProgress).forEach(([k, v]) => {
+          const ln = parseInt(k, 10);
+          if (!isNaN(ln) && ln > 0) slotFill[ln] = parseInt(v, 10) || 0;
+        });
+      }
+
+      // Wallet address sync
+      if (data.walletAddress && !state.walletAddress) {
+        state.walletAddress = data.walletAddress;
+      }
+
+      updateStatsUI();
+      renderSlots();
+      updateLevelBar();
+    }, (err) => {
+      console.warn('[DashListener] onSnapshot error:', err.message);
+    });
+  }).catch(() => {});
+}
+
+function stopDashboardListener() {
+  if (_dashUnsubscribe) { try { _dashUnsubscribe(); } catch(_) {} _dashUnsubscribe = null; }
 }
 
 function withTimeout(promise, ms, fallbackMsg) {
@@ -4703,6 +4774,7 @@ function _authSuccess(docId, cryptonId, name) {
 }
 
 function handleLogout() {
+  stopDashboardListener();
   localStorage.removeItem('crypton_session');
 
   state.connected          = false;
@@ -4866,6 +4938,10 @@ function _showDashboardAfterWallet(docId, cryptonId, name) {
   updateStatsUI();
   renderSlots();
   renderTicker();
+
+  // Start real-time Firestore listener for live dashboard updates
+  const _listenerDocId = docId || state.cryptonId || null;
+  if (_listenerDocId) startDashboardListener(String(_listenerDocId));
 
   showToast('Welcome, ' + (name || 'User') + '! 🎉');
 }
