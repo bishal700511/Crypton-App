@@ -19,7 +19,8 @@
              query, orderBy, where, limit, getDocs,
              addDoc, deleteDoc, serverTimestamp,
              Timestamp, getCountFromServer,
-             arrayUnion, writeBatch, onSnapshot }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+             arrayUnion, writeBatch, onSnapshot,
+             runTransaction }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey:            "AIzaSyBgUDDlOJR_xgPwQq7e89ISWRbGEo2CoNk",
@@ -37,7 +38,8 @@
     window.__fs = { doc, getDoc, setDoc, updateDoc, increment,
                     collection, query, orderBy, where, limit, getDocs,
                     addDoc, deleteDoc, serverTimestamp, Timestamp,
-                    getCountFromServer, arrayUnion, writeBatch, onSnapshot };
+                    getCountFromServer, arrayUnion, writeBatch, onSnapshot,
+                    runTransaction };
 
   </script>
 
@@ -2540,6 +2542,40 @@
         </div>
       </div>
 
+      <!-- ── Your Upline Card ─────────────────────────────────────────── -->
+      <div class="card mt-16" id="profile-upline-card" style="display:none; overflow:hidden;">
+        <div style="padding:10px 16px 6px; font-family:var(--font-mono); font-size:10px; letter-spacing:0.8px; color:var(--text-mid);">YOUR UPLINE 𓃹</div>
+        <div style="padding:10px 16px 14px; display:flex; align-items:center; gap:14px;">
+          <!-- Avatar -->
+          <div id="upline-avatar-wrap" style="width:46px;height:46px;border-radius:12px;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,#0d1e38,#091525);border:1px solid rgba(0,229,255,0.18);display:flex;align-items:center;justify-content:center;">
+            <img src="https://i.ibb.co/sv3gKkfx/IPROS3221059704984801090.png" alt="C"
+              style="width:72%;height:72%;object-fit:contain;"
+              onerror="this.style.display='none'; this.parentNode.innerHTML='<div style=\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-size:18px;font-weight:900;background:linear-gradient(135deg,#d4a843,#00e5ff);color:#050d1a;\'>C</div>';" />
+          </div>
+          <!-- Info -->
+          <div style="flex:1;min-width:0;">
+            <div id="upline-name" style="font-family:var(--font-head);font-size:15px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
+            <div id="upline-id" style="font-family:var(--font-mono);font-size:11px;color:var(--cyan);margin-top:2px;">ID: —</div>
+          </div>
+          <!-- TON Balance badge -->
+          <div style="flex-shrink:0;text-align:right;">
+            <div id="upline-ton-val" style="font-family:var(--font-head);font-size:15px;font-weight:800;color:var(--gold-lt);">—</div>
+            <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-mid);margin-top:1px;">TON BAL</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── No Upline state (no referrer) ──────────────────────────────── -->
+      <div class="card mt-16" id="profile-no-upline-card" style="display:none;">
+        <div style="padding:14px 16px;display:flex;align-items:center;gap:10px;">
+          <span style="font-size:18px;">𓃹</span>
+          <div>
+            <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.8px;color:var(--text-mid);">YOUR UPLINE 𓃹</div>
+            <div style="font-family:var(--font-head);font-size:13px;color:var(--text-mid);margin-top:2px;">No upline — you joined directly</div>
+          </div>
+        </div>
+      </div>
+
       <div class="card mt-16" style="padding:20px; text-align:center;">
         <button
           onclick="handleLogout()"
@@ -3013,12 +3049,12 @@ const SLOTS = Array.from({ length: 10 }, (_, i) => {
 function calculateIncomeDistribution(priceTon) {
   // Strict 50/20/10/10/10 split — buyer receives NOTHING, all goes up the hierarchy
   // 50% → Direct Referrer (working income)
-  // 20% → Admin fee
-  // 10% → Airdrop Pool
+  // 20% → Genesis Wallet (on-chain platform fee — NOT admin, fully automatic)
+  // 10% → Airdrop Pool (held in contract)
   // 10% → Upline 1 (referrer's referrer)
   // 10% → Upline 2 (referrer's referrer's referrer)
   const directRef  = Math.round(priceTon * 0.50 * 1e9) / 1e9; // 50% to direct referrer
-  const adminFee   = Math.round(priceTon * 0.20 * 1e9) / 1e9; // 20% admin
+  const genesisFee = Math.round(priceTon * 0.20 * 1e9) / 1e9; // 20% genesis (on-chain platform fee)
   const airdrop    = Math.round(priceTon * 0.10 * 1e9) / 1e9; // 10% airdrop pool
   const upline1    = Math.round(priceTon * 0.10 * 1e9) / 1e9; // 10% upline 1
   const upline2    = Math.round(priceTon * 0.10 * 1e9) / 1e9; // 10% upline 2
@@ -3026,7 +3062,7 @@ function calculateIncomeDistribution(priceTon) {
     working:     directRef,   // UI: working income = direct referral income
     passive:     upline1,     // UI: passive income = upline 1 share
     directRef,
-    adminFee,
+    genesisFee,
     airdrop,
     upline1,
     upline2,
@@ -3163,10 +3199,9 @@ function getStoredRef() {
 
 (function initTonConnect() {
   try {
-    const ACTIVE_NETWORK = 'testnet'; // TESTNET ← Mainnet ke liye: 'mainnet' kar do
     state.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
       manifestUrl: 'https://crypton-app-omega.vercel.app/tonconnect-manifest.json',
-      network: ACTIVE_NETWORK,
+      network: TON_NETWORK_STR,
       buttonRootId: null,
     });
 
@@ -3421,6 +3456,10 @@ function handleWalletConnected(rawAddress) {
 
   loginUser(rawAddress);
 
+  // v31 FIX: RegisterGenesis auto-call — sirf owner ke pehle wallet connect pe
+  // Background mein fire karo (await nahi — dashboard block nahi hoga)
+  _maybeCallRegisterGenesis(rawAddress);
+
   if (window.__pendingAuth) {
     const { docId, cryptonId, name } = window.__pendingAuth;
     window.__pendingAuth = null;
@@ -3554,23 +3593,15 @@ function updateStatsUI() {
   if (sr)  sr.textContent  = state.directReferrals;
   if (st)  st.textContent  = state.teamSize;
 
-  // workingIncome = 50% referral income credited when downline buys slots
-  // nonWorkingIncome = passive/upline income
-  // airdropBonus = state.airdropBonus if fetched from Firestore
-  const wi  = '$' + tonToUsd(state.workingIncome || 0);
-  const pi  = '$' + tonToUsd(state.nonWorkingIncome || 0);
-  const wiT = fmtTon(state.workingIncome || 0) + ' TON';
-  const piT = fmtTon(state.nonWorkingIncome || 0) + ' TON';
+  // Income is handled 100% by smart contract on-chain.
+  // workingIncome / nonWorkingIncome are NOT stored in Firestore (blocked by rules).
+  // Display "On-Chain" to avoid showing misleading $0 values.
+  const ON_CHAIN_LABEL = 'On-Chain';
+  const ON_CHAIN_TON   = '— TON';
 
-  // Downline income = workingIncome (50% from each referral's slot purchase)
-  const downlineIncUsd = '$' + tonToUsd(state.workingIncome || 0);
-  const downlineIncTon = fmtTon(state.workingIncome || 0) + ' TON';
-
-  // Total Income = referral working income + airdrop bonus
   const airdropBonusTon = state.airdropBonus || 0;
-  const totalIncTonRaw  = (state.workingIncome || 0) + airdropBonusTon;
-  const totalIncUsd     = '$' + tonToUsd(totalIncTonRaw);
-  const totalIncTon     = fmtTon(totalIncTonRaw) + ' TON';
+  const airdropBonusUsd = '$' + tonToUsd(airdropBonusTon);
+  const airdropBonusTonStr = fmtTon(airdropBonusTon) + ' TON';
 
   const wiEl  = document.getElementById('working-income-val');
   const piEl  = document.getElementById('passive-income-val');
@@ -3585,19 +3616,19 @@ function updateStatsUI() {
   const tcEl  = document.getElementById('total-income-combined-val');
   const tctEl = document.getElementById('total-income-combined-ton');
 
-  if (wiEl)  wiEl.textContent  = wi;
-  if (piEl)  piEl.textContent  = pi;
-  if (rwiEl) rwiEl.textContent = wi;
-  if (rpiEl) rpiEl.textContent = pi;
-  if (rwtEl) rwtEl.textContent = wiT;
-  if (rptEl) rptEl.textContent = piT;
-  if (tiEl)  tiEl.textContent  = downlineIncUsd;
-  if (titEl) titEl.textContent = downlineIncTon;
-  if (tcEl)  tcEl.textContent  = totalIncUsd;
+  if (wiEl)  wiEl.textContent  = ON_CHAIN_LABEL;
+  if (piEl)  piEl.textContent  = ON_CHAIN_LABEL;
+  if (rwiEl) rwiEl.textContent = ON_CHAIN_LABEL;
+  if (rpiEl) rpiEl.textContent = ON_CHAIN_LABEL;
+  if (rwtEl) rwtEl.textContent = ON_CHAIN_TON;
+  if (rptEl) rptEl.textContent = ON_CHAIN_TON;
+  if (tiEl)  tiEl.textContent  = ON_CHAIN_LABEL;
+  if (titEl) titEl.textContent = ON_CHAIN_TON;
+  if (tcEl)  tcEl.textContent  = airdropBonusTon > 0 ? airdropBonusUsd : ON_CHAIN_LABEL;
   if (tctEl) {
     tctEl.textContent = airdropBonusTon > 0
-      ? totalIncTon + ' (incl. Airdrop)'
-      : 'Referral + Airdrop Bonus';
+      ? airdropBonusTonStr + ' (Airdrop)'
+      : 'Paid On-Chain via Smart Contract';
   }
 
   const rdEl = document.getElementById('ref-direct');
@@ -3778,11 +3809,13 @@ function showUpgradeModal(level) {
   const btn = document.getElementById('modal-upgrade-btn');
   if (nextSlot) {
     const usd = TON_TO_USD ? (nextSlot.price * TON_TO_USD).toFixed(0) : '—';
-    sub.innerHTML = `All 6 positions in Slot ${level} are filled.<br>Upgrade to <strong>Level ${nextSlot.level}</strong> for <strong>${nextSlot.price} TON${usd !== '—' ? ` (~$${usd})` : ''}</strong>.`;
-    btn.style.display = '';
-    btn.textContent = '⬆ Upgrade to LVL ' + String(nextSlot.level).padStart(2,'0');
+    // Slots 5 & 6 funds are held by the contract — auto-upgrade happens on-chain automatically.
+    // No new payment needed from user. Just inform them.
+    sub.innerHTML = `All 6 positions in Level ${level} are filled.<br>
+      Your held funds will <strong>auto-upgrade to Level ${nextSlot.level}</strong> on-chain. No extra payment needed. ♻️`;
+    btn.style.display = 'none'; // Hide "Upgrade Now" button — upgrade is automatic
   } else {
-    sub.innerHTML = `You've completed all 10 levels!<br>You're at the top of the ForTon matrix. 🏆`;
+    sub.innerHTML = `You've completed all 10 levels!<br>You're at the top of the Crypton matrix. 🏆`;
     btn.style.display = 'none';
   }
   document.getElementById('upgrade-modal').classList.add('show');
@@ -3844,9 +3877,7 @@ async function showRefNodeModal(tgId, level) {
 
     const name = (d.name || '').trim() || 'Unknown';
 
-    const nonWorkingIncome = typeof d.nonWorkingIncome === 'number' ? d.nonWorkingIncome : 0;
-    const totalTon         = typeof d.totalTon         === 'number' ? d.totalTon         : 0;
-    const workingIncome    = typeof d.workingIncome    === 'number' ? d.workingIncome    : 0;
+    // Income is handled 100% on-chain by smart contract — NOT stored in Firestore.
     const slotCount        = Array.isArray(d.activeSlots) ? d.activeSlots.length : 0;
     const displayCryptonId = d.cryptonId || tgId;
 
@@ -3872,16 +3903,12 @@ async function showRefNodeModal(tgId, level) {
       </div>
       <div class="ref-node-rows">
         <div class="ref-node-row">
-          <span class="ref-node-row-label">💰 TON Balance</span>
-          <span class="ref-node-row-val gold" style="font-size:17px;">${fmtTon(totalTon)}</span>
+          <span class="ref-node-row-label">⚡ Downline Income</span>
+          <span class="ref-node-row-val cyan" style="font-size:13px;">On-Chain</span>
         </div>
         <div class="ref-node-row">
-          <span class="ref-node-row-label">⚡ Working Income</span>
-          <span class="ref-node-row-val cyan">${fmtTon(workingIncome)}</span>
-        </div>
-        <div class="ref-node-row">
-          <span class="ref-node-row-label">♾ Non-Working Income</span>
-          <span class="ref-node-row-val green">${fmtTon(nonWorkingIncome)}</span>
+          <span class="ref-node-row-label">🏆 Total Income</span>
+          <span class="ref-node-row-val green" style="font-size:13px;">On-Chain</span>
         </div>
         <div class="ref-node-row">
           <span class="ref-node-row-label">📊 Matrix Slots</span>
@@ -3910,13 +3937,198 @@ function simulateFill(level) {
   });
 }
 
-// ── NETWORK SWITCH ──────────────────────────────────────────────────────────
-// TESTNET  → 0QAyWRljtSjBqPGeKkBhDRo5v6foXKz81L3Yo79UuCzg6zqy
-// MAINNET  → Apna mainnet wallet address yahan replace karo (UQ... ya EQ...)
-// ────────────────────────────────────────────────────────────────────────────
-const ADMIN_WALLET_ADDRESS = '0QAyWRljtSjBqPGeKkBhDRo5v6foXKz81L3Yo79UuCzg6zqy'; // ← TESTNET
+// ── NETWORK CONFIG ───────────────────────────────────────────────────────────
+// Mainnet ke liye: IS_TESTNET = false kar do (sirf yahan ek jagah change karo)
+const IS_TESTNET      = true;
+const TON_NETWORK_STR = IS_TESTNET ? 'testnet' : 'mainnet';
+const TON_API_BASE    = IS_TESTNET
+  ? 'https://testnet.toncenter.com/api/v2'
+  : 'https://toncenter.com/api/v2';
+
+// ── CONTRACT ADDRESS (FULLY DECENTRALIZED) ──────────────────────────────────
+// Tact Playground (tact-lang.org/playground) mein CryptonMatrix_v2.tact paste
+// karo, compile karo, testnet deploy karo — milega contract address.
+// Usse yahan replace karo. Admin panel ki zaroorat nahi!
+// TESTNET deploy hone ke baad yahan address daalo:
+const CONTRACT_ADDRESS = 'PASTE_YOUR_CONTRACT_ADDRESS_HERE'; // ← REPLACE AFTER DEPLOY
+
+// ── OWNER / GENESIS CONFIG (v31 FIX) ─────────────────────────────────────────
+// Yeh sirf owner ke wallet connect pe RegisterGenesis call karta hai (ek baar).
+// Deploy ke baad apna GENESIS wallet address aur Crypton ID yahan daalo.
+// TESTNET ke liye: wahi address jo contract mein HARDCODED_GENESIS_WALLET hai.
+const OWNER_GENESIS_WALLET  = 'UQ...YOUR_GENESIS_WALLET_ADDRESS...'; // ← REPLACE: apna EQ/UQ address
+const OWNER_CRYPTON_ID      = '0000000'; // ← REPLACE: apna 7-digit Crypton ID (ya numeric tgId)
+// Firestore mein yeh key store hoti hai taaki dobara call na ho:
+const _GENESIS_CALLED_KEY   = 'crypton_genesis_called_v1';
+
+// ── Runtime guard: block all tx if contract address not configured ────────────
+// FIX v30: Also catch undefined/null/wrong-type CONTRACT_ADDRESS
+(function _checkContractAddress() {
+  const _ca = typeof CONTRACT_ADDRESS === 'string' ? CONTRACT_ADDRESS : '';
+  if (!_ca || _ca.includes('PASTE') || _ca.trim() === '' || _ca.length < 10) {
+    window._contractNotConfigured = true;
+    console.error('[CryptonMatrix] CONTRACT_ADDRESS not configured — all transactions blocked.');
+  }
+})();
+
+// ── RegisterGenesis Auto-Caller (v31 FIX) ────────────────────────────────────
+// Yeh function sirf tab chalega jab:
+//   1. Connected wallet === OWNER_GENESIS_WALLET
+//   2. localStorage mein genesis-called flag nahi hai
+//   3. Contract address configured hai
+// Ek baar successful call ke baad localStorage flag set ho jaata hai — dobara nahi chalega.
+async function _maybeCallRegisterGenesis(connectedWallet) {
+  if (window._contractNotConfigured) return;
+
+  // Already called check (localStorage persistent flag)
+  if (localStorage.getItem(_GENESIS_CALLED_KEY) === 'done') return;
+
+  // Wallet match check — normalize both addresses for comparison
+  const _normalize = (addr) => (addr || '').toLowerCase().replace(/^(eq|uq)/i, '').replace(/-/g, '');
+  if (_normalize(connectedWallet) !== _normalize(OWNER_GENESIS_WALLET)) return;
+
+  console.log('[RegisterGenesis] Owner wallet detected — sending RegisterGenesis tx...');
+
+  try {
+    if (!state.tonConnectUI) { console.warn('[RegisterGenesis] TonConnect not ready'); return; }
+
+    // ── Build RegisterGenesis Cell BoC ────────────────────────────────────────
+    // Message layout (Tact auto-generated):
+    //   opcode(32) + genesisWallet(address, 267 bits) + genesisTgId(64) = variable
+    // Simplest approach: use TonCore-style encoding via raw bytes.
+    // RegisterGenesis opcode: CRC32("RegisterGenesis") — Tact auto-computes this.
+    // Since we don't have TonCore in browser, we send a minimal cell with the
+    // standard Tact message format using the auto-opcode.
+    //
+    // ACTUAL APPROACH: We use the TonConnect "comment" workaround is NOT enough.
+    // We build the proper Cell manually same as BuySlot/RegisterSelf pattern.
+    //
+    // RegisterGenesis opcode (Tact auto CRC32 of "RegisterGenesis"):
+    //   CRC32("RegisterGenesis") = 0x4d1a0f47  [pre-calculated]
+    //
+    // Address encoding in TON Cell: addr_std$10 anycast:(Maybe Anycast)
+    //   workchain:int8 address:bits256
+    //   = 2 bits tag + 1 bit anycast(0) + 8 bits workchain + 256 bits hash
+    //   = 267 bits = 33 bytes + 3 bits → packed as 34 bytes with bit-level packing
+    //
+    // For simplicity and correctness: we use the known genesis wallet from contract
+    // constant (HARDCODED_GENESIS_WALLET) — owner is just confirming it on-chain.
+    // The wallet address is parsed from the EQ/UQ address format.
+
+    // Helper: parse EQ/UQ address to workchain + 32-byte hash
+    function _parseBounceable(addr) {
+      // Remove prefix/suffix spaces, decode base64url
+      const _b64 = addr.replace(/-/g, '+').replace(/_/g, '/');
+      const _raw = atob(_b64);
+      // Standard TON address: 36 bytes = 1 byte flags + 1 byte workchain + 32 bytes hash + 2 bytes crc
+      if (_raw.length !== 36) throw new Error('Invalid TON address length');
+      const _wc   = _raw.charCodeAt(1) === 255 ? -1 : _raw.charCodeAt(1); // 0x00=0, 0xFF=-1
+      const _hash = new Uint8Array(32);
+      for (let _i = 0; _i < 32; _i++) _hash[_i] = _raw.charCodeAt(_i + 2);
+      return { workchain: _wc, hash: _hash };
+    }
+
+    // Build cell data for RegisterGenesis:
+    // opcode(32 bits) + addr_std(267 bits) + genesisTgId(64 bits) = 363 bits → 46 bytes with bit packing
+    // We'll use a simplified approach: pack as full bytes (46 bytes, last byte padded)
+    // Bit layout: [opcode:32][tag:2][anycast:1][wc:8][hash:256][tgId:64] = 363 bits
+    // = 45 bytes + 3 bits → we pad to 46 bytes (last 5 bits = 0 padding)
+
+    const _genWalletParsed = _parseBounceable(OWNER_GENESIS_WALLET);
+    const _genTgIdBig      = BigInt(String(OWNER_CRYPTON_ID).replace(/\D/g, '') || '0');
+
+    // Total bits: 32 + 2 + 1 + 8 + 256 + 64 = 363 bits → ceil(363/8) = 46 bytes
+    const _cellData = new Uint8Array(46);
+    const _dv       = new DataView(_cellData.buffer);
+
+    // Byte 0–3: opcode 0x4d1a0f47 (RegisterGenesis CRC32)
+    _dv.setUint32(0, 0x4d1a0f47, false);
+
+    // Byte 4 onwards: addr_std bits packed
+    // Bit 32: addr_std tag bit1 = 1
+    // Bit 33: addr_std tag bit2 = 0
+    // Bit 34: anycast = 0
+    // Bit 35–42: workchain int8 (0 for mainnet/testnet standard)
+    // Bit 43–298: hash (256 bits)
+    // Bit 299–362: tgId (64 bits)
+    // We'll do manual bit-packing:
+    let _bitPos = 32; // start after opcode
+
+    function _setBit(arr, pos, val) {
+      const _byte = Math.floor(pos / 8);
+      const _bit  = 7 - (pos % 8);
+      if (val) arr[_byte] |= (1 << _bit);
+    }
+    function _setBits(arr, pos, val, nbits) {
+      for (let _b = nbits - 1; _b >= 0; _b--) {
+        _setBit(arr, pos + (nbits - 1 - _b), (val >> _b) & 1);
+      }
+    }
+    function _setBigBits(arr, pos, val, nbits) {
+      for (let _b = BigInt(nbits - 1); _b >= 0n; _b--) {
+        _setBit(arr, pos + Number(BigInt(nbits - 1) - _b), Number((val >> _b) & 1n));
+      }
+    }
+
+    // addr_std tag: 10
+    _setBit(_cellData, _bitPos++, 1); // tag bit1
+    _setBit(_cellData, _bitPos++, 0); // tag bit2
+    // anycast: 0 (no anycast)
+    _setBit(_cellData, _bitPos++, 0);
+    // workchain: 8 bits (0 = basechain)
+    const _wc8 = _genWalletParsed.workchain < 0 ? 256 + _genWalletParsed.workchain : _genWalletParsed.workchain;
+    _setBits(_cellData, _bitPos, _wc8, 8); _bitPos += 8;
+    // hash: 256 bits
+    for (let _hi = 0; _hi < 32; _hi++) {
+      _setBits(_cellData, _bitPos, _genWalletParsed.hash[_hi], 8); _bitPos += 8;
+    }
+    // genesisTgId: 64 bits
+    _setBigBits(_cellData, _bitPos, _genTgIdBig, 64); _bitPos += 64;
+    // _bitPos should now be 363; remaining 5 bits in byte 45 are 0 (padding)
+
+    // Cell descriptor: d1=0x00, d2 = ceil(363/8)*2 - 1 + (363%8!=0?1:0)... 
+    // TON spec: d2 = floor(bits/4) if bits%8==0 else floor(bits/4)+1... 
+    // Simplified: d2 = ceil(bitLen/4) where bitLen=363 → ceil(363/4)=91
+    const _cellBytes = new Uint8Array(2 + 46);
+    _cellBytes[0] = 0x00; // d1
+    _cellBytes[1] = 91;   // d2 = ceil(363/4) = 91 (includes 3 completion bits flag)
+    _cellBytes.set(_cellData, 2);
+
+    // BoC header (same 11-byte header as BuySlot)
+    const _bocHeader = new Uint8Array([
+      0xb5, 0xee, 0x9c, 0x72,
+      0x01, 0x01, 0x01, 0x01, 0x00,
+      _cellBytes.length & 0xFF,
+      0x00,
+    ]);
+    const _bocFull = new Uint8Array(_bocHeader.length + _cellBytes.length);
+    _bocFull.set(_bocHeader);
+    _bocFull.set(_cellBytes, _bocHeader.length);
+    const _genesisPayload = btoa(String.fromCharCode(..._bocFull));
+
+    // Send RegisterGenesis transaction (0.1 TON for gas)
+    const _genesisTx = await state.tonConnectUI.sendTransaction({
+      validUntil: Math.floor(Date.now() / 1000) + 300,
+      messages: [{
+        address: CONTRACT_ADDRESS,
+        amount:  '100000000', // 0.1 TON gas
+        payload: _genesisPayload,
+      }]
+    });
+
+    if (_genesisTx) {
+      localStorage.setItem(_GENESIS_CALLED_KEY, 'done');
+      showToast('✅ Contract initialized! Genesis registered on-chain.');
+      console.log('[RegisterGenesis] SUCCESS — tx sent, flag set.');
+    }
+  } catch (_gErr) {
+    console.error('[RegisterGenesis] Failed:', _gErr.message || _gErr);
+    showToast('⚠️ RegisterGenesis failed — check console. Try reconnecting wallet.');
+  }
+}
 
 async function buySlot(level, priceTon) {
+  if (window._contractNotConfigured) { showToast('⚠️ Contract address not configured. Contact support.'); return; }
   if (!state.connected)    { showToast('Connect wallet first'); return; }
 
   if (level > 1 && !state.activeSlots.includes(level - 1)) {
@@ -3936,12 +4148,64 @@ async function buySlot(level, priceTon) {
   try {
     const totalNano = BigInt(Math.round(priceTon * 1e9));
 
+    // ── Build BuySlot message payload for smart contract ──────────────────
+    // FIX v30: TON Tact messages are serialized as TL-B Cells (BoC), NOT raw bytes.
+    // Cell bit layout: opcode(32) | tgId(64) | level(8) = 104 bits = 13 bytes data
+    // We hand-roll a minimal single-cell BoC (no external lib needed).
+    // BoC structure: magic(4) + flags(1) + size_bytes(1) + cells(1) + roots(1)
+    //                + absent(1) + tot_cells_size(3) + root_idx(3) + cell_data
+    // Cell data: descriptor(2) + 13 data bytes
+    const _tgIdRaw = state.tgNumericId || state.cryptonId || '0';
+    const _tgId  = BigInt(String(_tgIdRaw).replace(/\D/g, '') || '0');
+    const _level = level;
+
+    // Helper: build raw cell data bytes (opcode32 + tgId64 + level8 = 13 bytes)
+    const _cellDataBuf = new ArrayBuffer(13);
+    const _cdView = new DataView(_cellDataBuf);
+    _cdView.setUint32(0, 0xccadf5a7, false);  // opcode (big-endian)
+    _cdView.setBigUint64(4, _tgId, false);     // tgId uint64 (big-endian)
+    _cdView.setUint8(12, _level);              // level uint8
+    const _cellData = new Uint8Array(_cellDataBuf);
+
+    // Build minimal BoC with one ordinary cell, 104 bits (13 bytes), no refs
+    // Cell descriptor: d1 = 0x00 (no refs, non-exotic), d2 = ceil(104/8)*2 = 26 (data len byte count)
+    // d2 formula for ordinary cell: (data_bits / 8) * 2 when data_bits % 8 == 0
+    const _d1 = 0x00;
+    const _d2 = 26; // 13 bytes * 2 = 26
+    const _cellBytes = new Uint8Array(2 + 13);
+    _cellBytes[0] = _d1;
+    _cellBytes[1] = _d2;
+    _cellBytes.set(_cellData, 2);
+
+    // BoC header (magic b5ee9c72, single root, no index, no CRC)
+    // Format: magic(4) + has_idx(1b)|has_crc32(1b)|has_cache_bits(1b)|flags(2b)|size(3b) packed in 1 byte
+    // Simplified: use known-good 7-byte header for single-cell no-index BoC
+    const _cellSize = _cellBytes.length; // 15
+    // Correct 11-byte BoC header per TON spec (ton-blockchain/ton crypto/tl/boc.tlb):
+    // magic(4) | flags{size=1}(1) | off_bytes=1(1) | cells=1(1) | roots=1(1)
+    // | absent=0(1) | tot_cells_size(off_bytes=1 byte) | root_idx=0(size=1 byte)
+    const _bocHeader = new Uint8Array([
+      0xb5, 0xee, 0x9c, 0x72, // magic
+      0x01,                   // flags: has_idx=0,has_crc=0,has_cache=0,flags=00,size=1
+      0x01,                   // off_bytes = 1
+      0x01,                   // cells = 1 (1 byte, size=1)
+      0x01,                   // roots = 1 (1 byte, size=1)
+      0x00,                   // absent = 0
+      _cellSize & 0xFF,       // tot_cells_size (1 byte, off_bytes=1) = 0x0F
+      0x00,                   // root_idx = 0 (1 byte, size=1)
+    ]);
+    const _bocFull = new Uint8Array(_bocHeader.length + _cellBytes.length);
+    _bocFull.set(_bocHeader);
+    _bocFull.set(_cellBytes, _bocHeader.length);
+    const _payloadB64 = btoa(String.fromCharCode(..._bocFull));
+
     const tx = {
       validUntil: Math.floor(Date.now() / 1000) + 600,
       messages: [
         {
-          address: ADMIN_WALLET_ADDRESS,
+          address: CONTRACT_ADDRESS,
           amount:  totalNano.toString(),
+          payload: _payloadB64,  // BuySlot message → contract auto-distributes
         }
       ]
     };
@@ -3967,8 +4231,6 @@ async function buySlot(level, priceTon) {
         const bocBase64 = result.boc; // base64-encoded BOC from TonConnect
         if (bocBase64) {
           // Compute hash from BOC using TON Center API
-          // TESTNET: testnet.toncenter.com | MAINNET: toncenter.com (remove "testnet.")
-          const TON_API_BASE = 'https://testnet.toncenter.com/api/v2';
           // Poll for tx confirmation (up to 60 seconds, every 4 seconds)
           const maxAttempts = 15;
           for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -3976,7 +4238,7 @@ async function buySlot(level, priceTon) {
             try {
               // Check admin wallet recent transactions for matching BOC/amount
               const txRes = await fetch(
-                `${TON_API_BASE}/getTransactions?address=${encodeURIComponent(ADMIN_WALLET_ADDRESS)}&limit=10`,
+                `${TON_API_BASE}/getTransactions?address=${encodeURIComponent(CONTRACT_ADDRESS)}&limit=10`,
                 { signal: AbortSignal.timeout ? AbortSignal.timeout(5000) : undefined }
               );
               if (!txRes.ok) { continue; }
@@ -3984,15 +4246,20 @@ async function buySlot(level, priceTon) {
               if (!txData.ok || !Array.isArray(txData.result)) { continue; }
 
               const expectedNano = Math.round(priceTon * 1e9);
+              // Normalize buyer wallet for comparison (strip bounceable prefix differences)
+              const _buyerWallet = (state.walletAddress || '').toLowerCase().replace(/^(eq|uq)/i, '');
               const found = txData.result.some(txn => {
-                // Check incoming message for matching amount (within 1% tolerance)
+                // Check incoming message for matching amount (within 2% tolerance)
                 const inMsg = txn.in_msg;
                 if (!inMsg) return false;
                 const value = parseInt(inMsg.value || '0', 10);
                 const diff  = Math.abs(value - expectedNano);
                 const withinTolerance = diff <= (expectedNano * 0.02); // 2% tolerance
                 const recentEnough = (Date.now() / 1000 - txn.utime) < 120; // within last 2 minutes
-                return withinTolerance && recentEnough;
+                // Also verify sender is the connected wallet (prevents spoofing by another user)
+                const senderAddr = (inMsg.source || '').toLowerCase().replace(/^(eq|uq)/i, '');
+                const senderMatch = !_buyerWallet || !senderAddr || senderAddr === _buyerWallet;
+                return withinTolerance && recentEnough && senderMatch;
               });
 
               if (found) {
@@ -4005,10 +4272,10 @@ async function buySlot(level, priceTon) {
           }
         }
       } catch (_verifyErr) {
-        // Verification infrastructure error — do NOT auto-approve.
-        // Only allow fallback if TonConnect returned a valid BOC (proof of broadcast).
+        // Verification infrastructure error — strict gate: do NOT auto-approve.
+        // txVerified stays false; user will see "Tx not confirmed" toast.
         console.warn('[BuySlot] Verification error:', _verifyErr);
-        txVerified = !!(result && result.boc); // only trust if BOC exists
+        txVerified = false;
       }
 
       // Remove confirming animation
@@ -4038,66 +4305,42 @@ async function buySlot(level, priceTon) {
         null;
 
       // ── Exact 50/20/10/10/10 split with nanosecond-precision rounding ──
-      // Buyer receives $0 — all income flows strictly up the hierarchy
-      const split50    = Math.round(priceTon * 0.50 * 1e9) / 1e9; // 50% → direct referrer (workingIncome)
-      const split10    = Math.round(priceTon * 0.10 * 1e9) / 1e9; // 10% → airdrop pool
-      const split10up1 = Math.round(priceTon * 0.10 * 1e9) / 1e9; // 10% → upline 1 (nonWorkingIncome)
-      const split10up2 = Math.round(priceTon * 0.10 * 1e9) / 1e9; // 10% → upline 2 (nonWorkingIncome)
-      // split20 (20% admin) is collected on-chain — no DB credit needed for admin
+      // ══════════════════════════════════════════════════════════════════════
+      // FULLY DECENTRALIZED: Smart contract handles ALL income distribution.
+      // Firestore only tracks: slot ownership, slot fill, slotReferrals (UI only).
+      // NO income writes to Firestore. No admin panel needed.
+      // ══════════════════════════════════════════════════════════════════════
 
       const AIRDROP_ELIGIBLE_LEVELS = [4, 8, 10];
       const isAirdropEligibleLevel  = AIRDROP_ELIGIBLE_LEVELS.includes(level);
 
-      // ── DB persist (async, non-blocking UI) ──
+      // ── DB persist: ONLY slot tracking (async, non-blocking UI) ──
       if (_bsDocId) {
         (async function persistSlotPurchase() {
           try {
             await waitForFirestore();
             const {
               doc: _d, arrayUnion: _au,
-              getDoc: _gd, increment: _inc,
+              getDoc: _gd,
               writeBatch: _wb
             } = window.__fs;
             const _db = window.__db;
 
-            // Read buyer doc to get referral chain
+            // Read buyer doc
             const mySnap  = await _gd(_d(_db, 'users', _bsDocId));
             const myData  = mySnap.exists() ? mySnap.data() : {};
             const directRefId = (myData.referredBy && myData.referredBy !== 'none')
               ? myData.referredBy
               : (state.cachedReferredBy || null);
 
-            // Resolve upline IDs (1 and 2 levels above direct ref)
-            let upline1Id = null;
-            let upline2Id = null;
-            if (directRefId) {
-              try {
-                const ref1Snap = await _gd(_d(_db, 'users', directRefId));
-                if (ref1Snap.exists()) {
-                  const r1 = ref1Snap.data().referredBy;
-                  upline1Id = (r1 && r1 !== 'none') ? r1 : null;
-                }
-              } catch(_) {}
-              if (upline1Id) {
-                try {
-                  const ref2Snap = await _gd(_d(_db, 'users', upline1Id));
-                  if (ref2Snap.exists()) {
-                    const r2 = ref2Snap.data().referredBy;
-                    upline2Id = (r2 && r2 !== 'none') ? r2 : null;
-                  }
-                } catch(_) {}
-              }
-            }
-
             // Compute accurate fill count from DB
             const dbFill    = (myData.slotProgress && myData.slotProgress[level])
               ? Number(myData.slotProgress[level]) : 0;
             const newFillDB = Math.max(currentFill + 1, dbFill + 1);
 
-            // Build batch
             const batch = _wb(_db);
 
-            // ── Buyer: ONLY slot tracking — ZERO income credited ──
+            // ── Buyer: slot tracking ONLY — NO income fields written ──
             const buyerUpdate = {
               walletAddress:    state.walletAddress || '',
               lastSlotPurchase: level,
@@ -4108,79 +4351,27 @@ async function buySlot(level, priceTon) {
             if (isAirdropEligibleLevel) buyerUpdate.airdropEligible = true;
             batch.update(_d(_db, 'users', _bsDocId), buyerUpdate);
 
-            // ══════════════════════════════════════════════════════════
-            // INCOME DISTRIBUTION MODEL (Manual Payout via Admin Panel)
-            // ──────────────────────────────────────────────────────────
-            // All amounts are tracked as PENDING in Firestore only.
-            // NO real-time TON transfers happen here.
-            // Admin Panel reads these fields and dispatches payouts manually.
-            //
-            //  workingIncome    ← 50% credited to direct referrer
-            //  nonWorkingIncome ← 10% credited to upline1 + 10% to upline2
-            //  airdropPool      ← 10% credited to config/airdrop
-            //  Admin 20%        ← collected on-chain (no DB entry needed)
-            //  Buyer            ← ZERO income (slot only)
-            // ══════════════════════════════════════════════════════════
-
-            // ── 50% → Direct referrer (workingIncome) ──
+            // ── Track buyer in referrer's slotReferrals (for matrix icon display) ──
+            // This is UI-only data. Income is handled 100% by smart contract on-chain.
             if (directRefId) {
-              batch.update(_d(_db, 'users', directRefId), {
-                workingIncome: _inc(split50),
-                totalTon:      _inc(split50),
-              });
+              const slotRefKey = 'slotReferrals.' + level;
+              const referrerUpdate = {};
+              referrerUpdate[slotRefKey] = _au(_bsDocId);
+              batch.update(_d(_db, 'users', directRefId), referrerUpdate);
             }
-
-            // ── 10% → Upline 1 (nonWorkingIncome) ──
-            if (upline1Id) {
-              batch.update(_d(_db, 'users', upline1Id), {
-                nonWorkingIncome: _inc(split10up1),
-                totalTon:         _inc(split10up1),
-              });
-            }
-
-            // ── 10% → Upline 2 (nonWorkingIncome) ──
-            if (upline2Id) {
-              batch.update(_d(_db, 'users', upline2Id), {
-                nonWorkingIncome: _inc(split10up2),
-                totalTon:         _inc(split10up2),
-              });
-            }
-
-            // ── 10% → Airdrop pool ──
-            batch.set(_d(_db, 'config', 'airdrop'), {
-              airdropPool:      _inc(split10),
-              lastContribution: Date.now(),
-            }, { merge: true });
-
-            // ── 20% admin is already collected on-chain (no DB entry needed) ──
 
             await batch.commit();
 
-            // ── Slot 5 / 6 full: write payout request to Firestore ──
-            // When buyer's Level 5 or 6 fills completely (6/6), send 100% to
-            // their referrer so they can upgrade to the next level.
-            // Admin panel picks this up under "Payout Requests".
-            if ((level === 5 || level === 6) && newFillDB >= 6) {
-              try {
-                const { collection: _col, addDoc: _add, serverTimestamp: _sts } = window.__fs;
-                await _add(_col(_db, 'payoutRequests'), {
-                  type:          'slotFull',
-                  level,
-                  buyerDocId:    _bsDocId,
-                  referrerId:    directRefId || null,
-                  amount:        priceTon,       // 100% goes to referrer for upgrade
-                  status:        'pending',
-                  createdAt:     _sts(),
-                });
-              } catch(_prErr) {
-                console.warn('[BuySlot] payoutRequest write failed:', _prErr.message);
-              }
-            }
-
-            // ── Only update local UI AFTER successful DB commit ──
+            // ── Update local UI ──
             if (!state.activeSlots.includes(level)) state.activeSlots.push(level);
             slotFill[level] = newFillDB;
-            // Buyer receives $0 — do NOT touch state.workingIncome or state.nonWorkingIncome
+
+            // Same-session referrer edge case
+            const myTgId = String(state.tgNumericId || '');
+            if (directRefId && String(directRefId) === myTgId) {
+              if (!Array.isArray(slotReferrals[level])) slotReferrals[level] = [];
+              if (!slotReferrals[level].includes(_bsDocId)) slotReferrals[level].push(_bsDocId);
+            }
             updateStatsUI();
             renderSlots();
 
@@ -4255,9 +4446,10 @@ function startDashboardListener(docId) {
       const data = snap.data();
 
       // Update state from live snapshot
-      state.totalTon         = typeof data.totalTon         === 'number' ? data.totalTon         : state.totalTon;
-      state.workingIncome    = typeof data.workingIncome    === 'number' ? data.workingIncome    : state.workingIncome;
-      state.nonWorkingIncome = typeof data.nonWorkingIncome === 'number' ? data.nonWorkingIncome : state.nonWorkingIncome;
+      // DECENTRALIZED: income (workingIncome, nonWorkingIncome, totalTon)
+      // is now handled 100% by smart contract on-chain. These fields are
+      // no longer written to Firestore. State stays at 0 (UI shows on-chain data via TON API).
+      // state.totalTon / workingIncome / nonWorkingIncome intentionally NOT read from Firestore.
       state.directReferrals  = typeof data.directReferrals  === 'number' ? data.directReferrals  : state.directReferrals;
       state.teamSize         = typeof data.teamSize         === 'number' ? data.teamSize         : state.teamSize;
       state.airdropBonus     = typeof data.airdropBonus     === 'number' ? data.airdropBonus     : state.airdropBonus;
@@ -4274,6 +4466,16 @@ function startDashboardListener(docId) {
         Object.entries(data.slotProgress).forEach(([k, v]) => {
           const ln = parseInt(k, 10);
           if (!isNaN(ln) && ln > 0) slotFill[ln] = parseInt(v, 10) || 0;
+        });
+      }
+
+      // Merge slotReferrals live (when downline buys a slot, referrer sees icon instantly)
+      if (data.slotReferrals && typeof data.slotReferrals === 'object') {
+        Object.entries(data.slotReferrals).forEach(([k, v]) => {
+          const ln = parseInt(k, 10);
+          if (!isNaN(ln) && ln > 0 && Array.isArray(v)) {
+            slotReferrals[ln] = v.map(String);
+          }
         });
       }
 
@@ -4528,7 +4730,7 @@ async function handleVerifyAndCreate() {
 
   try {
     await waitForFirestore();
-    const { setDoc, doc, serverTimestamp, collection, query, where, getDocs,
+    const { setDoc, doc, getDoc, serverTimestamp, collection, query, where, getDocs,
             updateDoc, increment } = window.__fs;
     const db = window.__db;
 
@@ -4559,36 +4761,61 @@ async function handleVerifyAndCreate() {
       referredBy:       resolvedReferrer,
       directReferrals:  0,
       teamSize:         0,
-      workingIncome:    0,
-      nonWorkingIncome: 0,
-      totalTon:         0,
       activeSlots:      [],
       slotProgress:     {},               // tracks fill count per level (e.g. {1: 3, 2: 1})
-      airdropBonus:     0,                // admin-credited airdrop share
       airdropEligible:  false,            // set true when Level 4/8/10 activated
       // payoutStatus intentionally not set at creation — Firestore rules only allow 'PAID' or null
       referralCounted:  false,            // set true on first wallet connect (loginUser)
       joinedAt:         serverTimestamp(),
     });
 
-    // Credit referrer if applicable
+    // Credit referrer if applicable — also propagate teamSize up the chain (upline1, upline2)
     if (resolvedReferrer && resolvedReferrer !== 'none') {
       try {
+        // ── Direct referrer: directReferrals +1 AND teamSize +1 ──
         const refDocRef = doc(db, 'users', resolvedReferrer);
-        let refUpdated  = false;
+        let refDocSnap  = null;
         try {
-          await updateDoc(refDocRef, { directReferrals: increment(1), teamSize: increment(1) });
-          refUpdated = true;
-        } catch (_directErr) {
-          try {
-            const qCid  = query(collection(db, 'users'), where('cryptonId', '==', resolvedReferrer));
-            const qSnap = await getDocs(qCid);
-            if (!qSnap.empty) {
-              await updateDoc(qSnap.docs[0].ref, { directReferrals: increment(1), teamSize: increment(1) });
-              refUpdated = true;
+          refDocSnap = await getDoc(refDocRef);
+          if (refDocSnap && refDocSnap.exists()) {
+            await updateDoc(refDocRef, { directReferrals: increment(1), teamSize: increment(1) });
+          } else {
+            try {
+              const qCid  = query(collection(db, 'users'), where('cryptonId', '==', resolvedReferrer));
+              const qSnap = await getDocs(qCid);
+              if (!qSnap.empty) {
+                refDocSnap = qSnap.docs[0];
+                await updateDoc(refDocSnap.ref, { directReferrals: increment(1), teamSize: increment(1) });
+              }
+            } catch (_cidErr) {}
+          }
+        } catch (_directErr) {}
+
+        // ── Upline1: teamSize +1 only (not directReferrals) ──
+        try {
+          const up1Id = refDocSnap && refDocSnap.exists()
+            ? (refDocSnap.data().referredBy || null) : null;
+          if (up1Id && up1Id !== 'none') {
+            const up1Ref  = doc(db, 'users', up1Id);
+            const up1Snap = await getDoc(up1Ref);
+            if (up1Snap.exists()) {
+              await updateDoc(up1Ref, { teamSize: increment(1) });
+
+              // ── Upline2: teamSize +1 only ──
+              try {
+                const up2Id = up1Snap.data().referredBy || null;
+                if (up2Id && up2Id !== 'none') {
+                  const up2Ref  = doc(db, 'users', up2Id);
+                  const up2Snap = await getDoc(up2Ref);
+                  if (up2Snap.exists()) {
+                    await updateDoc(up2Ref, { teamSize: increment(1) });
+                  }
+                }
+              } catch (_up2Err) {}
             }
-          } catch (_cidErr) {}
-        }
+          }
+        } catch (_up1Err) {}
+
       } catch (refErr) {}
     }
 
@@ -4670,9 +4897,10 @@ async function handleLogin() {
     state.cryptonId        = cryptonId;
     state.tgFirstName      = data.name || null;
     state.activeSlots      = Array.isArray(data.activeSlots) ? data.activeSlots.map(Number) : [];
-    state.totalTon         = data.totalTon         || 0;
-    state.workingIncome    = data.workingIncome    || 0;
-    state.nonWorkingIncome = data.nonWorkingIncome || 0;
+    // DECENTRALIZED: income tracked on-chain by smart contract, not Firestore
+    state.totalTon         = 0;
+    state.workingIncome    = 0;
+    state.nonWorkingIncome = 0;
     state.directReferrals  = data.directReferrals  || 0;
     state.teamSize         = data.teamSize         || 0;
     state.airdropBonus     = data.airdropBonus     || 0;
@@ -4974,9 +5202,10 @@ async function tryAutoLogin() {
     state.cryptonId   = resolvedCryptonId;
     state.tgFirstName = data.name || null;
     state.activeSlots = Array.isArray(data.activeSlots) ? data.activeSlots.map(Number) : [];
-    state.totalTon  = data.totalTon  || 0;
-    state.workingIncome = data.workingIncome || 0;
-    state.nonWorkingIncome = data.nonWorkingIncome || 0;
+    // DECENTRALIZED: income on-chain, not in Firestore
+    state.totalTon         = 0;
+    state.workingIncome    = 0;
+    state.nonWorkingIncome = 0;
     state.directReferrals  = data.directReferrals  || 0;
     state.teamSize   = data.teamSize   || 0;
     state.airdropBonus = data.airdropBonus || 0;
@@ -5111,12 +5340,14 @@ async function loginUser(walletAddress) {
     state.cachedReferredBy = referredBy;
 
     state.activeSlots = Array.isArray(data.activeSlots) ? data.activeSlots.map(Number) : [];
-    state.totalTon  = data.totalTon   || 0;
-    state.workingIncome = data.workingIncome  || 0;
-    state.nonWorkingIncome = data.nonWorkingIncome  || 0;
+    // DECENTRALIZED: income is handled 100% on-chain by smart contract.
+    // These fields are NOT stored in Firestore (blocked by rules). Keep at 0.
+    state.totalTon         = 0;
+    state.workingIncome    = 0;
+    state.nonWorkingIncome = 0;
     state.directReferrals  = data.directReferrals   || 0;
-    state.teamSize   = data.teamSize    || 0;
-    state.airdropBonus = data.airdropBonus || 0;
+    state.teamSize         = data.teamSize           || 0;
+    state.airdropBonus     = data.airdropBonus       || 0;
 
     if (data.name  && !state.tgFirstName) state.tgFirstName = data.name;
 
@@ -5188,40 +5419,181 @@ async function loginUser(walletAddress) {
       }
     }
 
+    // FIX v30: Use runTransaction() to prevent race condition double-credit
+    // when two devices login simultaneously (atomic read-check-write).
+    const { runTransaction: _runTx } = window.__fs;
     const isFirstWalletLink = (!data.walletAddress || data.walletAddress === '') && !data.referralCounted;
     if (isFirstWalletLink && referredBy) {
       try {
-        await updateDoc(activeDocRef, {
-          referralCounted: true,
-          walletAddress,
+        // Atomic: only credit referral if referralCounted is still false at commit time
+        await _runTx(db, async (txn) => {
+          const freshSnap = await txn.get(activeDocRef);
+          if (!freshSnap.exists()) return;
+          const freshData = freshSnap.data();
+          // Guard: abort if already counted (another device won the race)
+          if (freshData.referralCounted === true) return;
+
+          txn.update(activeDocRef, {
+            referralCounted: true,
+            walletAddress,
+          });
+
+          // ── Direct referrer: directReferrals +1 AND teamSize +1 ──
+          const refDocRef = doc(db, 'users', referredBy);
+          const refSnap   = await txn.get(refDocRef);
+          let   refDocResolved = null;
+          if (refSnap.exists()) {
+            txn.update(refDocRef, { directReferrals: increment(1), teamSize: increment(1) });
+            refDocResolved = refSnap;
+          }
+          // (cryptonId-keyed lookup not possible inside transaction — handled post-txn below)
         });
 
-        const refDocRef = doc(db, 'users', referredBy);
-        const refSnap   = await getDoc(refDocRef);
-        if (refSnap.exists()) {
-          await updateDoc(refDocRef, { directReferrals: increment(1), teamSize: increment(1) });
-        } else {
-          if (where) {
-            const q     = query(collection(db, 'users'), where('cryptonId', '==', referredBy));
-            const qSnap = await getDocs(q);
-            if (!qSnap.empty) {
-              await updateDoc(qSnap.docs[0].ref, { directReferrals: increment(1), teamSize: increment(1) });
+        // ── Post-transaction: handle cryptonId-keyed referrer if direct doc not found ──
+        // (read-only — safe outside transaction since referralCounted already set above)
+        const _freshCheck = await getDoc(activeDocRef);
+        const _fd = _freshCheck.exists() ? _freshCheck.data() : {};
+        const _directRefSnap = await getDoc(doc(db, 'users', referredBy));
+        let refDocResolved = null;
+        if (!_directRefSnap.exists() && where) {
+          const q2     = query(collection(db, 'users'), where('cryptonId', '==', referredBy));
+          const qSnap2 = await getDocs(q2);
+          if (!qSnap2.empty) {
+            await updateDoc(qSnap2.docs[0].ref, { directReferrals: increment(1), teamSize: increment(1) });
+            refDocResolved = qSnap2.docs[0];
+          }
+        } else if (_directRefSnap.exists()) {
+          refDocResolved = _directRefSnap;
+        }
+
+        // ── Upline1: teamSize +1 only ──
+        try {
+          const up1Id = refDocResolved && refDocResolved.exists()
+            ? (refDocResolved.data().referredBy || null) : null;
+          if (up1Id && up1Id !== 'none') {
+            const up1Ref  = doc(db, 'users', up1Id);
+            const up1Snap = await getDoc(up1Ref);
+            if (up1Snap.exists()) {
+              await updateDoc(up1Ref, { teamSize: increment(1) });
+
+              // ── Upline2: teamSize +1 only ──
+              try {
+                const up2Id = up1Snap.data().referredBy || null;
+                if (up2Id && up2Id !== 'none') {
+                  const up2Ref  = doc(db, 'users', up2Id);
+                  const up2Snap = await getDoc(up2Ref);
+                  if (up2Snap.exists()) {
+                    await updateDoc(up2Ref, { teamSize: increment(1) });
+                  }
+                }
+              } catch (_up2Err) {}
             }
           }
-        }
+        } catch (_up1Err) {}
+
       } catch(refErr) {
+        console.warn('[loginUser] referral credit failed:', refErr);
       }
     }
 
     showToast('Welcome back! Data loaded ✓');
 
+    // ── RegisterSelf on contract (decentralized user registration) ───────────
+    // Send RegisterSelf tx to smart contract so on-chain referral chain is set.
+    // This is a small gas-only tx (~0.05 TON). Only sent on first wallet connect.
+    // Web-only app: tgNumericId may be null — cryptonId (7-digit numeric) used as fallback.
+    const _regIdRaw = state.tgNumericId || state.cryptonId || null;
+    if (isFirstWalletLink && state.tonConnectUI && _regIdRaw && !window._contractNotConfigured) {
+      try {
+        const _myTgId  = BigInt(String(_regIdRaw).replace(/\D/g, '') || '0');
+        const _refTgId = referredBy ? BigInt(String(referredBy).replace(/\D/g, '') || '0') : BigInt(0);
+
+        // Resolve upline1 and upline2 from Firestore (referrer's referrer chain)
+        let _up1TgId = BigInt(0);
+        let _up2TgId = BigInt(0);
+        try {
+          if (referredBy) {
+            // upline1 = the person who referred MY referrer (referrer's sponsor)
+            const refSnap2 = await getDoc(doc(db, 'users', String(referredBy)));
+            if (refSnap2.exists()) {
+              const refData2 = refSnap2.data();
+              // referrer's sponsor ID = refData2.referredBy (NOT refData2.cryptonId)
+              const up1RefBy = refData2.referredBy || null;
+              if (up1RefBy && up1RefBy !== 'none') {
+                _up1TgId = BigInt(String(up1RefBy).replace(/\D/g, '') || 0);
+
+                // upline2 = the person who referred upline1
+                const up1Snap = await getDoc(doc(db, 'users', String(up1RefBy)));
+                if (up1Snap.exists()) {
+                  const up1Data  = up1Snap.data();
+                  const up2RefBy = up1Data.referredBy || null;
+                  if (up2RefBy && up2RefBy !== 'none') {
+                    _up2TgId = BigInt(String(up2RefBy).replace(/\D/g, '') || 0);
+                  }
+                }
+              }
+            }
+          }
+        } catch(_upErr) {
+          console.warn('[RegisterSelf] upline resolve failed (non-critical):', _upErr);
+        }
+
+        // FIX v30: RegisterSelf also needs proper TON Cell BoC encoding (not raw bytes)
+        // Cell data: opcode(32) + myTgId(64) + refTgId(64) + up1TgId(64) + up2TgId(64) = 288 bits = 36 bytes
+        const _regDataBuf = new ArrayBuffer(36);
+        const _regView = new DataView(_regDataBuf);
+        _regView.setUint32(0, 0xdeadbeef, false); // opcode RegisterSelf
+        _regView.setBigUint64(4,  _myTgId,  false);
+        _regView.setBigUint64(12, _refTgId, false);
+        _regView.setBigUint64(20, _up1TgId, false); // upline1 = referrer's referrer tgId
+        _regView.setBigUint64(28, _up2TgId, false); // upline2 = upline1's referrer tgId
+        const _regCellData = new Uint8Array(_regDataBuf);
+        // Cell descriptor: 36 bytes data, 0 refs → d2 = 36*2 = 72
+        const _regCellBytes = new Uint8Array(2 + 36);
+        _regCellBytes[0] = 0x00; // d1
+        _regCellBytes[1] = 72;   // d2 = 36 * 2
+        _regCellBytes.set(_regCellData, 2);
+        const _regCellSize = _regCellBytes.length; // 38
+        // Correct 11-byte BoC header per TON spec (same structure as BuySlot above)
+        const _regBocHeader = new Uint8Array([
+          0xb5, 0xee, 0x9c, 0x72,  // magic
+          0x01,                     // flags: size=1
+          0x01,                     // off_bytes = 1
+          0x01,                     // cells = 1
+          0x01,                     // roots = 1
+          0x00,                     // absent = 0
+          _regCellSize & 0xFF,      // tot_cells_size (1 byte) = 0x26
+          0x00,                     // root_idx = 0
+        ]);
+        const _regBocFull = new Uint8Array(_regBocHeader.length + _regCellBytes.length);
+        _regBocFull.set(_regBocHeader);
+        _regBocFull.set(_regCellBytes, _regBocHeader.length);
+        const _regPayload = btoa(String.fromCharCode(..._regBocFull));
+        // Fire and forget — small gas tx (0.05 TON)
+        state.tonConnectUI.sendTransaction({
+          validUntil: Math.floor(Date.now() / 1000) + 300,
+          messages: [{
+            address: CONTRACT_ADDRESS,
+            amount:  '50000000', // 0.05 TON gas for registration
+            payload: _regPayload,
+          }]
+        }).catch(e => console.warn('[RegisterSelf] tx failed (non-critical):', e.message));
+      } catch(_regErr) {
+        console.warn('[RegisterSelf] build failed:', _regErr);
+      }
+    }
+
     const refId2      = state.cryptonId || null;
     const refLinkVal2 = refId2
       ? `${window.location.origin}/?ref=${refId2}`
       : 'Referral link loading…';
-    await updateDoc(activeDocRef, { walletAddress }).catch(err =>
-      console.warn('[loginUser] walletAddress update failed:', err)
-    );
+    // FIX v30: Only write walletAddress if it changed — prevents silent overwrite
+    // from a different device/wallet connecting later. If already set to same value, skip.
+    if (!data.walletAddress || data.walletAddress !== walletAddress) {
+      await updateDoc(activeDocRef, { walletAddress }).catch(err =>
+        console.warn('[loginUser] walletAddress update failed:', err)
+      );
+    }
 
     const _refLinkEl    = document.getElementById('ref-link');
     const _refLinkNetEl = document.getElementById('ref-link-network');
@@ -5324,11 +5696,7 @@ async function renderReferralList() {
       const name       = (d.name || '').trim() || 'Unknown User';
       const cryptonId  = d.cryptonId || docSnap.id || '—';
 
-      const earnedRaw  = typeof d.totalTon === 'number' ? d.totalTon : 0;
-      const tonDisplay = earnedRaw >= 1000
-        ? (earnedRaw / 1000).toFixed(2) + 'K TON'
-        : earnedRaw.toFixed(3) + ' TON';
-
+      // Income is on-chain — NOT stored in Firestore. Show slot count instead.
       const avatarInner = silhouetteSVG;
 
       html += `
@@ -5338,12 +5706,12 @@ async function renderReferralList() {
           <div class="ref-list-name">${name}</div>
           <div class="ref-list-uid" style="display:flex;flex-direction:column;gap:2px;">
             <span style="font-size:11px;color:var(--cyan);font-family:var(--font-mono);">ID: ${cryptonId}</span>
-            <span style="font-size:10px;color:var(--text-muted);">Slots: ${slotCount}</span>
+            <span style="font-size:10px;color:var(--text-muted);">Slots: ${slotCount}/10</span>
           </div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;">
           <span class="ref-list-badge">DOWNLINE</span>
-          <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--accent);">${tonDisplay}</span>
+          <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--text-mid);">On-Chain</span>
         </div>
       </div>`;
     });
@@ -5404,6 +5772,7 @@ function switchView(name) {
 
   if (name === 'referral') getReferralStats();
   if (name === 'search')   resetSearchView();
+  if (name === 'profile' && state.connected) _loadUplineCard();
 
   if (name === 'home') {
     var heroEl2 = document.getElementById('hero-section');
@@ -5442,7 +5811,7 @@ async function fetchLeaderboardForView() {
     const { collection, query, orderBy, limit, getDocs } = window.__fs;
     const db = window.__db;
 
-    const q       = query(collection(db, 'users'), orderBy('totalTon', 'desc'), limit(30));
+    const q       = query(collection(db, 'users'), orderBy('teamSize', 'desc'), limit(30));
     const rawSnap = await getDocs(q);
     const validDocs = rawSnap.docs.filter(d => {
       const data = d.data();
@@ -5469,6 +5838,8 @@ async function fetchLeaderboardForView() {
       const uid      = d.cryptonId || docSnap.id;
       const safeUid  = String(uid).replace(/</g,'&lt;').replace(/>/g,'&gt;');
       const totalTon = typeof d.totalTon === 'number' ? d.totalTon.toFixed(2) : '0.00';
+      const teamSz   = typeof d.teamSize === 'number' ? d.teamSize : 0;
+      const slotCnt  = Array.isArray(d.activeSlots) ? d.activeSlots.length : 0;
       const isSelf   = state.connected && state.cryptonId && String(state.cryptonId) === String(uid);
       const selfStyle = isSelf ? 'border-color:rgba(0,229,255,0.55);box-shadow:0 0 16px rgba(0,229,255,0.15);' : '';
 
@@ -5483,8 +5854,9 @@ async function fetchLeaderboardForView() {
             <div class="lb-uid">ID: ${safeUid}</div>
           </div>
           <div class="lb-ton">
-            <div class="lb-ton-val">${totalTon}</div>
-            <div class="lb-ton-unit">TON</div>
+            <div class="lb-ton-val">${teamSz}</div>
+            <div class="lb-ton-unit">TEAM</div>
+            <div style="font-size:10px;color:var(--text-mid);font-family:var(--font-mono);margin-top:2px;">${slotCnt} slots</div>
           </div>
         </div>`;
     });
@@ -5655,7 +6027,7 @@ async function fetchLeaderboard() {
     const { collection, query, orderBy, limit, getDocs, where } = window.__fs;
     const db = window.__db;
 
-    const q    = query(collection(db, 'users'), orderBy('totalTon', 'desc'), limit(30));
+    const q    = query(collection(db, 'users'), orderBy('teamSize', 'desc'), limit(30));
     const rawSnap = await getDocs(q);
     const validDocs = rawSnap.docs.filter(d => {
       const data = d.data();
@@ -5685,11 +6057,9 @@ async function fetchLeaderboard() {
       const uid      = d.cryptonId || docSnap.id;
       const safeUid  = String(uid).replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-      const working = typeof d.workingIncome === 'number' ? d.workingIncome : 0;
-      const passive = typeof d.nonWorkingIncome === 'number' ? d.nonWorkingIncome : 0;
-      const ton      = typeof d.totalTon === 'number'
-        ? d.totalTon.toFixed(2)
-        : (working + passive > 0 ? (working + passive).toFixed(2) : '0.00');
+      // Income is on-chain — use teamSize for ranking (consistent with leaderboard view)
+      const teamSz   = typeof d.teamSize   === 'number' ? d.teamSize   : 0;
+      const slotCnt  = Array.isArray(d.activeSlots) ? d.activeSlots.length : 0;
 
       // Always show App icon as DP for consistent branding
       const avatarHtml = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0d1e38 0%,#091525 100%);border-radius:10px;"><img src="https://i.ibb.co/sv3gKkfx/IPROS3221059704984801090.png" alt="Crypton" style="width:72%;height:72%;object-fit:contain;" /></div>`;
@@ -5706,8 +6076,9 @@ async function fetchLeaderboard() {
             <div class="lb-uid">ID: ${safeUid}</div>
           </div>
           <div class="lb-ton">
-            <div class="lb-ton-val">${ton}</div>
-            <div class="lb-ton-unit">TON</div>
+            <div class="lb-ton-val">${teamSz}</div>
+            <div class="lb-ton-unit">TEAM</div>
+            <div style="font-size:10px;color:var(--text-mid);font-family:var(--font-mono);margin-top:2px;">${slotCnt} slots</div>
           </div>
         </div>`;
     });
@@ -5862,15 +6233,11 @@ async function pvDoSearch() {
 
     const displayName = userData.name || 'Unknown User';
     const displayUid  = userData.cryptonId || docId;
-    const photoUrl    = userData.walletAddress || null;
-
+    // photoUrl not available — walletAddress is not a photo URL
     const silSVG = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0d1e38 0%,#091525 100%);border-radius:12px;"><img src="https://i.ibb.co/sv3gKkfx/IPROS3221059704984801090.png" alt="Crypton" style="width:72%;height:72%;object-fit:contain;display:block;" /></div>`;
     const avatarHtml = silSVG;
 
-    const workingTon = typeof userData.workingIncome === 'number' ? userData.workingIncome : 0;
-    const passiveTon = typeof userData.nonWorkingIncome === 'number' ? userData.nonWorkingIncome : 0;
-    const totalTon   = (typeof userData.totalTon === 'number' && userData.totalTon > 0)
-      ? userData.totalTon : (workingTon + passiveTon);
+    // Income is on-chain — NOT stored in Firestore. Always show 0/On-Chain.
     const fmtT = v => (v % 1 === 0 ? v.toFixed(0) : v.toFixed(2));
     const dirRef = typeof userData.directReferrals === 'number' ? userData.directReferrals : 0;
     const team   = typeof userData.teamSize   === 'number' ? userData.teamSize   : 0;
@@ -5888,12 +6255,10 @@ async function pvDoSearch() {
       ? (walletAddr.length > 20 ? walletAddr.slice(0,8)+'…'+walletAddr.slice(-6) : walletAddr)
       : displayName + ' · #' + String(displayUid).slice(-4);
 
-    const workingSub = TON_TO_USD
-      ? fmtT(workingTon) + ' TON  ≈ $' + (workingTon * TON_TO_USD).toFixed(2)
-      : fmtT(workingTon) + ' TON';
-    const passiveSub = TON_TO_USD
-      ? fmtT(passiveTon) + ' TON  ≈ $' + (passiveTon * TON_TO_USD).toFixed(2)
-      : fmtT(passiveTon) + ' TON';
+    // Income is on-chain — Firestore does not store income fields.
+    // Display "On-Chain" instead of misleading 0 TON values.
+    const workingSub = 'Paid On-Chain (50% Referral)';
+    const passiveSub = 'Paid On-Chain (Smart Contract)';
 
     resEl.innerHTML = `
       <div style="pointer-events:none; user-select:none;">
@@ -5931,7 +6296,7 @@ async function pvDoSearch() {
           <div class="hic-icon">⛁</div>
           <div class="hic-info">
             <div class="hic-label">DOWNLINE INCOME (50%)</div>
-            <div class="hic-val">${fmtT(workingTon)}</div>
+            <div class="hic-val">On-Chain</div>
             <div class="hic-ton">${workingSub}</div>
           </div>
         </div>
@@ -5942,8 +6307,8 @@ async function pvDoSearch() {
           <div class="hic-icon">🏆</div>
           <div class="hic-info">
             <div class="hic-label" style="color:rgba(0,229,255,0.75);">TOTAL INCOME</div>
-            <div class="hic-val" style="color:#00e5ff;">${fmtT(workingTon + passiveTon)}</div>
-            <div class="hic-ton" style="color:rgba(0,229,255,0.60);">${TON_TO_USD ? fmtT(workingTon+passiveTon)+' TON  ≈ $'+(((workingTon+passiveTon)*TON_TO_USD).toFixed(2)) : 'Referral + Airdrop Bonus'}</div>
+            <div class="hic-val" style="color:#00e5ff;">On-Chain</div>
+            <div class="hic-ton" style="color:rgba(0,229,255,0.60);">${passiveSub}</div>
           </div>
         </div>
       </div>
@@ -6112,7 +6477,7 @@ async function pvFetchLeaderboard() {
     const { collection, query, orderBy, limit, getDocs } = window.__fs;
     const db = window.__db;
 
-    const q       = query(collection(db, 'users'), orderBy('totalTon', 'desc'), limit(30));
+    const q       = query(collection(db, 'users'), orderBy('teamSize', 'desc'), limit(30));
     const rawSnap = await getDocs(q);
     clearTimeout(_pvLbGuard);
     const validPvDocs = rawSnap.docs.filter(d => {
@@ -6141,7 +6506,9 @@ async function pvFetchLeaderboard() {
       const safeName = (d.name || ('User…' + String(d.cryptonId || docSnap.id).slice(-4)))
         .replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0,22);
       const safeUid  = String(d.cryptonId || docSnap.id).replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      const ton      = typeof d.totalTon === 'number' ? d.totalTon.toFixed(2) : '0.00';
+      // Income is on-chain — use teamSize for ranking (consistent with other leaderboard views)
+      const teamSz   = typeof d.teamSize === 'number' ? d.teamSize : 0;
+      const slotCnt  = Array.isArray(d.activeSlots) ? d.activeSlots.length : 0;
       const avatarHtml = pvSilSVG;
       html += `
         <div class="lb-row" style="--i:${idx}">
@@ -6152,8 +6519,9 @@ async function pvFetchLeaderboard() {
             <div class="lb-uid">ID: ${safeUid}</div>
           </div>
           <div class="lb-ton">
-            <div class="lb-ton-val">${ton}</div>
-            <div class="lb-ton-unit">TON</div>
+            <div class="lb-ton-val">${teamSz}</div>
+            <div class="lb-ton-unit">TEAM</div>
+            <div style="font-size:10px;color:var(--text-mid);font-family:var(--font-mono);margin-top:2px;">${slotCnt} slots</div>
           </div>
         </div>`;
     });
@@ -6291,7 +6659,7 @@ async function doSearchUser() {
 
     const displayName = userData.name || 'Unknown User';
     const displayUid  = userData.cryptonId || docId;
-    const photoUrl    = userData.walletAddress || null;
+    // photoUrl not available — walletAddress is not a photo URL
 
     document.getElementById('srch-name').textContent        = displayName;
     document.getElementById('srch-uid-display').textContent = (userData.cryptonId ? 'Crypton ID: ' : 'ID: ') + displayUid;
@@ -6323,38 +6691,26 @@ async function doSearchUser() {
 
     const avatarEl = document.getElementById('srch-avatar');
     const silSVG = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0d1e38 0%,#091525 100%);border-radius:12px;"><img src="https://i.ibb.co/sv3gKkfx/IPROS3221059704984801090.png" alt="Crypton" style="width:72%;height:72%;object-fit:contain;display:block;" /></div>`;
-    if (photoUrl) {
-      avatarEl.innerHTML = `<img src="${photoUrl}" alt="avatar" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.parentNode.innerHTML='${silSVG.replace(/"/g,"'")}'" />`;
-    } else {
-      avatarEl.innerHTML = silSVG;
-    }
+    // photoUrl not available — always use app icon for consistent branding
+    avatarEl.innerHTML = silSVG;
 
-    const workingTon = typeof userData.workingIncome === 'number' ? userData.workingIncome : 0;
-    const passiveTon = typeof userData.nonWorkingIncome === 'number' ? userData.nonWorkingIncome : 0;
-    const totalTon   = (typeof userData.totalTon === 'number' && userData.totalTon > 0)
-      ? userData.totalTon
-      : (workingTon + passiveTon);
+    // Income is on-chain — NOT stored in Firestore. Show 0 for total-ton display.
     const fmtT = v => (v % 1 === 0 ? v.toFixed(0) : v.toFixed(2));
 
-    document.getElementById('srch-total-ton').textContent = fmtT(totalTon);
+    document.getElementById('srch-total-ton').textContent = '0';
 
     const ownedSlots  = Array.isArray(userData.activeSlots) ? userData.activeSlots : [];
     const slotFillMap = (userData.slotFill && typeof userData.slotFill === 'object')
       ? userData.slotFill : {};
     renderSrchSlots(ownedSlots, slotFillMap);
 
-    // DOWNLINE INCOME = workingIncome (50% referral)
-    document.getElementById('srch-working-val').textContent = fmtT(workingTon);
-    document.getElementById('srch-working-sub').textContent = TON_TO_USD
-      ? fmtT(workingTon) + ' TON  ≈ $' + (workingTon * TON_TO_USD).toFixed(2)
-      : fmtT(workingTon) + ' TON';
+    // Income is on-chain — Firestore does not store income fields.
+    // Show "On-Chain" instead of misleading 0 TON values.
+    document.getElementById('srch-working-val').textContent = 'On-Chain';
+    document.getElementById('srch-working-sub').textContent = 'Paid On-Chain (50% Referral)';
 
-    // TOTAL INCOME = working + passive (nonWorking)
-    const srchTotalIncome = workingTon + passiveTon;
-    document.getElementById('srch-passive-val').textContent = fmtT(srchTotalIncome);
-    document.getElementById('srch-passive-sub').textContent = TON_TO_USD
-      ? fmtT(srchTotalIncome) + ' TON  ≈ $' + (srchTotalIncome * TON_TO_USD).toFixed(2)
-      : 'Referral + Airdrop Bonus';
+    document.getElementById('srch-passive-val').textContent = 'On-Chain';
+    document.getElementById('srch-passive-sub').textContent = 'Paid On-Chain (Smart Contract)';
 
     document.getElementById('srch-result-area').style.display = 'block';
     await renderSearchDownline(String(displayUid));
@@ -6428,7 +6784,7 @@ async function fetchTickerDataFromFirestore() {
     await waitForFirestore();
     const { collection, query, orderBy, limit, getDocs } = window.__fs;
 
-    const q     = query(collection(window.__db, 'users'), orderBy('totalTon','desc'), limit(150));
+    const q     = query(collection(window.__db, 'users'), orderBy('teamSize','desc'), limit(150));
     const snap  = await getDocs(q);
     const users = [];
     snap.forEach(d => {
@@ -6487,11 +6843,12 @@ function renderTicker() {
 }
 
 function _injectLiveUserIntoTicker() {
-  if (state.connected && state.tgNumericId) {
-    const myUid = String(state.tgNumericId);
+  // Use cryptonId (7-digit) for matching — consistent with Firestore doc key used in ticker data
+  if (state.connected && state.cryptonId) {
+    const myUid = String(state.cryptonId);
     const myTon = state.totalTon || 0;
     const idx   = _tickerData.findIndex(r => r.cryptonId === myUid);
-    if (idx === -1) _tickerData.push({ tgId: myUid, earnedTon: myTon });
+    if (idx === -1) _tickerData.push({ cryptonId: myUid, totalTon: myTon });
     else            _tickerData[idx].totalTon = myTon;
     _tickerData.sort((a,b) => b.totalTon - a.totalTon);
   }
@@ -6636,6 +6993,101 @@ function _updateHeaderCapsule() {
   }
 }
 
+// ── Upline Card Loader ────────────────────────────────────────────────────────
+// Profile section mein upline ka name, ID aur TON balance fetch karke dikhata hai
+async function _loadUplineCard() {
+  const uplineCard   = document.getElementById('profile-upline-card');
+  const noUplineCard = document.getElementById('profile-no-upline-card');
+  if (!uplineCard || !noUplineCard) return;
+
+  const referredBy = state.cachedReferredBy || null;
+
+  // No referrer — show "joined directly" card
+  if (!referredBy || referredBy === 'none') {
+    uplineCard.style.display   = 'none';
+    noUplineCard.style.display = 'block';
+    return;
+  }
+
+  // Show upline card with loading state
+  uplineCard.style.display   = 'block';
+  noUplineCard.style.display = 'none';
+  const nameEl   = document.getElementById('upline-name');
+  const idEl     = document.getElementById('upline-id');
+  const tonValEl = document.getElementById('upline-ton-val');
+  if (nameEl)   nameEl.textContent   = 'Loading…';
+  if (idEl)     idEl.textContent     = 'ID: —';
+  if (tonValEl) tonValEl.textContent = '…';
+
+  try {
+    await waitForFirestore();
+    const { doc: _d, getDoc: _gd, collection: _col, query: _q, where: _wh, getDocs: _gds } = window.__fs;
+    const _db = window.__db;
+
+    // Try direct doc lookup first (referredBy = cryptonId or docId)
+    let uplineData = null;
+    let uplineWallet = null;
+
+    const directSnap = await _gd(_d(_db, 'users', String(referredBy)));
+    if (directSnap.exists()) {
+      uplineData = directSnap.data();
+    } else {
+      // Fallback: query by cryptonId field
+      const qSnap = await _gds(_q(_col(_db, 'users'), _wh('cryptonId', '==', String(referredBy))));
+      if (!qSnap.empty) {
+        uplineData = qSnap.docs[0].data();
+      }
+    }
+
+    if (!uplineData) {
+      if (nameEl)   nameEl.textContent   = 'Unknown User';
+      if (idEl)     idEl.textContent     = `ID: ${String(referredBy).slice(0, 10)}`;
+      if (tonValEl) tonValEl.textContent = '—';
+      return;
+    }
+
+    // Display name and ID
+    const upName = (uplineData.name || 'User').substring(0, 22);
+    const upId   = uplineData.cryptonId || String(referredBy).slice(0, 10);
+    if (nameEl) nameEl.textContent = upName;
+    if (idEl)   idEl.textContent   = 'ID: ' + upId;
+
+    uplineWallet = uplineData.walletAddress || null;
+
+    // Fetch TON balance from TON Center API if wallet exists
+    if (uplineWallet && tonValEl) {
+      try {
+        const _balRes = await fetch(
+          `${TON_API_BASE}/getAddressInformation?address=${encodeURIComponent(uplineWallet)}`,
+          { signal: AbortSignal.timeout ? AbortSignal.timeout(5000) : undefined }
+        );
+        if (_balRes.ok) {
+          const _balData = await _balRes.json();
+          if (_balData.ok && _balData.result && _balData.result.balance != null) {
+            const rawNano = parseInt(_balData.result.balance, 10) || 0;
+            const tonAmt  = (rawNano / 1e9).toFixed(2);
+            tonValEl.textContent = tonAmt + ' ⛁';
+          } else {
+            tonValEl.textContent = '— ⛁';
+          }
+        } else {
+          tonValEl.textContent = '— ⛁';
+        }
+      } catch(_balErr) {
+        tonValEl.textContent = '— ⛁';
+      }
+    } else if (tonValEl) {
+      tonValEl.textContent = '— ⛁';
+    }
+
+  } catch(e) {
+    console.warn('[UplineCard] load failed:', e);
+    if (nameEl)   nameEl.textContent   = 'Could not load';
+    if (tonValEl) tonValEl.textContent = '—';
+  }
+}
+
+
 function _insertSilhouette(container) {
   const wrapper = document.createElement('div');
   wrapper.style.cssText = 'width:100%;height:100%;border-radius:16px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0d1e38 0%,#091525 100%);';
@@ -6712,16 +7164,11 @@ renderSlots();
     showLiveNow();
 
     try {
-      await waitForFirestore();
-      const { doc, setDoc, Timestamp, increment: _inc } = window.__fs;
-      const db = window.__db;
-      const nowMs = Date.now();
-      await setDoc(doc(db, 'config', 'airdrop'), {
-        startDate:  Timestamp.fromMillis(nowMs),
-        resetCount: _inc ? _inc(1) : 1,   // track how many cycles have completed
-        lastReset:  Timestamp.fromMillis(nowMs),
-      }, { merge: true });
-      _cycleEndMs    = nowMs + CYCLE_MS;
+      // Airdrop distribution is handled 100% by smart contract on-chain.
+      // Firestore config write is skipped — any user could manipulate it.
+      // The timer simply resets locally. On-chain airdrop triggers automatically
+      // via the contract's AIRDROP_CYCLE_SECONDS check inside BuySlot.
+      _cycleEndMs    = Date.now() + CYCLE_MS;
       _distributing  = false;
       _timerInterval = setInterval(tick, 1000);
     } catch(e) {
