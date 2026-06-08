@@ -3197,36 +3197,6 @@ function getStoredRef() {
   };
 })();
 
-(function initTonConnect() {
-  try {
-    state.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-      manifestUrl: 'https://crypton-app-omega.vercel.app/tonconnect-manifest.json',
-      network: TON_NETWORK_STR,
-      buttonRootId: null,
-    });
-
-    let _lastWalletAddress = null;
-    let _statusChangePending = false;
-    state.tonConnectUI.onStatusChange(wallet => {
-      if (wallet) {
-        const addr = wallet.account.address;
-        if (_statusChangePending || addr === _lastWalletAddress) return;
-        _statusChangePending = true;
-        _lastWalletAddress   = addr;
-        Promise.resolve().then(() => {
-          _statusChangePending = false;
-          handleWalletConnected(addr);
-        });
-      } else {
-        _lastWalletAddress   = null;
-        _statusChangePending = false;
-        handleWalletDisconnected();
-      }
-    });
-  } catch(e) {
-  }
-})();
-
 let _connectWalletInFlight = false;
 
 async function connectWallet() {
@@ -3944,6 +3914,38 @@ const TON_NETWORK_STR = IS_TESTNET ? 'testnet' : 'mainnet';
 const TON_API_BASE    = IS_TESTNET
   ? 'https://testnet.toncenter.com/api/v2'
   : 'https://toncenter.com/api/v2';
+
+// ── TONCONNECT INIT (moved here so TON_NETWORK_STR is defined before use) ───
+(function initTonConnect() {
+  try {
+    state.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+      manifestUrl: 'https://crypton-app-omega.vercel.app/tonconnect-manifest.json',
+      network: TON_NETWORK_STR,
+      buttonRootId: null,
+    });
+
+    let _lastWalletAddress = null;
+    let _statusChangePending = false;
+    state.tonConnectUI.onStatusChange(wallet => {
+      if (wallet) {
+        const addr = wallet.account.address;
+        if (_statusChangePending || addr === _lastWalletAddress) return;
+        _statusChangePending = true;
+        _lastWalletAddress   = addr;
+        Promise.resolve().then(() => {
+          _statusChangePending = false;
+          handleWalletConnected(addr);
+        });
+      } else {
+        _lastWalletAddress   = null;
+        _statusChangePending = false;
+        handleWalletDisconnected();
+      }
+    });
+  } catch(e) {
+    console.error('[TonConnect init failed]', e);
+  }
+})();
 
 // ── CONTRACT ADDRESS (FULLY DECENTRALIZED) ──────────────────────────────────
 // Tact Playground (tact-lang.org/playground) mein CryptonMatrix_v2.tact paste
