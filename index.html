@@ -6170,7 +6170,7 @@ async function pvDoSearch() {
   }, 12000);
 
   try {
-    await withTimeout(waitForFirestore(), 8000, 'Firestore not available');
+    await withTimeout(waitForFirestore(), 15000, 'Firestore not ready. Refresh and try again.');
     const { doc, getDoc, collection, query, where, orderBy, getDocs } = window.__fs;
     const db = window.__db;
 
@@ -6217,7 +6217,6 @@ async function pvDoSearch() {
     }
 
     clearTimeout(_pvLoaderGuard);
-    clearTimeout(_pvLoaderGuard);
     if (loadEl) loadEl.style.display = 'none';
     if (btn) btn.disabled = false;
 
@@ -6240,7 +6239,8 @@ async function pvDoSearch() {
     const avatarHtml = silSVG;
 
     // Income is on-chain — NOT stored in Firestore. Always show 0/On-Chain.
-    const fmtT = v => (v % 1 === 0 ? v.toFixed(0) : v.toFixed(2));
+    const fmtT   = v => (v % 1 === 0 ? v.toFixed(0) : v.toFixed(2));
+    const totalTon = 0; // on-chain only — Firestore does not store this
     const dirRef = typeof userData.directReferrals === 'number' ? userData.directReferrals : 0;
     const team   = typeof userData.teamSize   === 'number' ? userData.teamSize   : 0;
 
@@ -6437,10 +6437,13 @@ async function pvDoSearch() {
     })();
 
   } catch (err) {
+    clearTimeout(_pvLoaderGuard);
     if (loadEl) loadEl.style.display = 'none';
     if (btn) btn.disabled = false;
     if (empEl) {
-      empEl.innerHTML = '<div style="color:var(--red);font-family:var(--font-mono);font-size:12px;padding:20px 0;text-align:center;">Error fetching user. Try again.</div>';
+      empEl.innerHTML =
+        '<div style="font-size:28px;margin-bottom:10px;">⚠️</div>' +
+        '<div style="color:var(--red);font-size:12px;font-family:var(--font-mono);">Error: ' + (err.message || 'Unknown error') + '</div>';
       empEl.style.display = 'block';
     }
   }
@@ -6592,7 +6595,7 @@ async function doSearchUser() {
   }, 12000);
 
   try {
-    await withTimeout(waitForFirestore(), 8000, 'Firestore not available');
+    await withTimeout(waitForFirestore(), 15000, 'Firestore not ready. Refresh and try again.');
     const { doc, getDoc, collection, query, where, orderBy, getDocs } = window.__fs;
     const db = window.__db;
 
